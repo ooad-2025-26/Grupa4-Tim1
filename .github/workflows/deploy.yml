@@ -1,0 +1,39 @@
+name: Deployanje SmartPark MVC aplikacije na linux server
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t smartpark-mvc:latest .
+
+      - name: Zaustavi stare kontejnere
+        run: |
+          docker stop smartpark-app 2>/dev/null || true
+          docker rm smartpark-app 2>/dev/null || true
+
+      - name: Pokreni novi kontejner
+        run: docker run -d --name smartpark-app --restart unless-stopped -p 9090:9090 -e ASPNETCORE_ENVIRONMENT=Production -e ConnectionStrings__DefaultConnection="${{secrets.ConnectionStrings__DefaultConnection}}" smartpark-mvc:latest
+
+      - name: Obrisi stare image
+        run: docker image prune -a -f --filter "until=168h"
+
+      - name: Provjeri deployment
+        run: |
+          sleep 5
+          if docker ps | grep -q smartpark-app; then
+          echo "deployment uspjesan"
+          docker logs --tail 20 smartpark-app
+          else
+          echo "deployment pao"
+          exit 1
+          fi
