@@ -1,0 +1,54 @@
+@model smartPark.Models.ParkingMjesto
+
+@{
+    ViewData["Title"] = "Create";
+}
+
+<h1>Create</h1>
+
+<h4>ParkingMjesto</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group">
+                <label asp-for="ParkingId" class="control-label"></label>
+                <input asp-for="ParkingId" class="form-control" />
+                <span asp-validation-for="ParkingId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="BrojMjesta" class="control-label"></label>
+                <input asp-for="BrojMjesta" class="form-control" />
+                <span asp-validation-for="BrojMjesta" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="StatusMjesta" class="control-label"></label>
+                <input asp-for="StatusMjesta" class="form-control" />
+                <span asp-validation-for="StatusMjesta" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Parking" class="control-label"></label>
+                <input asp-for="Parking" class="form-control" />
+                <span asp-validation-for="Parking" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="TrenutnaRezervacija" class="control-label"></label>
+                <input asp-for="TrenutnaRezervacija" class="form-control" />
+                <span asp-validation-for="TrenutnaRezervacija" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>

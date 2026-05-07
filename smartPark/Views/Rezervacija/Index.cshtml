@@ -1,0 +1,101 @@
+@model IEnumerable<smartPark.Models.Rezervacija>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Index</h1>
+
+<p>
+    <a asp-action="Create">Create New</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.PocetakRezervacije)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.KrajRezervacije)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.UkupnaCijena)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.StatusRezervacije)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.DatumKreiranjaRezervacije)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.KorisnikId)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.ParkingId)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.ParkingMjestoId)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Korisnik)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Parking)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.ParkingMjesto)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.QRKodRezervacije)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(model => item.PocetakRezervacije)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.KrajRezervacije)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.UkupnaCijena)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.StatusRezervacije)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.DatumKreiranjaRezervacije)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.KorisnikId)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.ParkingId)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.ParkingMjestoId)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.Korisnik)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.Parking)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.ParkingMjesto)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.QRKodRezervacije)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.RezervacijaId">Edit</a> |
+                <a asp-action="Details" asp-route-id="@item.RezervacijaId">Details</a> |
+                <a asp-action="Delete" asp-route-id="@item.RezervacijaId">Delete</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>

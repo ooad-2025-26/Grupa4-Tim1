@@ -1,0 +1,72 @@
+@model smartPark.Models.Izvjestaj
+
+@{
+    ViewData["Title"] = "Create";
+}
+
+<h1>Create</h1>
+
+<h4>Izvjestaj</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group">
+                <label asp-for="DatumGenerisanja" class="control-label"></label>
+                <input asp-for="DatumGenerisanja" class="form-control" />
+                <span asp-validation-for="DatumGenerisanja" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="PeriodOd" class="control-label"></label>
+                <input asp-for="PeriodOd" class="form-control" />
+                <span asp-validation-for="PeriodOd" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="PeriodDo" class="control-label"></label>
+                <input asp-for="PeriodDo" class="form-control" />
+                <span asp-validation-for="PeriodDo" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="UkupnoRezervacija" class="control-label"></label>
+                <input asp-for="UkupnoRezervacija" class="form-control" />
+                <span asp-validation-for="UkupnoRezervacija" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="UkupniPrihod" class="control-label"></label>
+                <input asp-for="UkupniPrihod" class="form-control" />
+                <span asp-validation-for="UkupniPrihod" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="ParkingId" class="control-label"></label>
+                <input asp-for="ParkingId" class="form-control" />
+                <span asp-validation-for="ParkingId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="TipIzvjestaja" class="control-label"></label>
+                <input asp-for="TipIzvjestaja" class="form-control" />
+                <span asp-validation-for="TipIzvjestaja" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Parking" class="control-label"></label>
+                <input asp-for="Parking" class="form-control" />
+                <span asp-validation-for="Parking" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>

@@ -1,0 +1,53 @@
+@model IEnumerable<smartPark.Models.Notifikacija>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Index</h1>
+
+<p>
+    <a asp-action="Create">Create New</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Poruka)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.DatumSlanja)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.KorisnikId)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Korisnik)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(model => item.Poruka)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.DatumSlanja)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.KorisnikId)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.Korisnik)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.NotifikacijaId">Edit</a> |
+                <a asp-action="Details" asp-route-id="@item.NotifikacijaId">Details</a> |
+                <a asp-action="Delete" asp-route-id="@item.NotifikacijaId">Delete</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
