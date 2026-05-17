@@ -1,115 +1,43 @@
-@model smartPark.Models.Parking
-
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Detalji parkinga";
 }
 
-<h1>Details</h1>
+<div class="d-flex justify-content-center py-5 px-3" style="min-height:calc(100vh - 56px);background:#f7f7f8">
+  <div class="card p-4 shadow-sm" style="max-width:560px;width:100%">
+    <a href="@Url.Action("Map", "Parking")" class="text-muted small text-decoration-none mb-3 d-inline-block"><i class="bi bi-arrow-left"></i> Nazad</a>
+    <h3 class="fw-bold" id="parkingName">Centar</h3>
+    <p class="text-muted small mb-4" id="parkingAddr">Ferhadija 15, Sarajevo</p>
+    <div class="row g-2 mb-4" id="infoGrid">
+      <div class="col-6"><div class="bg-light rounded p-3"><small class="text-muted d-block">Kapacitet</small><span class="fw-semibold">300 mjesta</span></div></div>
+      <div class="col-6"><div class="bg-light rounded p-3"><small class="text-muted d-block">Slobodno</small><span class="fw-semibold text-success">175</span></div></div>
+      <div class="col-6"><div class="bg-light rounded p-3"><small class="text-muted d-block">Dnevna cijena</small><span class="fw-semibold">2.50 KM/h</span></div></div>
+      <div class="col-6"><div class="bg-light rounded p-3"><small class="text-muted d-block">Noćna cijena</small><span class="fw-semibold">1.50 KM/h</span></div></div>
+      <div class="col-6"><div class="bg-light rounded p-3"><small class="text-muted d-block">Radno vrijeme</small><span class="fw-semibold">00:00 - 24:00</span></div></div>
+      <div class="col-6"><div class="bg-light rounded p-3"><small class="text-muted d-block">Zona</small><span class="fw-semibold">Zona 1</span></div></div>
+    </div>
+    <h5 class="fw-semibold mb-3">Rezervacija</h5>
+    <form action="/payment.html">
+      <div class="mb-3"><label class="form-label small fw-medium">Datum</label><input type="date" class="form-control" value="2026-04-11"></div>
+      <div class="mb-3"><label class="form-label small fw-medium">Vrijeme početka</label><input type="time" class="form-control" value="10:00" id="startTime"></div>
+      <div class="mb-3"><label class="form-label small fw-medium">Trajanje</label>
+        <select class="form-select" id="duration">
+          <option value="60">1h</option><option value="120">2h</option><option value="180">3h</option><option value="240">4h</option><option value="360">6h</option><option value="720">12h</option><option value="1440">24h</option>
+        </select>
+      </div>
+      <div class="bg-primary bg-opacity-10 rounded p-3 d-flex justify-content-between align-items-center mb-3">
+        <span class="small">Ukupna cijena:</span>
+        <span class="fs-5 fw-bold text-primary" id="totalPrice">2.50 KM</span>
+      </div>
+      <button type="submit" class="btn btn-primary w-100">Rezerviši</button>
+    </form>
+  </div>
+</div>
 
-<div>
-    <h4>Parking</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Naziv)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Naziv)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Adresa)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Adresa)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Latitude)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Latitude)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Longitude)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Longitude)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.UkupnoMjesta)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.UkupnoMjesta)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.SlobodnaMjesta)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.SlobodnaMjesta)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CijenaPoSatu)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CijenaPoSatu)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.TipParkinga)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.TipParkinga)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Aktivan)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Aktivan)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.DatumKreiranja)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.DatumKreiranja)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.MenadzerID)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.MenadzerID)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Menadzer)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Menadzer)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ParkingMjesta)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ParkingMjesta)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Rezervacije)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Rezervacije)
-        </dd>
-    </dl>
-</div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.ParkingId">Edit</a> |
-    <a asp-action="Index">Back to List</a>
-</div>
+@section Scripts {
+<script>
+const price=2.5;
+function calc(){const d=parseInt(document.getElementById("duration").value);document.getElementById("totalPrice").textContent=(price*(d/60)).toFixed(2)+" KM";}
+document.getElementById("duration").addEventListener("change",calc);
+calc();
+</script>
+}

@@ -1,0 +1,81 @@
+@{
+    ViewData["Title"] = "Mapa parkinga";
+}
+
+@section Head {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+}
+
+@section Styles {
+<style>
+#map { height: calc(100vh - 56px); }
+        .sidebar { width: 320px; border-right: 1px solid #e5e7eb; background: #fff; overflow-y: auto; }
+        .sidebar.closed { width: 0; overflow: hidden; border-right: none; }
+        .parking-item { border-bottom: 1px solid #e5e7eb; padding: 12px 16px; cursor: pointer; transition: background 0.15s; }
+        .parking-item:hover { background: #f9fafb; }
+        .badge-free { background: rgba(34,197,94,0.1); color: #16a34a; }
+        .badge-busy { background: rgba(245,158,11,0.1); color: #d97706; }
+        .badge-full { background: rgba(239,68,68,0.1); color: #ef4444; }
+</style>
+}
+
+<div class="d-flex" style="height:calc(100vh - 56px)">
+  <div class="sidebar" id="sidebar">
+    <div class="p-3 border-bottom d-flex align-items-center gap-2">
+      <div class="input-group input-group-sm"><span class="input-group-text"><i class="bi bi-search"></i></span><input class="form-control" placeholder="Pretraži lokacije..." id="searchInput"></div>
+      <button class="btn btn-sm btn-light" onclick="toggleSidebar()" title="Zatvori"><i class="bi bi-layout-sidebar-inset"></i></button>
+    </div>
+    <div class="px-3 py-2 d-flex justify-content-between align-items-center"><small class="text-muted text-uppercase fw-medium" style="font-size:0.65rem;letter-spacing:0.05em">Lokacije u blizini</small><button class="btn btn-sm btn-light" style="font-size:0.7rem"><i class="bi bi-sliders2"></i> Filteri</button></div>
+    <div id="parkingList"></div>
+  </div>
+  <button class="btn btn-light position-absolute top-0 start-0 mt-5 ms-2 d-none" id="openBtn" onclick="toggleSidebar()" style="z-index:1000"><i class="bi bi-layout-sidebar"></i></button>
+  <div class="flex-grow-1"><div id="map"></div></div>
+</div>
+
+@section Scripts {
+<script>
+const parkings = [
+  {id:"p1",name:"Centar - Zona 1",address:"Ferhadija 15, Sarajevo",capacity:300,occupied:125,zone:"Zona 1",type:"Otvoreni parking",dayPrice:2.5,lat:43.8563,lng:18.4131},
+  {id:"p2",name:"Tržni Centar Delta",address:"Trg Djece Sarajeva 1",capacity:500,occupied:417,zone:"Zona 2",type:"Garaža",dayPrice:1,lat:43.848,lng:18.356},
+  {id:"p3",name:"Aerodrom - Terminal A",address:"Kurta Schorka 36",capacity:200,occupied:198,zone:"Zona 4",type:"Vanjski",dayPrice:3,lat:43.8246,lng:18.3315},
+  {id:"p4",name:"Bolnica - Glavni ulaz",address:"Bolnička 25, Sarajevo",capacity:150,occupied:53,zone:"Zona 3",type:"Rampa",dayPrice:1.5,lat:43.852,lng:18.387},
+  {id:"p5",name:"BBI Centar",address:"Trg Djece Sarajeva 1",capacity:400,occupied:274,zone:"Zona 1",type:"Garaža",dayPrice:2,lat:43.857,lng:18.42},
+  {id:"p6",name:"Skenderija",address:"Terezija bb, Sarajevo",capacity:250,occupied:184,zone:"Zona 1",type:"Otvoreni parking",dayPrice:1.5,lat:43.859,lng:18.426}
+];
+
+function getColor(p){const pct=p.occupied/p.capacity;if(pct>=0.8)return"#EF4444";if(pct>=0.5)return"#F59E0B";return"#22C55E";}
+function getLabel(p){const pct=p.occupied/p.capacity;if(pct>=0.95)return{t:"Puno",c:"badge-full"};if(pct>=0.8)return{t:"Popunjeno",c:"badge-full"};if(pct>=0.5)return{t:"Djelimično",c:"badge-busy"};return{t:"Slobodno",c:"badge-free"};}
+
+const map=L.map("map").setView([43.8563,18.4131],13);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",{attribution:'&copy; OSM &copy; CARTO'}).addTo(map);
+
+parkings.forEach(p=>{
+  const m=L.circleMarker([p.lat,p.lng],{radius:14,fillColor:getColor(p),fillOpacity:0.9,color:"#fff",weight:2}).addTo(map);
+  m.bindPopup('<b>'+p.name+'</b><br>'+p.address+'<br>Slobodno: '+(p.capacity-p.occupied)+'/'+p.capacity+'<br>'+p.dayPrice.toFixed(2)+' KM/h');
+  m.on("click",()=>window.location.href="/parking-details.html?id="+p.id);
+});
+
+function renderList(filter=""){
+  const list=document.getElementById("parkingList");
+  list.innerHTML="";
+  parkings.filter(p=>!filter||p.name.toLowerCase().includes(filter)||p.address.toLowerCase().includes(filter)).forEach(p=>{
+    const s=getLabel(p);
+    list.innerHTML+=`<a href="/parking-details.html?id=${p.id}" class="parking-item d-block text-decoration-none">
+      <div class="d-flex justify-content-between mb-1"><span class="fw-medium small text-dark">${p.name}</span><span class="badge-status ${s.c}">${s.t}</span></div>
+      <div class="d-flex gap-3 small text-muted mb-1"><span><i class="bi bi-geo-alt" style="font-size:0.65rem"></i> ${(Math.random()*5+0.2).toFixed(1)} km</span><span><i class="bi bi-car-front" style="font-size:0.65rem"></i> ${p.capacity-p.occupied}/${p.capacity}</span></div>
+      <div class="d-flex justify-content-between small"><span class="fw-medium text-dark">${p.dayPrice.toFixed(2)} KM / h</span><span class="text-muted">${p.type}</span></div>
+    </a>`;
+  });
+}
+renderList();
+document.getElementById("searchInput").addEventListener("input",e=>renderList(e.target.value.toLowerCase()));
+
+function toggleSidebar(){
+  const sb=document.getElementById("sidebar"),btn=document.getElementById("openBtn");
+  sb.classList.toggle("closed");
+  btn.classList.toggle("d-none");
+  setTimeout(()=>map.invalidateSize(),300);
+}
+</script>
+}

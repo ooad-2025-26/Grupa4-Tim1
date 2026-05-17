@@ -1,101 +1,79 @@
-@model IEnumerable<smartPark.Models.Rezervacija>
-
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Moje rezervacije";
 }
 
-<h1>Index</h1>
-
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.PocetakRezervacije)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.KrajRezervacije)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.UkupnaCijena)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.StatusRezervacije)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.DatumKreiranjaRezervacije)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.KorisnikId)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.ParkingId)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.ParkingMjestoId)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Korisnik)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Parking)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.ParkingMjesto)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.QRKodRezervacije)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(model => item.PocetakRezervacije)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.KrajRezervacije)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.UkupnaCijena)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.StatusRezervacije)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.DatumKreiranjaRezervacije)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.KorisnikId)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.ParkingId)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.ParkingMjestoId)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Korisnik)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Parking)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.ParkingMjesto)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.QRKodRezervacije)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.RezervacijaId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.RezervacijaId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.RezervacijaId">Delete</a>
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
+<div class="container py-4" style="max-width:800px">
+  <div class="d-flex align-items-center gap-3 mb-1">
+    <a href="@Url.Action("Index", "Home")" class="text-muted"><i class="bi bi-arrow-left"></i></a>
+    <div><h4 class="fw-bold mb-0">Moje rezervacije</h4><small class="text-muted">Pregled svih vaših rezervacija</small></div>
+  </div>
+  <ul class="nav nav-tabs mt-4 mb-4">
+    <li class="nav-item"><a class="nav-link active" href="#">Sve (4)</a></li>
+    <li class="nav-item"><a class="nav-link" href="#">Aktivne (2)</a></li>
+    <li class="nav-item"><a class="nav-link" href="#">Historija (1)</a></li>
+    <li class="nav-item"><a class="nav-link" href="#">Otkazane (1)</a></li>
+  </ul>
+  
+        <div class="card p-4 mb-3">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div class="d-flex align-items-center gap-2"><h6 class="fw-semibold mb-0">Centar - Zona 1</h6><span class="badge-status badge-active">Aktivna</span></div>
+            <div><a href="@Url.Action("Index", "QRKod")" class="btn btn-sm btn-outline-secondary me-1"><i class="bi bi-qr-code"></i> QR Kod</a><div class="dropdown d-inline"><button class="btn btn-sm btn-light" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
+            <ul class="dropdown-menu"><li><a class="dropdown-item" href="@Url.Action("Cancel", "Rezervacija")">Otkaži</a></li><li><a class="dropdown-item" href="@Url.Action("Extend", "Rezervacija")">Produži</a></li></ul></div></div>
+          </div>
+          <div class="small text-muted mb-3">
+            <div class="mb-1"><i class="bi bi-geo-alt"></i> Ferhadija 15, Sarajevo</div>
+            <div class="mb-1"><i class="bi bi-calendar"></i> 2026-04-10</div>
+            <div class="mb-1"><i class="bi bi-clock"></i> 10:00 (4 sata)</div>
+            <div><i class="bi bi-car-front"></i> Mjesto: A-15 | Otvoreni parking</div>
+          </div>
+          <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+            <span class="small">Cijena: <strong>10.00 KM</strong></span><span class="text-muted" style="font-size:0.7rem">ID: RES-001</span>
+          </div>
+        </div>
+        <div class="card p-4 mb-3">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div class="d-flex align-items-center gap-2"><h6 class="fw-semibold mb-0">Tržni Centar Delta</h6><span class="badge-status badge-upcoming">Nadolazeća</span></div>
+            <div><a href="@Url.Action("Index", "QRKod")" class="btn btn-sm btn-outline-secondary me-1"><i class="bi bi-qr-code"></i> QR Kod</a><div class="dropdown d-inline"><button class="btn btn-sm btn-light" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
+            <ul class="dropdown-menu"><li><a class="dropdown-item" href="@Url.Action("Cancel", "Rezervacija")">Otkaži</a></li><li><a class="dropdown-item" href="@Url.Action("Extend", "Rezervacija")">Produži</a></li></ul></div></div>
+          </div>
+          <div class="small text-muted mb-3">
+            <div class="mb-1"><i class="bi bi-geo-alt"></i> Trg Djece Sarajeva 1</div>
+            <div class="mb-1"><i class="bi bi-calendar"></i> 2026-04-11</div>
+            <div class="mb-1"><i class="bi bi-clock"></i> 09:00 (3 sata)</div>
+            <div><i class="bi bi-car-front"></i> Mjesto: B-42 | Garaža</div>
+          </div>
+          <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+            <span class="small">Cijena: <strong>3.00 KM</strong></span><span class="text-muted" style="font-size:0.7rem">ID: RES-002</span>
+          </div>
+        </div>
+        <div class="card p-4 mb-3">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div class="d-flex align-items-center gap-2"><h6 class="fw-semibold mb-0">Bolnica - Glavni ulaz</h6><span class="badge-status badge-expired">Istekla</span></div>
+            <div></div>
+          </div>
+          <div class="small text-muted mb-3">
+            <div class="mb-1"><i class="bi bi-geo-alt"></i> Bolnička 25, Sarajevo</div>
+            <div class="mb-1"><i class="bi bi-calendar"></i> 2026-04-08</div>
+            <div class="mb-1"><i class="bi bi-clock"></i> 14:00 (2 sata)</div>
+            <div><i class="bi bi-car-front"></i> Mjesto: C-08 | Rampa</div>
+          </div>
+          <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+            <span class="small">Cijena: <strong>3.00 KM</strong></span><span class="text-muted" style="font-size:0.7rem">ID: RES-003</span>
+          </div>
+        </div>
+        <div class="card p-4 mb-3">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div class="d-flex align-items-center gap-2"><h6 class="fw-semibold mb-0">Aerodrom - Terminal A</h6><span class="badge-status badge-cancelled">Otkazana</span></div>
+            <div></div>
+          </div>
+          <div class="small text-muted mb-3">
+            <div class="mb-1"><i class="bi bi-geo-alt"></i> Kurta Schorka 36</div>
+            <div class="mb-1"><i class="bi bi-calendar"></i> 2026-04-05</div>
+            <div class="mb-1"><i class="bi bi-clock"></i> 06:00 (12 sati)</div>
+            <div><i class="bi bi-car-front"></i> Mjesto: P-112 | Vanjski</div>
+          </div>
+          <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+            <span class="small">Cijena: <strong>36.00 KM</strong></span><span class="text-muted" style="font-size:0.7rem">ID: RES-004</span>
+          </div>
+        </div>
+</div>

@@ -1,8 +1,7 @@
-
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using smartPark.Models;
 using smartPark.Data;
+using smartPark.Models.Entities;
 
 public class RezervacijaController : Controller
 {
@@ -14,7 +13,7 @@ public class RezervacijaController : Controller
     }
 
     // GET: REZERVACIJAS
-    public async Task<IActionResult> Index()    
+    public async Task<IActionResult> Index()
     {
         return View(await _context.Rezervacije.ToListAsync());
     }
@@ -27,8 +26,9 @@ public class RezervacijaController : Controller
             return NotFound();
         }
 
-        var rezervacija = await _context.Rezervacije
-            .FirstOrDefaultAsync(m => m.RezervacijaId == rezervacijaid);
+        var rezervacija = await _context.Rezervacije.FirstOrDefaultAsync(m =>
+            m.RezervacijaId == rezervacijaid
+        );
         if (rezervacija == null)
         {
             return NotFound();
@@ -48,7 +48,9 @@ public class RezervacijaController : Controller
     // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Title,ReleaseDate,Genre,Price")] Rezervacija rezervacija)
+    public async Task<IActionResult> Create(
+        [Bind("Title,ReleaseDate,Genre,Price")] Rezervacija rezervacija
+    )
     {
         if (ModelState.IsValid)
         {
@@ -80,7 +82,10 @@ public class RezervacijaController : Controller
     // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int? rezervacijaid, [Bind("Id,Title,ReleaseDate,Genre,Price")] Rezervacija rezervacija)
+    public async Task<IActionResult> Edit(
+        int? rezervacijaid,
+        [Bind("Id,Title,ReleaseDate,Genre,Price")] Rezervacija rezervacija
+    )
     {
         if (rezervacijaid != rezervacija.RezervacijaId)
         {
@@ -118,8 +123,9 @@ public class RezervacijaController : Controller
             return NotFound();
         }
 
-        var rezervacija = await _context.Rezervacije
-            .FirstOrDefaultAsync(m => m.RezervacijaId == rezervacijaid);
+        var rezervacija = await _context.Rezervacije.FirstOrDefaultAsync(m =>
+            m.RezervacijaId == rezervacijaid
+        );
         if (rezervacija == null)
         {
             return NotFound();

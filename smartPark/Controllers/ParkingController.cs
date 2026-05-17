@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using smartPark.Data;
-using smartPark.Models;
+using smartPark.Models.Entities;
 
 public class ParkingController : Controller
 {

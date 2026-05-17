@@ -1,150 +1,250 @@
-
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using smartPark.Models;
-using smartPark.Data;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using smartPark.Models.Enums;
+using smartPark.Models.ViewModels.Cjenovnik;
+using smartPark.Services.Interfaces;
 
-public class CijenovnikController : Controller
+namespace smartPark.Controllers
 {
-    private readonly ApplicationDbContext _context;
-
-    public CijenovnikController(ApplicationDbContext context)
+    [Authorize(Roles = "Admin,Menadzer")]
+    public class CjenovnikController : Controller
     {
-        _context = context;
-    }
+        private readonly ICjenovnikService _cjenovnikServis;
+        private readonly IParkingService _parkingServis; // Dodaj parking servis za dropdown
 
-    // GET: CJENOVNIKS
-    public async Task<IActionResult> Index()    
-    {
-        return View(await _context.Cjenovnici.ToListAsync());
-    }
-
-    // GET: CJENOVNIKS/Details/5
-    public async Task<IActionResult> Details(int? cjenovnikid)
-    {
-        if (cjenovnikid == null)
+        public CjenovnikController(ICjenovnikService cjenovnikServis, IParkingService parkingServis)
         {
-            return NotFound();
+            _cjenovnikServis = cjenovnikServis;
+            _parkingServis = parkingServis;
         }
 
-        var cjenovnik = await _context.Cjenovnici
-            .FirstOrDefaultAsync(m => m.CjenovnikId == cjenovnikid);
-        if (cjenovnik == null)
+        // ========== PRIKAZ SVIH CJENOVNIKA ==========
+
+        [HttpGet]
+        public async Task<IActionResult> Index(int? parkingId)
         {
-            return NotFound();
+            var viewModel = await _cjenovnikServis.DohvatiListuCjenovnikaViewModelAsync(parkingId);
+            return View(viewModel);
         }
 
-        return View(cjenovnik);
-    }
+        // ========== DETALJI CJENOVNIKA ==========
 
-    // GET: CJENOVNIKS/Create
-    public IActionResult Create()
-    {
-        return View();
-    }
-
-    // POST: CJENOVNIKS/Create
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Title,ReleaseDate,Genre,Price")] Cjenovnik cjenovnik)
-    {
-        if (ModelState.IsValid)
+        [HttpGet]
+        public async Task<IActionResult> Detalji(int id)
         {
-            _context.Add(cjenovnik);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
-        return View(cjenovnik);
-    }
+            var viewModel = await _cjenovnikServis.DohvatiDetaljeCjenovnikaViewModelAsync(id);
+            if (viewModel == null)
+                return NotFound();
 
-    // GET: CJENOVNIKS/Edit/5
-    public async Task<IActionResult> Edit(int? cjenovnikid)
-    {
-        if (cjenovnikid == null)
-        {
-            return NotFound();
+            return View(viewModel);
         }
 
-        var cjenovnik = await _context.Cjenovnici.FindAsync(cjenovnikid);
-        if (cjenovnik == null)
-        {
-            return NotFound();
-        }
-        return View(cjenovnik);
-    }
+        // ========== KREIRANJE CJENOVNIKA ==========
 
-    // POST: CJENOVNIKS/Edit/5
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int? cjenovnikid, [Bind("Id,Title,ReleaseDate,Genre,Price")] Cjenovnik cjenovnik)
-    {
-        if (cjenovnikid != cjenovnik.CjenovnikId)
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Kreiraj()
         {
-            return NotFound();
+            // Ručno napravi ViewModel sa listom parkinga
+            var parkinzi = await _parkingServis.DohvatiSveParkingeAsync();
+            var viewModel = new CjenovnikKreirajViewModel
+            {
+                ParkingLista = parkinzi.Select(p => new SelectListItem
+                {
+                    Value = p.ParkingId.ToString(),
+                    Text = $"{p.Naziv} - {p.Adresa}",
+                }),
+                DatumPocetka = DateTime.Now.Date,
+                TipPerioda = TipPerioda.Dan,
+            };
+
+            return View(viewModel);
         }
 
-        if (ModelState.IsValid)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Kreiraj(CjenovnikKreirajViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                // Ponovo napuni dropdown listu
+                var parkinzi = await _parkingServis.DohvatiSveParkingeAsync();
+                model.ParkingLista = parkinzi.Select(p => new SelectListItem
+                {
+                    Value = p.ParkingId.ToString(),
+                    Text = $"{p.Naziv} - {p.Adresa}",
+                });
+                return View(model);
+            }
+
+            try
+            {
+                var cjenovnik = await _cjenovnikServis.KreirajCjenovnikAsync(model);
+                TempData["Uspjeh"] = $"Cjenovnik za parking uspješno kreiran!";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (InvalidOperationException greska)
+            {
+                ModelState.AddModelError("", greska.Message);
+
+                // Ponovo napuni dropdown listu
+                var parkinzi = await _parkingServis.DohvatiSveParkingeAsync();
+                model.ParkingLista = parkinzi.Select(p => new SelectListItem
+                {
+                    Value = p.ParkingId.ToString(),
+                    Text = $"{p.Naziv} - {p.Adresa}",
+                });
+                return View(model);
+            }
+        }
+
+        // ========== UREDIVANJE CJENOVNIKA ==========
+
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Uredi(int id)
+        {
+            var cjenovnik = await _cjenovnikServis.DohvatiCjenovnikPoIdAsync(id);
+            if (cjenovnik == null)
+                return NotFound();
+
+            var viewModel = new CjenovnikUrediViewModel
+            {
+                CjenovnikId = cjenovnik.CjenovnikId,
+                CijenaPoSatu = cjenovnik.CijenaPoSatu,
+                Zona = cjenovnik.Zona,
+                TipPerioda = cjenovnik.TipPerioda,
+                DatumPocetka = cjenovnik.DatumPocetka,
+                DatumKraja = cjenovnik.DatumKraja,
+            };
+
+            return View(viewModel);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Uredi(int id, CjenovnikUrediViewModel model)
+        {
+            if (id != model.CjenovnikId)
+                return NotFound();
+
+            if (!ModelState.IsValid)
+                return View(model);
+
+            try
+            {
+                // Ažuriranje cijene
+                var cjenovnik = await _cjenovnikServis.AzurirajCijenuCjenovnikaAsync(
+                    id,
+                    model.CijenaPoSatu
+                );
+
+                // Ažuriranje ostalih polja
+                cjenovnik.Zona = model.Zona;
+                cjenovnik.TipPerioda = model.TipPerioda;
+                cjenovnik.DatumPocetka = model.DatumPocetka;
+                cjenovnik.DatumKraja = model.DatumKraja;
+
+                await _cjenovnikServis.AzurirajCjenovnikAsync(model);
+
+                TempData["Uspjeh"] = "Cjenovnik uspješno ažuriran!";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+            catch (InvalidOperationException greska)
+            {
+                ModelState.AddModelError("", greska.Message);
+                return View(model);
+            }
+        }
+
+        // ========== DEAKTIVIRANJE CJENOVNIKA ==========
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Deaktiviraj(int id)
         {
             try
             {
-                _context.Update(cjenovnik);
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!CjenovnikExists(cjenovnik.CjenovnikId))
+                var rezultat = await _cjenovnikServis.DeaktivirajCjenovnikAsync(id);
+                if (rezultat)
                 {
-                    return NotFound();
+                    TempData["Uspjeh"] = "Cjenovnik uspješno deaktiviran!";
                 }
                 else
                 {
-                    throw;
+                    TempData["Greska"] = "Cjenovnik nije moguće deaktivirati.";
                 }
             }
+            catch (InvalidOperationException greska)
+            {
+                TempData["Greska"] = greska.Message;
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+
             return RedirectToAction(nameof(Index));
         }
-        return View(cjenovnik);
-    }
 
-    // GET: CJENOVNIKS/Delete/5
-    public async Task<IActionResult> Delete(int? cjenovnikid)
-    {
-        if (cjenovnikid == null)
+        // ========== BRISANJE CJENOVNIKA ==========
+
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Obrisi(int id)
         {
-            return NotFound();
+            var cjenovnik = await _cjenovnikServis.DohvatiCjenovnikPoIdAsync(id);
+            if (cjenovnik == null)
+                return NotFound();
+
+            return View(cjenovnik);
         }
 
-        var cjenovnik = await _context.Cjenovnici
-            .FirstOrDefaultAsync(m => m.CjenovnikId == cjenovnikid);
-        if (cjenovnik == null)
+        [HttpPost]
+        [ActionName("Obrisi")]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ObrisiPotvrda(int id)
         {
-            return NotFound();
+            var rezultat = await _cjenovnikServis.ObrisiCjenovnikAsync(id);
+            if (rezultat)
+            {
+                TempData["Uspjeh"] = "Cjenovnik uspješno obrisan!";
+            }
+            else
+            {
+                TempData["Greska"] = "Cjenovnik nije pronađen.";
+            }
+
+            return RedirectToAction(nameof(Index));
         }
 
-        return View(cjenovnik);
-    }
+        // ========== API ENDPOINT ZA PRIMJENU CIJENE ==========
 
-    // POST: CJENOVNIKS/Delete/5
-    [HttpPost, ActionName("Delete")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(int? cjenovnikid)
-    {
-        var cjenovnik = await _context.Cjenovnici.FindAsync(cjenovnikid);
-        if (cjenovnik != null)
+        [HttpPost]
+        public async Task<IActionResult> PrimjeniCijenu(int parkingId, int sati, TipPerioda period)
         {
-            _context.Cjenovnici.Remove(cjenovnik);
+            try
+            {
+                var ukupnaCijena = await _cjenovnikServis.PrimjeniCijenuCjenovnikaAsync(
+                    parkingId,
+                    sati,
+                    period
+                );
+                return Json(new { uspjeh = true, cijena = ukupnaCijena });
+            }
+            catch (Exception greska)
+            {
+                return Json(new { uspjeh = false, greska = greska.Message });
+            }
         }
-
-        await _context.SaveChangesAsync();
-        return RedirectToAction(nameof(Index));
-    }
-
-    private bool CjenovnikExists(int? cjenovnikid)
-    {
-        return _context.Cjenovnici.Any(e => e.CjenovnikId == cjenovnikid);
     }
 }

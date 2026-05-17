@@ -1,8 +1,7 @@
-
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using smartPark.Models;
 using smartPark.Data;
+using smartPark.Models.Entities;
 
 public class NotifikacijaController : Controller
 {
@@ -14,7 +13,7 @@ public class NotifikacijaController : Controller
     }
 
     // GET: NOTIFIKACIJAS
-    public async Task<IActionResult> Index()    
+    public async Task<IActionResult> Index()
     {
         return View(await _context.Notifikacije.ToListAsync());
     }
@@ -27,8 +26,9 @@ public class NotifikacijaController : Controller
             return NotFound();
         }
 
-        var notifikacija = await _context.Notifikacije
-            .FirstOrDefaultAsync(m => m.NotifikacijaId == notifikacijaid);
+        var notifikacija = await _context.Notifikacije.FirstOrDefaultAsync(m =>
+            m.NotifikacijaId == notifikacijaid
+        );
         if (notifikacija == null)
         {
             return NotFound();
@@ -48,7 +48,9 @@ public class NotifikacijaController : Controller
     // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Title,ReleaseDate,Genre,Price")] Notifikacija notifikacija)
+    public async Task<IActionResult> Create(
+        [Bind("Title,ReleaseDate,Genre,Price")] Notifikacija notifikacija
+    )
     {
         if (ModelState.IsValid)
         {
@@ -80,7 +82,10 @@ public class NotifikacijaController : Controller
     // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int? notifikacijaid, [Bind("Id,Title,ReleaseDate,Genre,Price")] Notifikacija notifikacija)
+    public async Task<IActionResult> Edit(
+        int? notifikacijaid,
+        [Bind("Id,Title,ReleaseDate,Genre,Price")] Notifikacija notifikacija
+    )
     {
         if (notifikacijaid != notifikacija.NotifikacijaId)
         {
@@ -118,8 +123,9 @@ public class NotifikacijaController : Controller
             return NotFound();
         }
 
-        var notifikacija = await _context.Notifikacije
-            .FirstOrDefaultAsync(m => m.NotifikacijaId == notifikacijaid);
+        var notifikacija = await _context.Notifikacije.FirstOrDefaultAsync(m =>
+            m.NotifikacijaId == notifikacijaid
+        );
         if (notifikacija == null)
         {
             return NotFound();

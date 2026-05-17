@@ -1,0 +1,17 @@
+@{
+    ViewData["Title"] = "Registracija";
+}
+
+<div class="container d-flex align-items-center justify-content-center" style="min-height:100vh">
+  <div class="card p-4 shadow-sm" style="max-width:420px;width:100%">
+    <h3 class="text-center fw-bold mb-4">Registracija</h3>
+    <form action="/login.html">
+      <div class="row mb-3"><div class="col"><label class="form-label small fw-medium">Ime</label><input class="form-control" required></div><div class="col"><label class="form-label small fw-medium">Prezime</label><input class="form-control" required></div></div>
+      <div class="mb-3"><label class="form-label small fw-medium">Email</label><input type="email" class="form-control" required></div>
+      <div class="mb-3"><label class="form-label small fw-medium">Lozinka</label><input type="password" class="form-control" required></div>
+      <div class="mb-3"><label class="form-label small fw-medium">Potvrdi lozinku</label><input type="password" class="form-control" required></div>
+      <button class="btn btn-primary w-100">Registruj se</button>
+    </form>
+    <p class="text-center mt-3 small text-muted">Već imate račun? <a href="@Url.Action("Login", "Korisnik")" class="text-primary fw-medium">Prijavite se</a></p>
+  </div>
+</div>

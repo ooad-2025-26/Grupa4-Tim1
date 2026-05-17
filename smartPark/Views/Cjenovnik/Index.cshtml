@@ -1,77 +1,14 @@
-@model IEnumerable<smartPark.Models.Cjenovnik>
-
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Cjenovnik";
 }
 
-<h1>Index</h1>
-
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.ParkingId)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CijenaPoSatu)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Zona)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.TipPerioda)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.DatumPocetka)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.DatumKraja)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Aktivan)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Parking)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(model => item.ParkingId)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.CijenaPoSatu)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Zona)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.TipPerioda)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.DatumPocetka)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.DatumKraja)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Aktivan)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Parking)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.CjenovnikId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.CjenovnikId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.CjenovnikId">Delete</a>
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
+<div class="container py-4" style="max-width:520px">
+  <h4 class="fw-bold mb-4">Upravljanje cijenama</h4>
+  <div class="card p-4">
+    <div class="mb-3"><label class="form-label small fw-medium">Parking</label><select class="form-select"><option>Centar - Zona 1</option><option>Tržni Centar Delta</option><option>Aerodrom - Terminal A</option><option>Bolnica - Glavni ulaz</option><option>BBI Centar</option><option>Skenderija</option></select></div>
+    <div class="mb-3"><label class="form-label small fw-medium">Standardna satnica (KM)</label><input type="number" step="0.5" class="form-control" value="2.5"></div>
+    <div class="mb-3"><label class="form-label small fw-medium">Noćna tarifa (22:00-06:00) (KM)</label><input type="number" step="0.5" class="form-control" value="1.5"></div>
+    <div class="mb-3"><label class="form-label small fw-medium">Vikend tarifa (KM)</label><input type="number" step="0.5" class="form-control" value="2"></div>
+    <button class="btn btn-primary w-100">Sačuvaj izmjene</button>
+  </div>
+</div>

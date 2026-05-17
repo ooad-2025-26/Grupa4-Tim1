@@ -1,8 +1,7 @@
-
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using smartPark.Models;
 using smartPark.Data;
+using smartPark.Models.Entities;
 
 public class ParkingMjestoController : Controller
 {
@@ -14,7 +13,7 @@ public class ParkingMjestoController : Controller
     }
 
     // GET: PARKINGMJESTOS
-    public async Task<IActionResult> Index()    
+    public async Task<IActionResult> Index()
     {
         return View(await _context.ParkingMjesta.ToListAsync());
     }
@@ -27,8 +26,9 @@ public class ParkingMjestoController : Controller
             return NotFound();
         }
 
-        var parkingmjesto = await _context.ParkingMjesta
-            .FirstOrDefaultAsync(m => m.ParkingMjestoId == parkingmjestoid);
+        var parkingmjesto = await _context.ParkingMjesta.FirstOrDefaultAsync(m =>
+            m.ParkingMjestoId == parkingmjestoid
+        );
         if (parkingmjesto == null)
         {
             return NotFound();
@@ -48,7 +48,9 @@ public class ParkingMjestoController : Controller
     // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Title,ReleaseDate,Genre,Price")] ParkingMjesto parkingmjesto)
+    public async Task<IActionResult> Create(
+        [Bind("Title,ReleaseDate,Genre,Price")] ParkingMjesto parkingmjesto
+    )
     {
         if (ModelState.IsValid)
         {
@@ -80,7 +82,10 @@ public class ParkingMjestoController : Controller
     // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int? parkingmjestoid, [Bind("Id,Title,ReleaseDate,Genre,Price")] ParkingMjesto parkingmjesto)
+    public async Task<IActionResult> Edit(
+        int? parkingmjestoid,
+        [Bind("Id,Title,ReleaseDate,Genre,Price")] ParkingMjesto parkingmjesto
+    )
     {
         if (parkingmjestoid != parkingmjesto.ParkingMjestoId)
         {
@@ -118,8 +123,9 @@ public class ParkingMjestoController : Controller
             return NotFound();
         }
 
-        var parkingmjesto = await _context.ParkingMjesta
-            .FirstOrDefaultAsync(m => m.ParkingMjestoId == parkingmjestoid);
+        var parkingmjesto = await _context.ParkingMjesta.FirstOrDefaultAsync(m =>
+            m.ParkingMjestoId == parkingmjestoid
+        );
         if (parkingmjesto == null)
         {
             return NotFound();

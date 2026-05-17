@@ -1,8 +1,7 @@
-
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using smartPark.Models;
 using smartPark.Data;
+using smartPark.Models.Entities;
 
 public class IzvjestajController : Controller
 {
@@ -14,7 +13,7 @@ public class IzvjestajController : Controller
     }
 
     // GET: IZVJESTAJS
-    public async Task<IActionResult> Index()    
+    public async Task<IActionResult> Index()
     {
         return View(await _context.Izvjestaji.ToListAsync());
     }
@@ -27,8 +26,9 @@ public class IzvjestajController : Controller
             return NotFound();
         }
 
-        var izvjestaj = await _context.Izvjestaji
-            .FirstOrDefaultAsync(m => m.IzvjestajId == izvjestajid);
+        var izvjestaj = await _context.Izvjestaji.FirstOrDefaultAsync(m =>
+            m.IzvjestajId == izvjestajid
+        );
         if (izvjestaj == null)
         {
             return NotFound();
@@ -48,7 +48,9 @@ public class IzvjestajController : Controller
     // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Title,ReleaseDate,Genre,Price")] Izvjestaj izvjestaj)
+    public async Task<IActionResult> Create(
+        [Bind("Title,ReleaseDate,Genre,Price")] Izvjestaj izvjestaj
+    )
     {
         if (ModelState.IsValid)
         {
@@ -80,7 +82,10 @@ public class IzvjestajController : Controller
     // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int? izvjestajid, [Bind("Id,Title,ReleaseDate,Genre,Price")] Izvjestaj izvjestaj)
+    public async Task<IActionResult> Edit(
+        int? izvjestajid,
+        [Bind("Id,Title,ReleaseDate,Genre,Price")] Izvjestaj izvjestaj
+    )
     {
         if (izvjestajid != izvjestaj.IzvjestajId)
         {
@@ -118,8 +123,9 @@ public class IzvjestajController : Controller
             return NotFound();
         }
 
-        var izvjestaj = await _context.Izvjestaji
-            .FirstOrDefaultAsync(m => m.IzvjestajId == izvjestajid);
+        var izvjestaj = await _context.Izvjestaji.FirstOrDefaultAsync(m =>
+            m.IzvjestajId == izvjestajid
+        );
         if (izvjestaj == null)
         {
             return NotFound();

@@ -1,53 +1,20 @@
-@model IEnumerable<smartPark.Models.Notifikacija>
-
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Sistemski logovi";
 }
 
-<h1>Index</h1>
-
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Poruka)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.DatumSlanja)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.KorisnikId)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Korisnik)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(model => item.Poruka)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.DatumSlanja)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.KorisnikId)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Korisnik)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.NotifikacijaId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.NotifikacijaId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.NotifikacijaId">Delete</a>
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4"><h4 class="fw-bold mb-0">Sistemski logovi</h4><button class="btn btn-danger btn-sm">Obriši logove</button></div>
+  <div class="mb-4"><select class="form-select form-select-sm" style="max-width:180px"><option>Svi tipovi</option><option>Greške</option><option>Upozorenja</option><option>Info</option></select></div>
+  <div class="card"><div class="table-responsive"><table class="table table-sm mb-0 small">
+    <thead class="table-light"><tr><th>Vrijeme</th><th>Tip</th><th>Poruka</th><th>Korisnik</th></tr></thead>
+    <tbody><tr><td class="text-muted text-nowrap">2026-04-10 08:15:00</td><td><span class="badge bg-info bg-opacity-10 text-info" style="font-size:0.7rem">info</span></td><td>Korisnik amer@example.com se prijavio</td><td class="text-muted">u1</td></tr>
+<tr><td class="text-muted text-nowrap">2026-04-10 08:20:00</td><td><span class="badge bg-info bg-opacity-10 text-info" style="font-size:0.7rem">info</span></td><td>Nova rezervacija kreirana: RES-001</td><td class="text-muted">u1</td></tr>
+<tr><td class="text-muted text-nowrap">2026-04-10 07:00:00</td><td><span class="badge bg-warning bg-opacity-10 text-warning" style="font-size:0.7rem">warning</span></td><td>Parking Aerodrom gotovo popunjen (99%)</td><td class="text-muted">-</td></tr>
+<tr><td class="text-muted text-nowrap">2026-04-09 23:45:00</td><td><span class="badge bg-danger bg-opacity-10 text-danger" style="font-size:0.7rem">error</span></td><td>Greška pri procesiranju plaćanja za korisnika u2</td><td class="text-muted">u2</td></tr>
+<tr><td class="text-muted text-nowrap">2026-04-09 18:30:00</td><td><span class="badge bg-info bg-opacity-10 text-info" style="font-size:0.7rem">info</span></td><td>Korisnik selma@example.com registriran</td><td class="text-muted">u2</td></tr>
+<tr><td class="text-muted text-nowrap">2026-04-10 09:00:00</td><td><span class="badge bg-danger bg-opacity-10 text-danger" style="font-size:0.7rem">error</span></td><td>Timeout pri povezivanju na bazu podataka</td><td class="text-muted">-</td></tr>
+<tr><td class="text-muted text-nowrap">2026-04-10 06:00:00</td><td><span class="badge bg-info bg-opacity-10 text-info" style="font-size:0.7rem">info</span></td><td>Sistem uspješno pokrenut</td><td class="text-muted">-</td></tr>
+<tr><td class="text-muted text-nowrap">2026-04-09 14:22:00</td><td><span class="badge bg-warning bg-opacity-10 text-warning" style="font-size:0.7rem">warning</span></td><td>Visoko opterećenje servera detektovano</td><td class="text-muted">-</td></tr>
+</tbody>
+  </table></div></div>
+</div>

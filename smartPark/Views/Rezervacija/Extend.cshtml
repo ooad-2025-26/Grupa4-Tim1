@@ -1,0 +1,44 @@
+@{
+    ViewData["Title"] = "Produži rezervaciju";
+}
+
+<div class="container py-4" style="max-width:600px">
+  <div class="d-flex align-items-center gap-3 mb-4"><a href="@Url.Action("Index", "Rezervacija")" class="text-muted"><i class="bi bi-arrow-left"></i></a><h4 class="fw-bold mb-0">Produženje rezervacije</h4></div>
+  <div class="card p-4 mb-3">
+    <h6 class="fw-semibold mb-1">Trenutna rezervacija</h6><small class="text-muted">ID: RES-001</small>
+    <div class="mt-3 small">
+      <div class="mb-2"><i class="bi bi-geo-alt text-muted"></i> Centar - Zona 1, Ferhadija 15</div>
+      <div class="mb-2"><i class="bi bi-calendar text-muted"></i> 2026-04-10</div>
+      <div class="mb-2"><i class="bi bi-clock text-muted"></i> 10:00 - 14:00 (4 sata)</div>
+      <div><i class="bi bi-car-front text-muted"></i> Mjesto: A-15</div>
+    </div>
+  </div>
+  <div class="card p-4 mb-3">
+    <h6 class="fw-semibold mb-1">Odaberite dodatno vrijeme</h6><small class="text-muted">Cijena po satu: 2.50 KM</small>
+    <div class="mt-3">
+      <div class="form-check border rounded p-3 mb-2 d-flex justify-content-between align-items-center"><div><input class="form-check-input" type="radio" name="ext" value="1" id="e1" checked><label class="form-check-label fw-medium small" for="e1">1 sat</label></div><small class="text-muted">(+2.50 KM)</small></div>
+      <div class="form-check border rounded p-3 mb-2 d-flex justify-content-between align-items-center"><div><input class="form-check-input" type="radio" name="ext" value="2" id="e2"><label class="form-check-label fw-medium small" for="e2">2 sata</label></div><small class="text-muted">(+5.00 KM)</small></div>
+      <div class="form-check border rounded p-3 mb-2 d-flex justify-content-between align-items-center"><div><input class="form-check-input" type="radio" name="ext" value="3" id="e3"><label class="form-check-label fw-medium small" for="e3">3 sata</label></div><small class="text-muted">(+7.50 KM)</small></div>
+      <div class="form-check border rounded p-3 d-flex justify-content-between align-items-center"><div><input class="form-check-input" type="radio" name="ext" value="4" id="e4"><label class="form-check-label fw-medium small" for="e4">4 sata</label></div><small class="text-muted">(+10.00 KM)</small></div>
+    </div>
+  </div>
+  <div class="card p-4 mb-3 small">
+    <div class="d-flex justify-content-between mb-1"><span class="text-muted">Novo vrijeme završetka:</span><span class="fw-medium" id="newEnd">15:00</span></div>
+    <div class="d-flex justify-content-between mb-2"><span class="text-muted">Dodatno vrijeme:</span><span class="fw-medium" id="addHours">1 sat</span></div>
+    <hr><div class="d-flex justify-content-between"><span class="fw-medium">Ukupno za doplatu:</span><span class="fs-5 fw-bold text-primary" id="extraCost">2.50 KM</span></div>
+  </div>
+  <div class="card p-3 mb-4 d-flex flex-row align-items-center gap-3"><i class="bi bi-credit-card text-muted"></i><div><p class="small fw-medium mb-0">Visa **** 4242</p><small class="text-muted">Podrazumijevani način plaćanja</small></div></div>
+  <div class="d-flex gap-2"><a href="@Url.Action("Index", "Rezervacija")" class="btn btn-light flex-fill">Odustani</a><a href="@Url.Action("Index", "Rezervacija")" class="btn btn-primary flex-fill" id="extendBtn">Produži i plati 2.50 KM</a></div>
+</div>
+
+@section Scripts {
+<script>
+document.querySelectorAll('input[name="ext"]').forEach(r=>r.addEventListener("change",()=>{
+  const h=parseInt(r.value),cost=(h*2.5).toFixed(2);
+  document.getElementById("extraCost").textContent=cost+" KM";
+  document.getElementById("addHours").textContent=h+" sat"+(h>1?"a":"");
+  document.getElementById("newEnd").textContent=(14+h)+":00";
+  document.getElementById("extendBtn").textContent="Produži i plati "+cost+" KM";
+}));
+</script>
+}

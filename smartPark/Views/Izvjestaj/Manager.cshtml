@@ -1,0 +1,34 @@
+@{
+    ViewData["Title"] = "Menadžer izvještaji";
+}
+
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-start mb-4">
+    <div class="d-flex align-items-center gap-3"><a href="@Url.Action("ManagerDashboard", "Home")" class="text-muted"><i class="bi bi-arrow-left"></i></a><div><h4 class="fw-bold mb-0">Generisanje izvještaja</h4><small class="text-muted">Menadžer panel</small></div></div>
+    <div class="d-flex gap-2"><button class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-pdf"></i> PDF</button><button class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</button></div>
+  </div>
+  <div class="card p-3 mb-4"><div class="row g-2 align-items-end">
+    <div class="col-md-3"><label class="form-label small text-muted">Parking</label><select class="form-select form-select-sm"><option>Centar - Zona 1</option><option>Tržni Centar Delta</option></select></div>
+    <div class="col-md-3"><label class="form-label small text-muted">Tip izvještaja</label><select class="form-select form-select-sm"><option>Popunjenost</option><option>Prihodi</option></select></div>
+    <div class="col-md-3"><label class="form-label small text-muted">Period</label><select class="form-select form-select-sm"><option>Danas</option><option selected>Sedmica</option><option>Mjesec</option></select></div>
+    <div class="col-md-3"><button class="btn btn-primary btn-sm w-100"><i class="bi bi-file-text"></i> Generiši</button></div>
+  </div></div>
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3"><div class="card p-3 d-flex flex-row justify-content-between align-items-center"><div><small class="text-muted">Ukupna mjesta</small><p class="fw-bold fs-5 mb-0">300</p></div><i class="bi bi-p-square text-primary fs-4"></i></div></div>
+    <div class="col-6 col-lg-3"><div class="card p-3 d-flex flex-row justify-content-between align-items-center"><div><small class="text-muted">Trenutno zauzeto</small><p class="fw-bold fs-5 mb-0">125</p><small class="text-muted">42%</small></div><i class="bi bi-car-front text-warning fs-4"></i></div></div>
+    <div class="col-6 col-lg-3"><div class="card p-3 d-flex flex-row justify-content-between align-items-center"><div><small class="text-muted">Danas rezervacija</small><p class="fw-bold fs-5 mb-0">3</p></div><i class="bi bi-calendar-check text-primary fs-4"></i></div></div>
+    <div class="col-6 col-lg-3"><div class="card p-3 d-flex flex-row justify-content-between align-items-center"><div><small class="text-muted">Prihod (period)</small><p class="fw-bold fs-5 mb-0">18 KM</p></div><i class="bi bi-currency-dollar text-success fs-4"></i></div></div>
+  </div>
+  <div class="card p-4 mb-4"><h6 class="fw-semibold">Popunjenost parkinga tokom perioda</h6><small class="text-muted">Centar - Zona 1 — Sedmica</small><div class="bg-light rounded mt-3 d-flex align-items-center justify-content-center" style="height:240px"><span class="text-muted">[Grafikon - Popunjenost]</span></div></div>
+  <div class="card p-4">
+    <h6 class="fw-semibold">Detaljni pregled podataka</h6><small class="text-muted">Tabelarni prikaz</small>
+    <table class="table table-sm mt-3 small">
+      <thead><tr class="text-muted"><th>Datum</th><th>Parking</th><th>Zona</th><th class="text-end">Rezervacije</th><th class="text-end">Popunjenost</th><th class="text-end">Prihod (KM)</th></tr></thead>
+      <tbody>
+        <tr><td>01.07.2025</td><td>Centar - Zona 1</td><td>Zona A</td><td class="text-end">12</td><td class="text-end">85%</td><td class="text-end">360.00</td></tr>
+        <tr><td>02.07.2025</td><td>Centar - Zona 1</td><td>Zona A</td><td class="text-end">15</td><td class="text-end">92%</td><td class="text-end">450.00</td></tr>
+        <tr><td>03.07.2025</td><td>Centar - Zona 1</td><td>Zona B</td><td class="text-end">8</td><td class="text-end">72%</td><td class="text-end">240.00</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>

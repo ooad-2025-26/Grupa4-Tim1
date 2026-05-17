@@ -1,0 +1,26 @@
+@{
+    ViewData["Title"] = "QR skener";
+}
+
+<div class="container py-4" style="max-width:480px">
+  <div class="card p-4">
+    <div class="d-flex align-items-center gap-3 mb-4"><i class="bi bi-upc-scan text-primary fs-4"></i><h4 class="fw-bold mb-0">QR kod skener - Parking ulaz</h4></div>
+    <div class="mb-3"><label class="form-label small fw-medium">Unesite QR kod</label><input class="form-control" placeholder="npr. RES-001-ABC123-2026" id="qrInput"></div>
+    <button class="btn btn-primary w-100" id="validateBtn">Validiraj</button>
+    <div class="mt-4 d-none" id="qrResult"></div>
+  </div>
+</div>
+
+@section Scripts {
+<script>
+const validCodes={"RES-001-ABC123-2026":{valid:true,parking:"Centar - Zona 1",korisnik:"Amer Hodžić",datum:"2026-04-10",pocetak:"10:00",trajanje:"240 min"},"RES-005-MNO345-2026":{valid:true,parking:"Centar - Zona 1",korisnik:"Selma Begović",datum:"2026-04-10",pocetak:"08:00",trajanje:"120 min"}};
+document.getElementById("validateBtn").addEventListener("click",()=>{
+  const code=document.getElementById("qrInput").value.trim(),res=document.getElementById("qrResult");
+  res.classList.remove("d-none");
+  const data=validCodes[code];
+  if(!data){res.innerHTML='<div class="alert alert-danger"><strong>QR kod nije pronađen u sistemu.</strong></div>';return;}
+  let details="";Object.entries(data).filter(([k])=>k!=="valid").forEach(([k,v])=>{details+=`<div class="d-flex justify-content-between small mb-1"><span class="text-muted text-capitalize">${k}:</span><span class="fw-medium">${v}</span></div>`;});
+  res.innerHTML=`<div class="alert alert-success"><strong class="fs-5">PRISTUP ODOBREN</strong>${details}</div>`;
+});
+</script>
+}

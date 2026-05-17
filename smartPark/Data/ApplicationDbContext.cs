@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using smartPark.Models;
+using smartPark.Models.Entities;
 
 namespace smartPark.Data
 {

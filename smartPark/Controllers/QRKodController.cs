@@ -1,8 +1,7 @@
-
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using smartPark.Models;
 using smartPark.Data;
+using smartPark.Models.Entities;
 
 public class QRKodController : Controller
 {
@@ -14,7 +13,7 @@ public class QRKodController : Controller
     }
 
     // GET: QRKODS
-    public async Task<IActionResult> Index()    
+    public async Task<IActionResult> Index()
     {
         return View(await _context.QRKodovi.ToListAsync());
     }
@@ -27,8 +26,7 @@ public class QRKodController : Controller
             return NotFound();
         }
 
-        var qrkod = await _context.QRKodovi
-            .FirstOrDefaultAsync(m => m.QRKodId == qrkodid);
+        var qrkod = await _context.QRKodovi.FirstOrDefaultAsync(m => m.QRKodId == qrkodid);
         if (qrkod == null)
         {
             return NotFound();
@@ -80,7 +78,10 @@ public class QRKodController : Controller
     // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int? qrkodid, [Bind("Id,Title,ReleaseDate,Genre,Price")] QRKod qrkod)
+    public async Task<IActionResult> Edit(
+        int? qrkodid,
+        [Bind("Id,Title,ReleaseDate,Genre,Price")] QRKod qrkod
+    )
     {
         if (qrkodid != qrkod.QRKodId)
         {
@@ -118,8 +119,7 @@ public class QRKodController : Controller
             return NotFound();
         }
 
-        var qrkod = await _context.QRKodovi
-            .FirstOrDefaultAsync(m => m.QRKodId == qrkodid);
+        var qrkod = await _context.QRKodovi.FirstOrDefaultAsync(m => m.QRKodId == qrkodid);
         if (qrkod == null)
         {
             return NotFound();
