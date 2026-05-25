@@ -26,6 +26,7 @@ namespace smartPark.Repositories.Interfaces
 
         // ========== RADNJE ZA MENADŽERA ==========
         Task<Parking?> DohvatiParkingPoMenadzeruAsync(string menadzerId);
+        Task<List<Parking>> DohvatiSveParkingePoMenadzeruAsync(string menadzerId);
         Task<bool> DaLiMenadzerUpravljaParkingomAsync(string menadzerId, int parkingId);
 
         // ========== RADNJE ZA STATISTIKU ==========

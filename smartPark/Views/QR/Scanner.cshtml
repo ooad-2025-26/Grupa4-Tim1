@@ -1,0 +1,184 @@
+@model smartPark.Models.ViewModels.Rezervacija.QRKodViewModel
+
+@{
+    ViewBag.Title = "QR Skener";
+}
+
+<div class="min-h-[calc(100vh-3.5rem)] bg-muted/30 flex flex-col items-center py-10 px-4">
+    <div class="w-full max-w-md">
+        <button onclick="history.back()" class="text-muted-foreground hover:text-foreground text-sm font-medium mb-4 flex items-center gap-1 bg-transparent border-0 self-start">
+            <i class="bi bi-arrow-left"></i> Nazad
+        </button>
+
+        <div class="bg-card rounded-xl border border-border p-6 shadow-sm text-center">
+            <h1 class="text-xl font-bold text-foreground mb-4">QR Skener</h1>
+            
+            <div class="relative overflow-hidden rounded-xl border border-border bg-black aspect-video flex items-center justify-center mb-4" id="scannerContainer">
+                <!-- Video element za kameru -->
+                <video id="preview" class="w-full h-full object-cover"></video>
+                <div class="absolute inset-0 border-2 border-primary/50 pointer-events-none rounded-xl m-4 border-dashed animate-pulse"></div>
+            </div>
+            
+            <p class="text-xs text-muted-foreground mb-4">
+                <i class="bi bi-camera"></i> Usmjerite kameru prema QR kodu rezervacije.
+            </p>
+            
+            <!-- Dugmad -->
+            <div class="flex gap-3 mb-4">
+                <button id="startCameraBtn" class="flex-1 bg-primary text-primary-foreground py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity" onclick="startCamera()">
+                    <i class="bi bi-camera-video"></i> Aktiviraj kameru
+                </button>
+                <button id="stopCameraBtn" class="flex-1 bg-destructive text-destructive-foreground py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity hidden" onclick="stopCamera()">
+                    <i class="bi bi-camera-video-off"></i> Zaustavi kameru
+                </button>
+            </div>
+            
+            <!-- Rezultat skeniranja -->
+            <div id="scanResult" class="hidden text-start">
+                <div class="p-3 bg-muted rounded-lg text-xs mb-3">
+                    <strong class="text-foreground block mb-1">Skenirani QR kod:</strong>
+                    <span id="scannedCode" class="font-mono text-muted-foreground break-all"></span>
+                </div>
+                <div id="validacijaRezultat"></div>
+            </div>
+            
+            <div class="text-[10px] text-muted-foreground mt-4 pt-4 border-t border-border flex items-center justify-center gap-1">
+                <i class="bi bi-info-circle"></i> QR kod se automatski skenira i validira na serveru.
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://unpkg.com/@@zxing/library@0.20.0/umd/index.min.js"></script>
+    
+    <script>
+        var codeReader = null;
+        var selectedDeviceId = null;
+        var isScanning = false;
+        
+        async function startCamera() {
+            try {
+                codeReader = new ZXing.BrowserMultiFormatReader();
+                const videoInputDevices = await codeReader.listVideoInputDevices();
+                
+                if (videoInputDevices.length === 0) {
+                    alert("Nije pronađena kamera na vašem uređaju.");
+                    return;
+                }
+                
+                selectedDeviceId = videoInputDevices[0].deviceId;
+                
+                document.getElementById('startCameraBtn').classList.add('hidden');
+                document.getElementById('stopCameraBtn').classList.remove('hidden');
+                
+                codeReader.decodeFromVideoDevice(selectedDeviceId, 'preview', (result, err) => {
+                    if (result) {
+                        const scannedText = result.getText();
+                        console.log('Skeniran QR kod:', scannedText);
+                        stopCamera();
+                        
+                        document.getElementById('scanResult').classList.remove('hidden');
+                        document.getElementById('scannedCode').innerText = scannedText;
+                        
+                        validirajQRKod(scannedText);
+                    }
+                    if (err && !err.message.includes('NotFoundException')) {
+                        console.error(err);
+                    }
+                });
+                
+                isScanning = true;
+            } catch (error) {
+                console.error('Greška pri pokretanju kamere:', error);
+                alert('Greška pri pokretanju kamere. Provjerite da li imate kameru i da li ste dali dozvolu.');
+                stopCamera();
+            }
+        }
+        
+        function stopCamera() {
+            if (codeReader && isScanning) {
+                codeReader.reset();
+                codeReader = null;
+            }
+            
+            document.getElementById('startCameraBtn').classList.remove('hidden');
+            document.getElementById('stopCameraBtn').classList.add('hidden');
+            isScanning = false;
+            
+            const videoElement = document.getElementById('preview');
+            if (videoElement && videoElement.srcObject) {
+                const tracks = videoElement.srcObject.getTracks();
+                tracks.forEach(track => track.stop());
+                videoElement.srcObject = null;
+            }
+        }
+        
+        async function validirajQRKod(kod) {
+            const resultDiv = document.getElementById('validacijaRezultat');
+            resultDiv.innerHTML = `
+                <div class="flex justify-center items-center py-4">
+                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch('/qr-kod/validiraj', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    },
+                    body: JSON.stringify({ kod: kod })
+                });
+                
+                const data = await response.json();
+                
+                if (data.uspjeh) {
+                    resultDiv.innerHTML = `
+                        <div class="p-4 bg-success/10 border border-success/20 rounded-xl text-xs space-y-2">
+                            <div class="flex items-center gap-2 text-success font-bold">
+                                <i class="bi bi-check-circle-fill text-sm"></i>
+                                Validacija uspješna!
+                            </div>
+                            <p class="text-muted-foreground m-0">Rezervacija #${data.rezervacijaId}</p>
+                            <p class="text-muted-foreground m-0">Parking: <strong class="text-foreground">${data.parkingNaziv}</strong></p>
+                            <p class="text-muted-foreground m-0">Korisnik: <strong class="text-foreground">${data.korisnikIme} ${data.korisnikPrezime}</strong></p>
+                            <p class="text-muted-foreground m-0">Vrijeme: <strong class="text-foreground">${data.pocetak} - ${data.kraj}</strong></p>
+                        </div>
+                        <a href="/Rezervacija/Details/${data.rezervacijaId}" class="w-full mt-3 inline-flex justify-center bg-success text-success-foreground py-2 rounded-lg text-xs font-semibold hover:opacity-90 transition-opacity no-underline">
+                            Pregled rezervacije
+                        </a>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="p-4 bg-destructive/10 border border-destructive/20 rounded-xl text-xs">
+                            <div class="flex items-center gap-2 text-destructive font-bold mb-1">
+                                <i class="bi bi-x-circle-fill text-sm"></i>
+                                Validacija neuspješna!
+                            </div>
+                            <p class="text-muted-foreground m-0">${data.poruka || "Nevažeći QR kod."}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Greška pri validaciji:', error);
+                resultDiv.innerHTML = `
+                    <div class="p-4 bg-destructive/10 border border-destructive/20 rounded-xl text-xs">
+                        <div class="flex items-center gap-2 text-destructive font-bold mb-1">
+                            <i class="bi bi-exclamation-triangle-fill text-sm"></i>
+                            Greška pri povezivanju
+                        </div>
+                        <p class="text-muted-foreground m-0">Greška pri validaciji QR koda na serveru.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        window.addEventListener('beforeunload', function() {
+            if (codeReader && isScanning) {
+                codeReader.reset();
+            }
+        });
+    </script>
+}

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using smartPark.Models.Entities;
 
@@ -22,7 +22,8 @@ namespace smartPark.Data
             base.OnModelCreating(builder);
             builder.Entity<Parking>().Property(p => p.CijenaPoSatu).HasPrecision(10, 2);
 
-            builder.Entity<Cjenovnik>().Property(c => c.CijenaPoSatu).HasPrecision(10, 2);
+            builder.Entity<Cjenovnik>().Property(c => c.CijenaDnevna).HasPrecision(10, 2);
+            builder.Entity<Cjenovnik>().Property(c => c.CijenaNocna).HasPrecision(10, 2);
 
             builder.Entity<Rezervacija>().Property(r => r.UkupnaCijena).HasPrecision(10, 2);
 
@@ -36,15 +37,13 @@ namespace smartPark.Data
 
             builder
                 .Entity<Korisnik>()
-                .HasIndex(k => k.MenadzerOdgovorniParkingId)
-                .IsUnique()
-                .HasFilter("[MenadzerOdgovorniParkingId] IS NOT NULL");
+                .HasIndex(k => k.MenadzerOdgovorniParkingId);
 
             builder
                 .Entity<Parking>()
                 .HasOne(p => p.Menadzer)
-                .WithOne(k => k.Parking)
-                .HasForeignKey<Parking>(p => p.MenadzerID)
+                .WithMany()
+                .HasForeignKey(p => p.MenadzerID)
                 .OnDelete(DeleteBehavior.SetNull);
 
             builder
@@ -71,8 +70,8 @@ namespace smartPark.Data
             builder
                 .Entity<Rezervacija>()
                 .HasOne(r => r.ParkingMjesto)
-                .WithOne(pm => pm.TrenutnaRezervacija)
-                .HasForeignKey<Rezervacija>(r => r.ParkingMjestoId)
+                .WithMany()
+                .HasForeignKey(r => r.ParkingMjestoId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             builder
@@ -94,7 +93,28 @@ namespace smartPark.Data
                 .HasOne(c => c.Parking)
                 .WithMany()
                 .HasForeignKey(c => c.ParkingId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder
+                .Entity<Parking>()
+                .HasOne(p => p.DefaultniCjenovnik)
+                .WithMany()
+                .HasForeignKey(p => p.DefaultniCjenovnikId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder
+                .Entity<Parking>()
+                .HasOne(p => p.DnevniCjenovnik)
+                .WithMany()
+                .HasForeignKey(p => p.DnevniCjenovnikId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder
+                .Entity<Parking>()
+                .HasOne(p => p.NocniCjenovnik)
+                .WithMany()
+                .HasForeignKey(p => p.NocniCjenovnikId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder
                 .Entity<Izvjestaj>()

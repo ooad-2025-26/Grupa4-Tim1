@@ -1,0 +1,56 @@
+@{
+    var ime = ViewBag.KorisnikIme as string ?? "vozaču";
+    var brojRezervacija = (int)(ViewBag.BrojRezervacija ?? 0);
+    var aktivna = ViewBag.AktivnaRezervacija as smartPark.Models.ViewModels.Rezervacija.RezervacijaOsnovniViewModel;
+}
+
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-2xl font-bold text-foreground mb-2">Dobrodošli, @ime!</h1>
+    <p class="text-muted-foreground mb-8">Pronađite i rezervišite parking mjesto u blizini.</p>
+
+    <!-- Cards grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <a href="/parking/mapa" class="bg-card rounded-lg border border-border p-6 hover:shadow-md transition-shadow flex items-center gap-4 no-underline">
+            <div class="bg-primary/10 p-3 rounded-lg text-primary">
+                <i class="bi bi-geo-alt fs-4"></i>
+            </div>
+            <div>
+                <p class="font-semibold text-foreground mb-0">Pronađi parking</p>
+                <p class="text-sm text-muted-foreground mb-0">Pregledaj dostupna mjesta</p>
+            </div>
+        </a>
+        <a href="/rezervacije/moje" class="bg-card rounded-lg border border-border p-6 hover:shadow-md transition-shadow flex items-center gap-4 no-underline">
+            <div class="bg-primary/10 p-3 rounded-lg text-primary">
+                <i class="bi bi-calendar-event fs-4"></i>
+            </div>
+            <div>
+                <p class="font-semibold text-foreground mb-0">Moje rezervacije</p>
+                <p class="text-sm text-muted-foreground mb-0">@brojRezervacija ukupno</p>
+            </div>
+        </a>
+    </div>
+
+    <!-- Aktivna rezervacija -->
+    @if (aktivna != null)
+    {
+        var durationMinutes = (int)(aktivna.KrajRezervacije - aktivna.PocetakRezervacije).TotalMinutes;
+        var isUpcoming = aktivna.PocetakRezervacije > DateTime.Now;
+        var statusLabel = isUpcoming ? "Nadolazeća" : "U toku";
+        var statusClass = isUpcoming ? "bg-amber-500" : "bg-primary";
+        
+        <a href="/qr-kod/prikaz/@aktivna.RezervacijaId" class="block bg-card rounded-lg border border-border p-6 shadow-sm hover:shadow-md transition-shadow no-underline">
+            <h2 class="text-lg font-semibold text-foreground mb-4">Aktivna rezervacija</h2>
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <p class="font-medium text-foreground mb-1 text-base">@aktivna.ParkingNaziv</p>
+                    <p class="text-sm text-muted-foreground mb-0">Od: @aktivna.PocetakRezervacije.ToString("dd.MM.yyyy HH:mm")</p>
+                    <p class="text-sm text-muted-foreground mb-0">Do: @aktivna.KrajRezervacije.ToString("dd.MM.yyyy HH:mm")</p> 
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="@statusClass text-white text-xs font-semibold px-3 py-1.5 rounded-full">@statusLabel</span>
+                    <span class="font-semibold text-foreground text-base">@aktivna.UkupnaCijena.ToString("F2") KM</span>
+                </div>
+            </div>
+        </a>
+    }
+</div>

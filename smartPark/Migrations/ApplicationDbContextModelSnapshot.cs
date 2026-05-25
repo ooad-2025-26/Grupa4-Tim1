@@ -17,7 +17,7 @@ namespace smartPark.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.7")
+                .HasAnnotation("ProductVersion", "10.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -102,12 +102,10 @@ namespace smartPark.Migrations
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
                     b.Property<string>("LoginProvider")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("ProviderKey")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("ProviderDisplayName")
                         .HasColumnType("nvarchar(max)");
@@ -144,12 +142,10 @@ namespace smartPark.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("LoginProvider")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Name")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Value")
                         .HasColumnType("nvarchar(max)");
@@ -159,7 +155,7 @@ namespace smartPark.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("smartPark.Models.Cjenovnik", b =>
+            modelBuilder.Entity("smartPark.Models.Entities.Cjenovnik", b =>
                 {
                     b.Property<int>("CjenovnikId")
                         .ValueGeneratedOnAdd()
@@ -170,20 +166,29 @@ namespace smartPark.Migrations
                     b.Property<bool>("Aktivan")
                         .HasColumnType("bit");
 
-                    b.Property<decimal>("CijenaPoSatu")
+                    b.Property<decimal>("CijenaDnevna")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<decimal>("CijenaNocna")
                         .HasPrecision(10, 2)
                         .HasColumnType("decimal(10,2)");
 
                     b.Property<DateTime?>("DatumKraja")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime>("DatumKreiranja")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("DatumPocetka")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("ParkingId")
-                        .HasColumnType("int");
+                    b.Property<string>("Naziv")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
-                    b.Property<int>("TipPerioda")
+                    b.Property<int?>("ParkingId")
                         .HasColumnType("int");
 
                     b.Property<string>("Zona")
@@ -199,7 +204,7 @@ namespace smartPark.Migrations
                     b.ToTable("Cjenovnici");
                 });
 
-            modelBuilder.Entity("smartPark.Models.Izvjestaj", b =>
+            modelBuilder.Entity("smartPark.Models.Entities.Izvjestaj", b =>
                 {
                     b.Property<int>("IzvjestajId")
                         .ValueGeneratedOnAdd()
@@ -238,7 +243,7 @@ namespace smartPark.Migrations
                     b.ToTable("Izvjestaji");
                 });
 
-            modelBuilder.Entity("smartPark.Models.Korisnik", b =>
+            modelBuilder.Entity("smartPark.Models.Entities.Korisnik", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
@@ -319,9 +324,7 @@ namespace smartPark.Migrations
                         .IsUnique()
                         .HasFilter("[BrojVozacke] IS NOT NULL");
 
-                    b.HasIndex("MenadzerOdgovorniParkingId")
-                        .IsUnique()
-                        .HasFilter("[MenadzerOdgovorniParkingId] IS NOT NULL");
+                    b.HasIndex("MenadzerOdgovorniParkingId");
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
@@ -334,7 +337,7 @@ namespace smartPark.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("smartPark.Models.Notifikacija", b =>
+            modelBuilder.Entity("smartPark.Models.Entities.Notifikacija", b =>
                 {
                     b.Property<int>("NotifikacijaId")
                         .ValueGeneratedOnAdd()
@@ -363,7 +366,7 @@ namespace smartPark.Migrations
                     b.ToTable("Notifikacije");
                 });
 
-            modelBuilder.Entity("smartPark.Models.Parking", b =>
+            modelBuilder.Entity("smartPark.Models.Entities.Parking", b =>
                 {
                     b.Property<int>("ParkingId")
                         .ValueGeneratedOnAdd()
@@ -386,6 +389,12 @@ namespace smartPark.Migrations
                     b.Property<DateTime>("DatumKreiranja")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("DefaultniCjenovnikId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DnevniCjenovnikId")
+                        .HasColumnType("int");
+
                     b.Property<double>("Latitude")
                         .HasColumnType("float");
 
@@ -400,6 +409,13 @@ namespace smartPark.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int?>("NocniCjenovnikId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RadnoVrijeme")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<int>("SlobodnaMjesta")
                         .HasColumnType("int");
 
@@ -411,14 +427,18 @@ namespace smartPark.Migrations
 
                     b.HasKey("ParkingId");
 
-                    b.HasIndex("MenadzerID")
-                        .IsUnique()
-                        .HasFilter("[MenadzerID] IS NOT NULL");
+                    b.HasIndex("DefaultniCjenovnikId");
+
+                    b.HasIndex("DnevniCjenovnikId");
+
+                    b.HasIndex("MenadzerID");
+
+                    b.HasIndex("NocniCjenovnikId");
 
                     b.ToTable("Parkinzi");
                 });
 
-            modelBuilder.Entity("smartPark.Models.ParkingMjesto", b =>
+            modelBuilder.Entity("smartPark.Models.Entities.ParkingMjesto", b =>
                 {
                     b.Property<int>("ParkingMjestoId")
                         .ValueGeneratedOnAdd()
@@ -444,7 +464,7 @@ namespace smartPark.Migrations
                     b.ToTable("ParkingMjesta");
                 });
 
-            modelBuilder.Entity("smartPark.Models.QRKod", b =>
+            modelBuilder.Entity("smartPark.Models.Entities.QRKod", b =>
                 {
                     b.Property<int>("QRKodId")
                         .ValueGeneratedOnAdd()
@@ -480,7 +500,7 @@ namespace smartPark.Migrations
                     b.ToTable("QRKodovi");
                 });
 
-            modelBuilder.Entity("smartPark.Models.Rezervacija", b =>
+            modelBuilder.Entity("smartPark.Models.Entities.Rezervacija", b =>
                 {
                     b.Property<int>("RezervacijaId")
                         .ValueGeneratedOnAdd()
@@ -490,6 +510,9 @@ namespace smartPark.Migrations
 
                     b.Property<DateTime>("DatumKreiranjaRezervacije")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("IstekPodsjetnikPoslan")
+                        .HasColumnType("bit");
 
                     b.Property<string>("KorisnikId")
                         .IsRequired()
@@ -503,6 +526,9 @@ namespace smartPark.Migrations
 
                     b.Property<int?>("ParkingMjestoId")
                         .HasColumnType("int");
+
+                    b.Property<bool>("PocetakPodsjetnikPoslan")
+                        .HasColumnType("bit");
 
                     b.Property<DateTime>("PocetakRezervacije")
                         .HasColumnType("datetime2");
@@ -520,9 +546,7 @@ namespace smartPark.Migrations
 
                     b.HasIndex("KrajRezervacije");
 
-                    b.HasIndex("ParkingMjestoId")
-                        .IsUnique()
-                        .HasFilter("[ParkingMjestoId] IS NOT NULL");
+                    b.HasIndex("ParkingMjestoId");
 
                     b.HasIndex("PocetakRezervacije");
 
@@ -542,7 +566,7 @@ namespace smartPark.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
-                    b.HasOne("smartPark.Models.Korisnik", null)
+                    b.HasOne("smartPark.Models.Entities.Korisnik", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -551,7 +575,7 @@ namespace smartPark.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
-                    b.HasOne("smartPark.Models.Korisnik", null)
+                    b.HasOne("smartPark.Models.Entities.Korisnik", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -566,7 +590,7 @@ namespace smartPark.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("smartPark.Models.Korisnik", null)
+                    b.HasOne("smartPark.Models.Entities.Korisnik", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -575,16 +599,26 @@ namespace smartPark.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
                 {
-                    b.HasOne("smartPark.Models.Korisnik", null)
+                    b.HasOne("smartPark.Models.Entities.Korisnik", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("smartPark.Models.Cjenovnik", b =>
+            modelBuilder.Entity("smartPark.Models.Entities.Cjenovnik", b =>
                 {
-                    b.HasOne("smartPark.Models.Parking", "Parking")
+                    b.HasOne("smartPark.Models.Entities.Parking", "Parking")
+                        .WithMany()
+                        .HasForeignKey("ParkingId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Parking");
+                });
+
+            modelBuilder.Entity("smartPark.Models.Entities.Izvjestaj", b =>
+                {
+                    b.HasOne("smartPark.Models.Entities.Parking", "Parking")
                         .WithMany()
                         .HasForeignKey("ParkingId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -593,20 +627,9 @@ namespace smartPark.Migrations
                     b.Navigation("Parking");
                 });
 
-            modelBuilder.Entity("smartPark.Models.Izvjestaj", b =>
+            modelBuilder.Entity("smartPark.Models.Entities.Notifikacija", b =>
                 {
-                    b.HasOne("smartPark.Models.Parking", "Parking")
-                        .WithMany()
-                        .HasForeignKey("ParkingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Parking");
-                });
-
-            modelBuilder.Entity("smartPark.Models.Notifikacija", b =>
-                {
-                    b.HasOne("smartPark.Models.Korisnik", "Korisnik")
+                    b.HasOne("smartPark.Models.Entities.Korisnik", "Korisnik")
                         .WithMany("Notifikacije")
                         .HasForeignKey("KorisnikId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -615,19 +638,40 @@ namespace smartPark.Migrations
                     b.Navigation("Korisnik");
                 });
 
-            modelBuilder.Entity("smartPark.Models.Parking", b =>
+            modelBuilder.Entity("smartPark.Models.Entities.Parking", b =>
                 {
-                    b.HasOne("smartPark.Models.Korisnik", "Menadzer")
-                        .WithOne("Parking")
-                        .HasForeignKey("smartPark.Models.Parking", "MenadzerID")
+                    b.HasOne("smartPark.Models.Entities.Cjenovnik", "DefaultniCjenovnik")
+                        .WithMany()
+                        .HasForeignKey("DefaultniCjenovnikId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("smartPark.Models.Entities.Cjenovnik", "DnevniCjenovnik")
+                        .WithMany()
+                        .HasForeignKey("DnevniCjenovnikId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("smartPark.Models.Entities.Korisnik", "Menadzer")
+                        .WithMany()
+                        .HasForeignKey("MenadzerID")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("smartPark.Models.Entities.Cjenovnik", "NocniCjenovnik")
+                        .WithMany()
+                        .HasForeignKey("NocniCjenovnikId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("DefaultniCjenovnik");
+
+                    b.Navigation("DnevniCjenovnik");
+
                     b.Navigation("Menadzer");
+
+                    b.Navigation("NocniCjenovnik");
                 });
 
-            modelBuilder.Entity("smartPark.Models.ParkingMjesto", b =>
+            modelBuilder.Entity("smartPark.Models.Entities.ParkingMjesto", b =>
                 {
-                    b.HasOne("smartPark.Models.Parking", "Parking")
+                    b.HasOne("smartPark.Models.Entities.Parking", "Parking")
                         .WithMany("ParkingMjesta")
                         .HasForeignKey("ParkingId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -636,34 +680,34 @@ namespace smartPark.Migrations
                     b.Navigation("Parking");
                 });
 
-            modelBuilder.Entity("smartPark.Models.QRKod", b =>
+            modelBuilder.Entity("smartPark.Models.Entities.QRKod", b =>
                 {
-                    b.HasOne("smartPark.Models.Rezervacija", "Rezervacija")
+                    b.HasOne("smartPark.Models.Entities.Rezervacija", "Rezervacija")
                         .WithOne("QRKodRezervacije")
-                        .HasForeignKey("smartPark.Models.QRKod", "RezervacijaId")
+                        .HasForeignKey("smartPark.Models.Entities.QRKod", "RezervacijaId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Rezervacija");
                 });
 
-            modelBuilder.Entity("smartPark.Models.Rezervacija", b =>
+            modelBuilder.Entity("smartPark.Models.Entities.Rezervacija", b =>
                 {
-                    b.HasOne("smartPark.Models.Korisnik", "Korisnik")
+                    b.HasOne("smartPark.Models.Entities.Korisnik", "Korisnik")
                         .WithMany("Rezervacije")
                         .HasForeignKey("KorisnikId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("smartPark.Models.Parking", "Parking")
+                    b.HasOne("smartPark.Models.Entities.Parking", "Parking")
                         .WithMany("Rezervacije")
                         .HasForeignKey("ParkingId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("smartPark.Models.ParkingMjesto", "ParkingMjesto")
-                        .WithOne("TrenutnaRezervacija")
-                        .HasForeignKey("smartPark.Models.Rezervacija", "ParkingMjestoId")
+                    b.HasOne("smartPark.Models.Entities.ParkingMjesto", "ParkingMjesto")
+                        .WithMany()
+                        .HasForeignKey("ParkingMjestoId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Korisnik");
@@ -673,28 +717,21 @@ namespace smartPark.Migrations
                     b.Navigation("ParkingMjesto");
                 });
 
-            modelBuilder.Entity("smartPark.Models.Korisnik", b =>
+            modelBuilder.Entity("smartPark.Models.Entities.Korisnik", b =>
                 {
                     b.Navigation("Notifikacije");
-
-                    b.Navigation("Parking");
 
                     b.Navigation("Rezervacije");
                 });
 
-            modelBuilder.Entity("smartPark.Models.Parking", b =>
+            modelBuilder.Entity("smartPark.Models.Entities.Parking", b =>
                 {
                     b.Navigation("ParkingMjesta");
 
                     b.Navigation("Rezervacije");
                 });
 
-            modelBuilder.Entity("smartPark.Models.ParkingMjesto", b =>
-                {
-                    b.Navigation("TrenutnaRezervacija");
-                });
-
-            modelBuilder.Entity("smartPark.Models.Rezervacija", b =>
+            modelBuilder.Entity("smartPark.Models.Entities.Rezervacija", b =>
                 {
                     b.Navigation("QRKodRezervacije");
                 });

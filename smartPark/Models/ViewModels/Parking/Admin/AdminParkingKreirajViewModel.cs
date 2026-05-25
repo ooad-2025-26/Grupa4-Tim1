@@ -2,52 +2,55 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using smartPark.Models.Enums;
 
-namespace smartPark.Models.ViewModels.Parking.Admin
+namespace smartPark.Models.ViewModels.Parking.Admin;
+
+public class AdminParkingKreirajViewModel
 {
-    public class AdminParkingKreirajViewModel
-    {
-        [Required(ErrorMessage = "Naziv parkinga je obavezan!")]
-        [StringLength(100, MinimumLength = 3)]
-        [Display(Name = "Naziv parkinga")]
-        public string Naziv { get; set; } = null!;
+    [Required(ErrorMessage = "Naziv je obavezan")]
+    [StringLength(100, MinimumLength = 3)]
+    public string Naziv { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Adresa parkinga je obavezna!")]
-        [StringLength(100, MinimumLength = 3)]
-        [Display(Name = "Adresa parkinga")]
-        public string Adresa { get; set; } = null!;
+    [Required(ErrorMessage = "Adresa je obavezna")]
+    [StringLength(200, MinimumLength = 3)]
+    public string Adresa { get; set; } = string.Empty;
 
-        [Required]
-        [Range(-90, 90)]
-        [Display(Name = "Geografska širina")]
-        public double Latitude { get; set; }
+    [Required]
+    [Range(1, 10000)]
+    public int UkupnoMjesta { get; set; }
 
-        [Required]
-        [Range(-180, 180)]
-        [Display(Name = "Geografska dužina")]
-        public double Longitude { get; set; }
+    [DataType(DataType.Currency)]
+    public decimal CijenaPoSatu { get; set; }
 
-        [Required]
-        [Range(1, 1000)]
-        [Display(Name = "Ukupan broj mjesta")]
-        public int UkupnoMjesta { get; set; }
+    public TipParkinga TipParkinga { get; set; }
 
-        [Required]
-        [Range(0.01, 1000)]
-        [DataType(DataType.Currency)]
-        [Display(Name = "Cijena po satu (KM)")]
-        public decimal CijenaPoSatu { get; set; }
+    [StringLength(50)]
+    public string? Zona { get; set; }
 
-        [Required]
-        [Display(Name = "Tip parkinga")]
-        public TipParkinga TipParkinga { get; set; } = TipParkinga.Otvoreni;
+    [StringLength(50)]
+    public string? RadnoVrijeme { get; set; }
 
-        [Display(Name = "Menadžer")]
-        public string? MenadzerId { get; set; }
+    [Range(-90, 90)]
+    public double Latitude { get; set; }
 
-        [Display(Name = "Aktivan odmah")]
-        public bool AktivanOdmah { get; set; } = true;
+    [Range(-180, 180)]
+    public double Longitude { get; set; }
 
-        // Dropdown liste
-        public IEnumerable<SelectListItem>? DostupniMenadzeri { get; set; }
-    }
+    public bool Aktivan { get; set; } = true;
+
+    public string? MenadzerId { get; set; }
+
+    [Display(Name = "Defaultni cjenovnik")]
+    public int? DefaultniCjenovnikId { get; set; }
+
+    [Display(Name = "Dnevni cjenovnik")]
+    public int? DnevniCjenovnikId { get; set; }
+
+    [Display(Name = "Noćni cjenovnik")]
+    public int? NocniCjenovnikId { get; set; }
+
+    public IEnumerable<SelectListItem>? DostupniCjenovniciDefault { get; set; }
+    public IEnumerable<SelectListItem>? DostupniCjenovniciDan { get; set; }
+    public IEnumerable<SelectListItem>? DostupniCjenovniciNoc { get; set; }
+
+    public IEnumerable<SelectListItem>? DostupniMenadzeri { get; set; }
 }

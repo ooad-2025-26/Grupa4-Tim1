@@ -1,0 +1,87 @@
+@model smartPark.Models.ViewModels.Izvjestaj.IzvjestajKreirajViewModel
+@using smartPark.Models.Enums
+
+@{
+    ViewBag.Title = "Novi izvještaj";
+}
+
+<div class="container py-4">
+    <div class="mb-3">
+        <a asp-action="Index" class="btn btn-back p-0"><i class="bi bi-arrow-left"></i> Nazad na izvještaje</a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+            <div class="sp-card">
+                <h3 class="fw-bold mb-1 text-dark">Generisanje izvještaja</h3>
+                <p class="text-muted mb-4">Odaberite parametre za kreiranje novog izvještaja o parkingu</p>
+
+                <form asp-action="Kreiraj" method="post">
+                    @Html.AntiForgeryToken()
+                    
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                    <!-- Odabir parkinga -->
+                    <div class="mb-3">
+                        <label asp-for="ParkingId" class="form-label fw-bold">Parking prostor</label>
+                        <select asp-for="ParkingId" asp-items="Model.DostupniParkinzi" class="form-select">
+                            <option value="">Odaberite parking...</option>
+                        </select>
+                        <span asp-validation-for="ParkingId" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Tip izvještaja -->
+                    <div class="mb-3">
+                        <label asp-for="TipIzvjestaja" class="form-label fw-bold">Tip izvještaja</label>
+                        <select asp-for="TipIzvjestaja" class="form-select" asp-items="Html.GetEnumSelectList<TipIzvjestaja>()">
+                        </select>
+                        <span asp-validation-for="TipIzvjestaja" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Period od i do -->
+                    <div class="row mb-4">
+                        <div class="col-6">
+                            <label asp-for="PeriodOd" class="form-label fw-bold">Period od</label>
+                            <input asp-for="PeriodOd" type="date" class="form-control" />
+                            <span asp-validation-for="PeriodOd" class="text-danger small"></span>
+                        </div>
+                        <div class="col-6">
+                            <label asp-for="PeriodDo" class="form-label fw-bold">Period do</label>
+                            <input asp-for="PeriodDo" type="date" class="form-control" />
+                            <span asp-validation-for="PeriodDo" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <!-- Opcije eksporta i spremanja -->
+                    <h5 class="fw-bold mb-3 text-dark border-top pt-3">Dodatne opcije</h5>
+                    
+                    <div class="mb-3 form-check form-switch">
+                        <input class="form-check-input" type="checkbox" asp-for="SacuvajUzBazi" id="SacuvajUzBazi">
+                        <label class="form-check-label" for="SacuvajUzBazi">Sačuvaj izvještaj u bazi podataka za kasniji pregled</label>
+                    </div>
+
+                    <div class="mb-3 form-check form-switch">
+                        <input class="form-check-input" type="checkbox" asp-for="GenerisiPdf" id="GenerisiPdf">
+                        <label class="form-check-label" for="GenerisiPdf">Generiši PDF dokument spreman za štampu</label>
+                    </div>
+
+                    <div class="mb-4 form-check form-switch">
+                        <input class="form-check-input" type="checkbox" asp-for="GenerisiExcel" id="GenerisiExcel">
+                        <label class="form-check-label" for="GenerisiExcel">Eksportuj podatke u Excel formatu</label>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary flex-grow-1">
+                            <i class="bi bi-file-earmark-bar-graph"></i> Generiši izvještaj
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">Odustani</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

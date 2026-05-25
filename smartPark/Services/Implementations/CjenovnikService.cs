@@ -9,10 +9,12 @@ namespace smartPark.Services.Implementations
     public class CjenovnikService : ICjenovnikService
     {
         private readonly ICjenovnikRepository _cjenovikRepozitorij;
+        private readonly IParkingRepository _parkingRepozitorij;
 
-        public CjenovnikService(ICjenovnikRepository cjenovnikRepozitorij)
+        public CjenovnikService(ICjenovnikRepository cjenovnikRepozitorij, IParkingRepository parkingRepozitorij)
         {
             _cjenovikRepozitorij = cjenovnikRepozitorij;
+            _parkingRepozitorij = parkingRepozitorij;
         }
 
         public async Task<IEnumerable<Cjenovnik>> DohvatiSveCjenovnikeAsync()
@@ -36,10 +38,11 @@ namespace smartPark.Services.Implementations
 
             var cjenovnik = new Cjenovnik
             {
+                Naziv = model.Naziv,
                 ParkingId = model.ParkingId,
-                CijenaPoSatu = model.CijenaPoSatu,
+                CijenaDnevna = model.CijenaDnevna,
+                CijenaNocna = model.CijenaNocna,
                 Zona = model.Zona,
-                TipPerioda = model.TipPerioda,
                 DatumPocetka = model.DatumPocetka,
                 DatumKraja = model.DatumKraja,
                 Aktivan = true,
@@ -62,9 +65,11 @@ namespace smartPark.Services.Implementations
                 );
             }
 
-            postojeci.CijenaPoSatu = model.CijenaPoSatu;
+            postojeci.Naziv = model.Naziv;
+            postojeci.ParkingId = model.ParkingId;
+            postojeci.CijenaDnevna = model.CijenaDnevna;
+            postojeci.CijenaNocna = model.CijenaNocna;
             postojeci.Zona = model.Zona;
-            postojeci.TipPerioda = model.TipPerioda;
             postojeci.DatumPocetka = model.DatumPocetka;
             postojeci.DatumKraja = model.DatumKraja;
 
@@ -132,7 +137,8 @@ namespace smartPark.Services.Implementations
                 throw new KeyNotFoundException($"Cjenovnik sa ID: {cjenovnikId} nije pronađen.");
             }
 
-            cjenovnik.CijenaPoSatu = novaCijena;
+            cjenovnik.CijenaDnevna = novaCijena;
+            cjenovnik.CijenaNocna = novaCijena;
             _cjenovikRepozitorij.IzmjeniCjenovnik(cjenovnik);
             await _cjenovikRepozitorij.SacuvajPromjeneAsync();
 
@@ -145,17 +151,10 @@ namespace smartPark.Services.Implementations
             TipPerioda period
         )
         {
-            var cjenovnik = await _cjenovikRepozitorij.DohvatiAktivniCjenovnikZaParkingAsync(
-                parkingId,
-                period
+            var cjenovnici = await _cjenovikRepozitorij.PronadjiCjenovnikAsync(c =>
+                c.ParkingId == parkingId && c.Aktivan
             );
-            if (cjenovnik == null)
-            {
-                cjenovnik = await _cjenovikRepozitorij.DohvatiAktivniCjenovnikZaParkingAsync(
-                    parkingId,
-                    TipPerioda.Dan
-                );
-            }
+            var cjenovnik = cjenovnici.FirstOrDefault();
 
             if (cjenovnik == null)
             {
@@ -164,27 +163,31 @@ namespace smartPark.Services.Implementations
                 );
             }
 
-            return cjenovnik.CijenaPoSatu * sati;
+            var cijena = period == TipPerioda.Noc ? cjenovnik.CijenaNocna : cjenovnik.CijenaDnevna;
+            return cijena * sati;
         }
 
         public async Task<bool> MozeLiSeKreiratiCjenovnikAsync(CjenovnikKreirajViewModel model)
         {
-            var parking = await _cjenovikRepozitorij.DohvatiPoIdCjenovnikAsync(model.ParkingId);
-
-            if (parking == null)
+            if (model.ParkingId.HasValue)
             {
-                return false;
-            }
+                var parking = await _parkingRepozitorij.DohvatiPoIdAsync(model.ParkingId.Value);
 
-            if (
-                await DaLiSeCjenovnikPreklapaAsync(
-                    model.ParkingId,
-                    model.DatumPocetka,
-                    model.DatumKraja
+                if (parking == null)
+                {
+                    return false;
+                }
+
+                if (
+                    await DaLiSeCjenovnikPreklapaAsync(
+                        model.ParkingId.Value,
+                        model.DatumPocetka,
+                        model.DatumKraja
+                    )
                 )
-            )
-            {
-                return false;
+                {
+                    return false;
+                }
             }
 
             if (model.DatumKraja.HasValue && model.DatumKraja <= model.DatumPocetka)
@@ -192,7 +195,7 @@ namespace smartPark.Services.Implementations
                 return false;
             }
 
-            if (model.CijenaPoSatu <= 0)
+            if (model.CijenaDnevna <= 0 || model.CijenaNocna <= 0)
             {
                 return false;
             }
@@ -220,16 +223,16 @@ namespace smartPark.Services.Implementations
             TipPerioda period = TipPerioda.Dan
         )
         {
-            var cjenovnik = await _cjenovikRepozitorij.DohvatiAktivniCjenovnikZaParkingAsync(
-                parkingId,
-                period
+            var cjenovnici = await _cjenovikRepozitorij.PronadjiCjenovnikAsync(c =>
+                c.ParkingId == parkingId && c.Aktivan
             );
+            var cjenovnik = cjenovnici.FirstOrDefault();
             if (cjenovnik == null)
             {
                 return 0;
             }
 
-            return cjenovnik.CijenaPoSatu;
+            return period == TipPerioda.Noc ? cjenovnik.CijenaNocna : cjenovnik.CijenaDnevna;
         }
 
         public async Task<CjenovnikListaViewModel> DohvatiListuCjenovnikaViewModelAsync(
@@ -273,10 +276,11 @@ namespace smartPark.Services.Implementations
             return new CjenovnikDetaljiViewModel
             {
                 CjenovnikId = cjenovnik.CjenovnikId,
-                ParkingNaziv = cjenovnik.Parking?.Naziv ?? "Nepoznat",
-                CijenaPoSatu = cjenovnik.CijenaPoSatu,
+                Naziv = cjenovnik.Naziv,
+                ParkingNaziv = cjenovnik.Parking?.Naziv ?? "Svi parkinzi",
+                CijenaDnevna = cjenovnik.CijenaDnevna,
+                CijenaNocna = cjenovnik.CijenaNocna,
                 Zona = cjenovnik.Zona,
-                TipPerioda = cjenovnik.TipPerioda,
                 DatumPocetka = cjenovnik.DatumPocetka,
                 DatumKraja = cjenovnik.DatumKraja,
                 Aktivan = cjenovnik.Aktivan,

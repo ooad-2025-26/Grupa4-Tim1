@@ -1,16 +1,13 @@
 using smartPark.Models.ViewModels.Korisnik.Shared;
 
-namespace smartPark.Models.ViewModels.Korisnik.Menadzer
-{
-    public class MenadzerZaposleniciViewModel
-    {
-        public int ParkingId { get; set; }
-        public string ParkingNaziv { get; set; } = null!;
-        public List<KorisnikListaStavkaViewModel> Zaposlenici { get; set; } = new();
-        public int UkupnoZaposlenih { get; set; }
-        public int AktivnihZaposlenih { get; set; }
+namespace smartPark.Models.ViewModels.Korisnik.Menadzer;
 
-        // Za filtriranje
-        public string? Filter { get; set; }
-    }
+public class MenadzerZaposleniciViewModel
+{
+    public int ParkingId { get; set; }
+    public string ParkingNaziv { get; set; } = string.Empty;
+    public List<KorisnikListaStavkaViewModel> Zaposlenici { get; set; } = new();
+    public int UkupnoZaposlenih { get; set; }
+    public int AktivnihZaposlenih { get; set; }
+    public string? Filter { get; set; }
 }

@@ -13,17 +13,21 @@ namespace smartPark.Services.Implementations
     {
         private readonly IParkingRepository _parkingRepository;
         private readonly IKorisnikRepository _korisnikRepository;
+        private readonly IParkingMjestoRepository _parkingMjestoRepository;
+        private readonly ICjenovnikRepository _cjenovnikRepository;
 
         public ParkingService(
             IParkingRepository parkingRepository,
-            IKorisnikRepository korisnikRepository
+            IKorisnikRepository korisnikRepository,
+            IParkingMjestoRepository parkingMjestoRepository,
+            ICjenovnikRepository cjenovnikRepository
         )
         {
             _parkingRepository = parkingRepository;
             _korisnikRepository = korisnikRepository;
+            _parkingMjestoRepository = parkingMjestoRepository;
+            _cjenovnikRepository = cjenovnikRepository;
         }
-
-        // ========== OSNOVNE RADNJE ==========
 
         public async Task<Parking?> DohvatiParkingPoIdAsync(int id)
         {
@@ -39,8 +43,6 @@ namespace smartPark.Services.Implementations
         {
             return await _parkingRepository.DohvatiAktivneAsync();
         }
-
-        // ========== ADMIN RADNJE ==========
 
         public async Task<AdminParkingListaViewModel> DohvatiAdminListuParkingaAsync(
             string? filterStatus = null,
@@ -170,11 +172,24 @@ namespace smartPark.Services.Implementations
 
         public async Task<AdminParkingKreirajViewModel> DohvatiAdminViewModelZaKreiranjeAsync()
         {
+            var cjenovnici = await _cjenovnikRepository.DohvatiSveCjenovnikeAsync();
+            var aktivniCjenovnici = cjenovnici.Where(c => c.Aktivan).ToList();
+
+            var list = new[] { new SelectListItem { Value = "", Text = "Bez cjenovnika" } }
+                .Concat(aktivniCjenovnici.Select(c => new SelectListItem
+                {
+                    Value = c.CjenovnikId.ToString(),
+                    Text = $"{c.Naziv} (Dnevna: {c.CijenaDnevna} KM/h, Noćna: {c.CijenaNocna} KM/h)"
+                }));
+
             return new AdminParkingKreirajViewModel
             {
                 DostupniMenadzeri = await _parkingRepository.DohvatiSveMenadzereZaSelectListAsync(),
+                DostupniCjenovniciDefault = list,
+                DostupniCjenovniciDan = list,
+                DostupniCjenovniciNoc = list,
                 TipParkinga = TipParkinga.Otvoreni,
-                AktivanOdmah = true,
+                Aktivan = true,
             };
         }
 
@@ -185,6 +200,16 @@ namespace smartPark.Services.Implementations
             var parking = await _parkingRepository.DohvatiPoIdAsync(id);
             if (parking == null)
                 return null;
+
+            var cjenovnici = await _cjenovnikRepository.DohvatiSveCjenovnikeAsync();
+            var aktivniCjenovnici = cjenovnici.Where(c => c.Aktivan && c.ParkingId == id).ToList();
+
+            var list = new[] { new SelectListItem { Value = "", Text = "Bez cjenovnika" } }
+                .Concat(aktivniCjenovnici.Select(c => new SelectListItem
+                {
+                    Value = c.CjenovnikId.ToString(),
+                    Text = $"{c.Naziv} (Dnevna: {c.CijenaDnevna} KM/h, Noćna: {c.CijenaNocna} KM/h)"
+                }));
 
             return new AdminParkingUrediViewModel
             {
@@ -199,6 +224,12 @@ namespace smartPark.Services.Implementations
                 TipParkinga = parking.TipParkinga,
                 Aktivan = parking.Aktivan,
                 MenadzerId = parking.MenadzerID,
+                DefaultniCjenovnikId = parking.DefaultniCjenovnikId,
+                DnevniCjenovnikId = parking.DnevniCjenovnikId,
+                NocniCjenovnikId = parking.NocniCjenovnikId,
+                DostupniCjenovniciDefault = list,
+                DostupniCjenovniciDan = list,
+                DostupniCjenovniciNoc = list,
                 DostupniMenadzeri = await _parkingRepository.DohvatiSveMenadzereZaSelectListAsync(),
             };
         }
@@ -279,13 +310,30 @@ namespace smartPark.Services.Implementations
                 SlobodnaMjesta = model.UkupnoMjesta, // Na početku su sva mjesta slobodna
                 CijenaPoSatu = model.CijenaPoSatu,
                 TipParkinga = model.TipParkinga,
-                Aktivan = model.AktivanOdmah,
+                Aktivan = model.Aktivan,
                 DatumKreiranja = DateTime.Now,
                 MenadzerID = string.IsNullOrEmpty(model.MenadzerId) ? null : model.MenadzerId,
+                RadnoVrijeme = model.RadnoVrijeme,
+                DefaultniCjenovnikId = model.DefaultniCjenovnikId,
+                DnevniCjenovnikId = model.DnevniCjenovnikId,
+                NocniCjenovnikId = model.NocniCjenovnikId,
             };
 
             await _parkingRepository.DodajAsync(parking);
             await _parkingRepository.SacuvajPromjeneAsync();
+
+            // Automatski kreiraj parking mjesta od 1 do UkupnoMjesta
+            for (int i = 1; i <= parking.UkupnoMjesta; i++)
+            {
+                var mjesto = new ParkingMjesto
+                {
+                    ParkingId = parking.ParkingId,
+                    BrojMjesta = i,
+                    StatusMjesta = StatusMjesta.Slobodno
+                };
+                await _parkingMjestoRepository.DodajAsync(mjesto);
+            }
+            await _parkingMjestoRepository.SacuvajPromjeneAsync();
 
             return parking;
         }
@@ -295,6 +343,9 @@ namespace smartPark.Services.Implementations
             var parking = await _parkingRepository.DohvatiPoIdAsync(model.ParkingId);
             if (parking == null)
                 return null;
+
+            var staroKapacitet = parking.UkupnoMjesta;
+            var noviKapacitet = model.UkupnoMjesta;
 
             parking.Naziv = model.Naziv;
             parking.Adresa = model.Adresa;
@@ -306,9 +357,50 @@ namespace smartPark.Services.Implementations
             parking.TipParkinga = model.TipParkinga;
             parking.Aktivan = model.Aktivan;
             parking.MenadzerID = string.IsNullOrEmpty(model.MenadzerId) ? null : model.MenadzerId;
+            parking.RadnoVrijeme = model.RadnoVrijeme;
+            parking.DefaultniCjenovnikId = model.DefaultniCjenovnikId;
+            parking.DnevniCjenovnikId = model.DnevniCjenovnikId;
+            parking.NocniCjenovnikId = model.NocniCjenovnikId;
 
             _parkingRepository.Izmijeni(parking);
             await _parkingRepository.SacuvajPromjeneAsync();
+
+            // Ako je kapacitet promijenjen, prilagodi parking mjesta
+            if (noviKapacitet != staroKapacitet)
+            {
+                var postojecaMjesta = (await _parkingMjestoRepository.DohvatiPoParkinguAsync(parking.ParkingId)).ToList();
+                if (noviKapacitet > staroKapacitet)
+                {
+                    // Dodaj nova mjesta
+                    for (int i = staroKapacitet + 1; i <= noviKapacitet; i++)
+                    {
+                        if (!postojecaMjesta.Any(m => m.BrojMjesta == i))
+                        {
+                            var mjesto = new ParkingMjesto
+                            {
+                                ParkingId = parking.ParkingId,
+                                BrojMjesta = i,
+                                StatusMjesta = StatusMjesta.Slobodno
+                            };
+                            await _parkingMjestoRepository.DodajAsync(mjesto);
+                        }
+                    }
+                }
+                else
+                {
+                    // Smanji kapacitet: obriši višak mjesta od najvećeg broja unazad
+                    var visakMjesta = postojecaMjesta
+                        .Where(m => m.BrojMjesta > noviKapacitet)
+                        .OrderByDescending(m => m.BrojMjesta)
+                        .ToList();
+
+                    foreach (var mjesto in visakMjesta)
+                    {
+                        _parkingMjestoRepository.Obrisi(mjesto);
+                    }
+                }
+                await _parkingMjestoRepository.SacuvajPromjeneAsync();
+            }
 
             return parking;
         }
@@ -324,8 +416,6 @@ namespace smartPark.Services.Implementations
 
             return true;
         }
-
-        // ========== MENADŽER RADNJE ==========
 
         public async Task<MenadzerParkingDetaljiViewModel?> DohvatiMenadzerParkingDetaljiAsync(
             string menadzerId
@@ -386,15 +476,85 @@ namespace smartPark.Services.Implementations
             string menadzerId
         )
         {
-            var parking = await _parkingRepository.DohvatiParkingPoMenadzeruAsync(menadzerId);
-            if (parking == null)
+            var parkinzi = await _parkingRepository.DohvatiSveParkingePoMenadzeruAsync(menadzerId);
+            if (parkinzi == null || !parkinzi.Any())
                 return null;
 
+            var primaryParking = parkinzi.First();
+
+            int ukupnoMjestaSuma = 0;
+            int brojRezDanasSuma = 0;
+            int brojRezSedmicaSuma = 0;
+            int brojRezMjesecSuma = 0;
+            decimal prihodDanasSuma = 0;
+            decimal prihodSedmicaSuma = 0;
+            decimal prihodMjesecSuma = 0;
+            double zauzetostDanasSuma = 0;
+            double zauzetostSedmicaSuma = 0;
+            double zauzetostMjesecSuma = 0;
+
+            foreach (var p in parkinzi)
+            {
+                ukupnoMjestaSuma += p.UkupnoMjesta;
+
+                prihodDanasSuma += await _parkingRepository.DohvatiPrihodZaParkingAsync(
+                    p.ParkingId,
+                    DateTime.Now.Date,
+                    DateTime.Now.Date.AddDays(1)
+                );
+                prihodSedmicaSuma += await _parkingRepository.DohvatiPrihodZaParkingAsync(
+                    p.ParkingId,
+                    DateTime.Now.AddDays(-7),
+                    DateTime.Now
+                );
+                prihodMjesecSuma += await _parkingRepository.DohvatiPrihodZaParkingAsync(
+                    p.ParkingId,
+                    DateTime.Now.AddDays(-30),
+                    DateTime.Now
+                );
+
+                brojRezDanasSuma += await _parkingRepository.DohvatiBrojRezervacijaZaParkingAsync(
+                    p.ParkingId,
+                    DateTime.Now.Date,
+                    DateTime.Now.Date.AddDays(1)
+                );
+                brojRezSedmicaSuma += await _parkingRepository.DohvatiBrojRezervacijaZaParkingAsync(
+                    p.ParkingId,
+                    DateTime.Now.AddDays(-7),
+                    DateTime.Now
+                );
+                brojRezMjesecSuma += await _parkingRepository.DohvatiBrojRezervacijaZaParkingAsync(
+                    p.ParkingId,
+                    DateTime.Now.AddDays(-30),
+                    DateTime.Now
+                );
+
+                zauzetostDanasSuma += await _parkingRepository.DohvatiProsjecnuZauzetostAsync(
+                    p.ParkingId,
+                    DateTime.Now.Date,
+                    DateTime.Now.Date.AddDays(1)
+                );
+                zauzetostSedmicaSuma += await _parkingRepository.DohvatiProsjecnuZauzetostAsync(
+                    p.ParkingId,
+                    DateTime.Now.AddDays(-7),
+                    DateTime.Now
+                );
+                zauzetostMjesecSuma += await _parkingRepository.DohvatiProsjecnuZauzetostAsync(
+                    p.ParkingId,
+                    DateTime.Now.AddDays(-30),
+                    DateTime.Now
+                );
+            }
+
+            double prosjecnaZauzetostDanas = parkinzi.Count > 0 ? zauzetostDanasSuma / parkinzi.Count : 0;
+            double prosjecnaZauzetostSedmica = parkinzi.Count > 0 ? zauzetostSedmicaSuma / parkinzi.Count : 0;
+            double prosjecnaZauzetostMjesec = parkinzi.Count > 0 ? zauzetostMjesecSuma / parkinzi.Count : 0;
+
             var rezervacijePoSatima = await _parkingRepository.DohvatiRezervacijePoSatimaAsync(
-                parking.ParkingId
+                primaryParking.ParkingId
             );
             var rezervacijePoDanima =
-                await _parkingRepository.DohvatiRezervacijePoDanimaSedmiceAsync(parking.ParkingId);
+                await _parkingRepository.DohvatiRezervacijePoDanimaSedmiceAsync(primaryParking.ParkingId);
             var rezervacijeZadnjih7Dana = await _parkingRepository.DohvatiRezervacijePoDanimaAsync(
                 DateTime.Now.AddDays(-7),
                 DateTime.Now
@@ -404,67 +564,21 @@ namespace smartPark.Services.Implementations
                 DateTime.Now
             );
 
-            var prihodDanas = await _parkingRepository.DohvatiPrihodZaParkingAsync(
-                parking.ParkingId,
-                DateTime.Now.Date,
-                DateTime.Now.Date.AddDays(1)
-            );
-            var prihodSedmica = await _parkingRepository.DohvatiPrihodZaParkingAsync(
-                parking.ParkingId,
-                DateTime.Now.AddDays(-7),
-                DateTime.Now
-            );
-            var prihodMjesec = await _parkingRepository.DohvatiPrihodZaParkingAsync(
-                parking.ParkingId,
-                DateTime.Now.AddDays(-30),
-                DateTime.Now
-            );
-
-            var brojRezDanas = await _parkingRepository.DohvatiBrojRezervacijaZaParkingAsync(
-                parking.ParkingId,
-                DateTime.Now.Date,
-                DateTime.Now.Date.AddDays(1)
-            );
-            var brojRezSedmica = await _parkingRepository.DohvatiBrojRezervacijaZaParkingAsync(
-                parking.ParkingId,
-                DateTime.Now.AddDays(-7),
-                DateTime.Now
-            );
-            var brojRezMjesec = await _parkingRepository.DohvatiBrojRezervacijaZaParkingAsync(
-                parking.ParkingId,
-                DateTime.Now.AddDays(-30),
-                DateTime.Now
-            );
-
-            var zauzetostDanas = await _parkingRepository.DohvatiProsjecnuZauzetostAsync(
-                parking.ParkingId,
-                DateTime.Now.Date,
-                DateTime.Now.Date.AddDays(1)
-            );
-            var zauzetostSedmica = await _parkingRepository.DohvatiProsjecnuZauzetostAsync(
-                parking.ParkingId,
-                DateTime.Now.AddDays(-7),
-                DateTime.Now
-            );
-            var zauzetostMjesec = await _parkingRepository.DohvatiProsjecnuZauzetostAsync(
-                parking.ParkingId,
-                DateTime.Now.AddDays(-30),
-                DateTime.Now
-            );
-
             return new MenadzerParkingStatistikaViewModel
             {
-                ParkingId = parking.ParkingId,
-                ParkingNaziv = parking.Naziv,
-                RezervacijaDanas = brojRezDanas,
-                RezervacijaSedmica = brojRezSedmica,
-                RezervacijaMjesec = brojRezMjesec,
-                PrihodDanas = prihodDanas,
-                PrihodSedmica = prihodSedmica,
-                PrihodMjesec = prihodMjesec,
-                ProsjecnaZauzetostDanas = zauzetostDanas,
-                ProsjecnaZauzetostSedmica = zauzetostSedmica,
-                ProsjecnaZauzetostMjesec = zauzetostMjesec,
+                ParkingId = primaryParking.ParkingId,
+                ParkingNaziv = primaryParking.Naziv,
+                UkupnoParkinga = parkinzi.Count,
+                UkupnoMjesta = ukupnoMjestaSuma,
+                RezervacijaDanas = brojRezDanasSuma,
+                RezervacijaSedmica = brojRezSedmicaSuma,
+                RezervacijaMjesec = brojRezMjesecSuma,
+                PrihodDanas = prihodDanasSuma,
+                PrihodSedmica = prihodSedmicaSuma,
+                PrihodMjesec = prihodMjesecSuma,
+                ProsjecnaZauzetostDanas = prosjecnaZauzetostDanas,
+                ProsjecnaZauzetostSedmica = prosjecnaZauzetostSedmica,
+                ProsjecnaZauzetostMjesec = prosjecnaZauzetostMjesec,
                 RezervacijePoSatima = rezervacijePoSatima,
                 RezervacijePoDanimaSedmice = rezervacijePoDanima,
                 RezervacijeZadnjih7Dana = rezervacijeZadnjih7Dana,
@@ -510,8 +624,6 @@ namespace smartPark.Services.Implementations
             return parking;
         }
 
-        // ========== ZAJEDNIČKE RADNJE ==========
-
         public async Task<bool> ParkingPostojiAsync(int id)
         {
             return await _parkingRepository.PostojiLiAsync(id);
@@ -538,15 +650,92 @@ namespace smartPark.Services.Implementations
             if (parking == null)
                 return 0;
 
-            var sati = (decimal)(kraj - pocetak).TotalHours;
-            return sati * parking.CijenaPoSatu;
-        }
+            decimal dnevnaCijena = 1.50m;
+            decimal nocnaCijena = 1.05m;
 
-        // ========== ZA DROPDOWN LISTE ==========
+            if (parking.DefaultniCjenovnikId.HasValue)
+            {
+                var defaultCjenovnik = await _cjenovnikRepository.DohvatiPoIdCjenovnikAsync(parking.DefaultniCjenovnikId.Value);
+                if (defaultCjenovnik != null)
+                {
+                    dnevnaCijena = defaultCjenovnik.CijenaDnevna;
+                    nocnaCijena = defaultCjenovnik.CijenaNocna;
+                }
+            }
+
+            if (parking.DnevniCjenovnikId.HasValue)
+            {
+                var dnevniCjenovnik = await _cjenovnikRepository.DohvatiPoIdCjenovnikAsync(parking.DnevniCjenovnikId.Value);
+                if (dnevniCjenovnik != null)
+                {
+                    dnevnaCijena = dnevniCjenovnik.CijenaDnevna;
+                }
+            }
+
+            if (parking.NocniCjenovnikId.HasValue)
+            {
+                var nocniCjenovnik = await _cjenovnikRepository.DohvatiPoIdCjenovnikAsync(parking.NocniCjenovnikId.Value);
+                if (nocniCjenovnik != null)
+                {
+                    nocnaCijena = nocniCjenovnik.CijenaNocna;
+                }
+            }
+
+            var totalHours = (int)Math.Ceiling((kraj - pocetak).TotalHours);
+            decimal ukupno = 0;
+            for (int i = 0; i < totalHours; i++)
+            {
+                var hourStart = pocetak.AddHours(i).Hour;
+                if (hourStart >= 6 && hourStart < 22)
+                {
+                    ukupno += dnevnaCijena;
+                }
+                else
+                {
+                    ukupno += nocnaCijena;
+                }
+            }
+
+            return ukupno;
+        }
 
         public async Task<IEnumerable<SelectListItem>> DohvatiSveMenadzereZaSelectListAsync()
         {
             return await _parkingRepository.DohvatiSveMenadzereZaSelectListAsync();
+        }
+
+        public async Task PopuniCjenovnikeZaKreirajAsync(AdminParkingKreirajViewModel model)
+        {
+            var cjenovnici = await _cjenovnikRepository.DohvatiSveCjenovnikeAsync();
+            var aktivniCjenovnici = cjenovnici.Where(c => c.Aktivan).ToList();
+
+            var list = new[] { new SelectListItem { Value = "", Text = "Bez cjenovnika" } }
+                .Concat(aktivniCjenovnici.Select(c => new SelectListItem
+                {
+                    Value = c.CjenovnikId.ToString(),
+                    Text = $"{c.Naziv} (Dnevna: {c.CijenaDnevna} KM/h, Noćna: {c.CijenaNocna} KM/h)"
+                }));
+
+            model.DostupniCjenovniciDefault = list;
+            model.DostupniCjenovniciDan = list;
+            model.DostupniCjenovniciNoc = list;
+        }
+
+        public async Task PopuniCjenovnikeZaUrediAsync(AdminParkingUrediViewModel model)
+        {
+            var cjenovnici = await _cjenovnikRepository.DohvatiSveCjenovnikeAsync();
+            var aktivniCjenovnici = cjenovnici.Where(c => c.Aktivan && c.ParkingId == model.ParkingId).ToList();
+
+            var list = new[] { new SelectListItem { Value = "", Text = "Bez cjenovnika" } }
+                .Concat(aktivniCjenovnici.Select(c => new SelectListItem
+                {
+                    Value = c.CjenovnikId.ToString(),
+                    Text = $"{c.Naziv} (Dnevna: {c.CijenaDnevna} KM/h, Noćna: {c.CijenaNocna} KM/h)"
+                }));
+
+            model.DostupniCjenovniciDefault = list;
+            model.DostupniCjenovniciDan = list;
+            model.DostupniCjenovniciNoc = list;
         }
     }
 }

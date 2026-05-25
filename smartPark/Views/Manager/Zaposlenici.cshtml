@@ -1,0 +1,100 @@
+@model smartPark.Models.ViewModels.Korisnik.Menadzer.MenadzerZaposleniciViewModel
+
+@{
+    ViewBag.Title = "Zaposlenici";
+}
+
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <div>
+                <button onclick="history.back()" class="btn btn-back mb-2"><i class="bi bi-arrow-left"></i> Nazad</button>
+                <h2 class="fw-bold mb-1">Zaposlenici</h2>
+                <p class="text-muted">Upravljanje osobljem na parkingu: <strong>@Model.ParkingNaziv</strong></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistika zaposlenih -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="sp-card text-center p-3">
+                <div class="text-muted small">Ukupno zaposlenih</div>
+                <div class="fs-3 fw-bold">@Model.UkupnoZaposlenih</div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="sp-card text-center p-3">
+                <div class="text-muted small">Aktivni zaposlenici</div>
+                <div class="fs-3 fw-bold text-success">@Model.AktivnihZaposlenih</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filteri -->
+    <div class="sp-card mb-4">
+        <form method="get" class="row g-2">
+            <div class="col-md-9">
+                <input type="text" name="filter" value="@Model.Filter" class="form-control" placeholder="Pretraži zaposlenike po imenu, prezimenu ili emailu..." />
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> Pretraži</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabela zaposlenih -->
+    <div class="sp-card">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Ime i prezime</th>
+                        <th>Email</th>
+                        <th>Uloga</th>
+                        <th>Status</th>
+                        <th>Datum registracije</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Zaposlenici.Any())
+                    {
+                        foreach (var radnik in Model.Zaposlenici)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold text-dark">@radnik.Ime @radnik.Prezime</div>
+                                </td>
+                                <td>@radnik.Email</td>
+                                <td><span class="badge bg-secondary">@radnik.Uloga</span></td>
+                                <td>
+                                    @if (radnik.JeZakljucan)
+                                    {
+                                        <span class="badge bg-danger">Zaključan</span>
+                                    }
+                                    else if (radnik.Aktivan)
+                                    {
+                                        <span class="badge bg-success">Aktivan</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark">Neaktivan</span>
+                                    }
+                                </td>
+                                <td class="text-muted small">@radnik.DatumRegistracije.ToString("dd.MM.yyyy")</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">
+                                <i class="bi bi-info-circle"></i> Nema zaposlenika koji odgovaraju pretrazi.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -5,6 +5,9 @@ namespace smartPark.Models.ViewModels.Parking.Menadzer
         public int ParkingId { get; set; }
         public string ParkingNaziv { get; set; } = null!;
 
+        public int UkupnoParkinga { get; set; } = 1;
+        public int UkupnoMjesta { get; set; } = 0;
+
         // Dnevna statistika
         public int RezervacijaDanas { get; set; }
         public decimal PrihodDanas { get; set; }

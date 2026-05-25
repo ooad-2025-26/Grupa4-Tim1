@@ -260,7 +260,7 @@ namespace smartPark.Repositories.Implementations
             return broj;
         }
 
-        // ========== ZA DROPDOWN LISTE ==========
+        // Za dropdown listu
 
         public async Task<IEnumerable<SelectListItem>> DohvatiSveUlogeZaSelectListAsync()
         {

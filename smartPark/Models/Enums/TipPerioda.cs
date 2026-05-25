@@ -9,5 +9,8 @@ namespace smartPark.Models.Enums
 
         [Display(Name = "Noc")]
         Noc = 2,
+
+        [Display(Name = "Dan i noć")]
+        DanINoc = 3,
     }
 }

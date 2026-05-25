@@ -1,16 +1,14 @@
-namespace smartPark.Models.ViewModels.Korisnik.Shared
-{
-    public class KorisnikListaStavkaViewModel : KorisnikOsnovniViewModel
-    {
-        public string Uloga { get; set; } = null!;
-        public bool Aktivan { get; set; }
-        public DateTime DatumRegistracije { get; set; }
-        public bool JeZakljucan { get; set; }
-        public int BrojRezervacija { get; set; }
+namespace smartPark.Models.ViewModels.Korisnik.Shared;
 
-        // Za prikaz statusa
-        public string Status => Aktivan ? "Aktivan" : "Neaktivan";
-        public string StatusBoja => Aktivan ? "success" : "danger";
-        public string StatusZakljucanosti => JeZakljucan ? "Zaključan" : "Otključan";
-    }
+public class KorisnikListaStavkaViewModel
+{
+    public string Id { get; set; } = string.Empty;
+    public string Ime { get; set; } = string.Empty;
+    public string Prezime { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Uloga { get; set; } = string.Empty;
+    public bool Aktivan { get; set; }
+    public DateTime DatumRegistracije { get; set; }
+    public bool JeZakljucan { get; set; }
+    public int BrojRezervacija { get; set; }
 }

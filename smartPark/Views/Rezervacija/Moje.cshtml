@@ -1,0 +1,106 @@
+@model smartPark.Models.ViewModels.Rezervacija.RezervacijaListaViewModel
+
+@{
+    ViewBag.Title = "Moje rezervacije";
+}
+
+<button onclick="history.back()" class="btn btn-back mb-2"><i class="bi bi-arrow-left"></i> Nazad</button>
+<h1 class="section-title">Moje rezervacije</h1>
+
+@if (Model != null && Model.Rezervacije.Any(r => r.StatusRezervacije == StatusRezervacije.Aktivna))
+{
+    <div class="table-sp">
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Parking</th>
+                    <th>Datum</th>
+                    <th>Vrijeme</th>
+                    <th>Trajanje</th>
+                    <th>Cijena</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var rezervacija in Model.Rezervacije.Where(r => r.StatusRezervacije == StatusRezervacije.Aktivna))
+                {
+                    var statusClass = rezervacija.StatusRezervacije switch
+                    {
+                        StatusRezervacije.Aktivna => "active",
+                        StatusRezervacije.Zavrsena => "expired",
+                        StatusRezervacije.Otkazana => "cancelled",
+                        StatusRezervacije.Istekla => "expired",
+                        _ => "expired"
+                    };
+                    
+                    var statusText = rezervacija.StatusRezervacije switch
+                    {
+                        StatusRezervacije.Aktivna => "Aktivna",
+                        StatusRezervacije.Zavrsena => "Završena",
+                        StatusRezervacije.Otkazana => "Otkazana",
+                        StatusRezervacije.Istekla => "Istekla",
+                        _ => "Nepoznat"
+                    };
+                    
+                    <tr>
+                        <td>@rezervacija.RezervacijaId</td>
+                        <td>@rezervacija.ParkingNaziv</td>
+                        <td>@rezervacija.PocetakRezervacije.ToString("dd.MM.yyyy")</td>
+                        <td>@rezervacija.PocetakRezervacije.ToString("HH:mm")</td>
+                        <td>@rezervacija.BrojSati h</td>
+                        <td>@rezervacija.UkupnaCijena.ToString("F2") KM</td>
+                        <td><span class="badge-status badge-@statusClass">@statusText</span></td>
+                        <td>
+                            <a asp-controller="QRKod" asp-action="Show" asp-route-id="@rezervacija.RezervacijaId" class="btn btn-sm btn-outline-primary">QR</a>
+                            @if (rezervacija.StatusRezervacije == StatusRezervacije.Aktivna && rezervacija.PocetakRezervacije > DateTime.Now)
+                            {
+                                <a asp-action="Produzi" asp-route-id="@rezervacija.RezervacijaId" class="btn btn-sm btn-outline-secondary">Produži</a>
+                                <a asp-action="Otkazi" asp-route-id="@rezervacija.RezervacijaId" class="btn btn-sm btn-outline-danger">Otkaži</a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Statistika -->
+    <div class="row mt-4 g-3">
+        <div class="col-md-3">
+            <div class="sp-card text-center">
+                <small class="text-muted">Ukupno rezervacija</small>
+                <h3 class="mb-0">@Model.UkupnoRezervacija</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="sp-card text-center">
+                <small class="text-muted">Aktivne</small>
+                <h3 class="mb-0 text-success">@Model.AktivnihRezervacija</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="sp-card text-center">
+                <small class="text-muted">Završene</small>
+                <h3 class="mb-0 text-secondary">@Model.ZavrsenihRezervacija</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="sp-card text-center">
+                <small class="text-muted">Otkazane</small>
+                <h3 class="mb-0 text-danger">@Model.OtkazanihRezervacija</h3>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="text-center py-5">
+        <i class="bi bi-calendar-x fs-1 text-muted"></i>
+        <p class="mt-3 text-muted">Nemate aktivnih rezervacija.</p>
+        <a asp-controller="Parking" asp-action="Map" class="btn btn-primary mt-2">
+            <i class="bi bi-geo-alt"></i> Rezerviši parking
+        </a>
+    </div>
+}

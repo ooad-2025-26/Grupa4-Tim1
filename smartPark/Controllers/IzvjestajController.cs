@@ -1,156 +1,178 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using smartPark.Data;
-using smartPark.Models.Entities;
+using smartPark.Models.Enums;
+using smartPark.Models.ViewModels.Izvjestaj;
+using smartPark.Services.Interfaces;
 
-public class IzvjestajController : Controller
+namespace smartPark.Controllers
 {
-    private readonly ApplicationDbContext _context;
-
-    public IzvjestajController(ApplicationDbContext context)
+    [Authorize(Roles = "Administrator,Menadzer")]
+    public class IzvjestajController : Controller
     {
-        _context = context;
-    }
+        private readonly IIzvjestajService _izvjestajService;
 
-    // GET: IZVJESTAJS
-    public async Task<IActionResult> Index()
-    {
-        return View(await _context.Izvjestaji.ToListAsync());
-    }
-
-    // GET: IZVJESTAJS/Details/5
-    public async Task<IActionResult> Details(int? izvjestajid)
-    {
-        if (izvjestajid == null)
+        public IzvjestajController(IIzvjestajService izvjestajService)
         {
-            return NotFound();
+            _izvjestajService = izvjestajService;
         }
 
-        var izvjestaj = await _context.Izvjestaji.FirstOrDefaultAsync(m =>
-            m.IzvjestajId == izvjestajid
-        );
-        if (izvjestaj == null)
+
+        [HttpGet("izvjestaj")]
+        public async Task<IActionResult> Index(int? parkingId, TipIzvjestaja? tip)
         {
-            return NotFound();
+            var viewModel = await _izvjestajService.DohvatiListuIzvjestajaViewModelAsync(
+                parkingId,
+                tip
+            );
+            return View(viewModel);
         }
 
-        return View(izvjestaj);
-    }
-
-    // GET: IZVJESTAJS/Create
-    public IActionResult Create()
-    {
-        return View();
-    }
-
-    // POST: IZVJESTAJS/Create
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(
-        [Bind("Title,ReleaseDate,Genre,Price")] Izvjestaj izvjestaj
-    )
-    {
-        if (ModelState.IsValid)
+    
+        [HttpGet("izvjestaj/detalji/{id}")]
+        public async Task<IActionResult> Detalji(int id)
         {
-            _context.Add(izvjestaj);
-            await _context.SaveChangesAsync();
+            var viewModel = await _izvjestajService.DohvatiDetaljeIzvjestajaViewModelAsync(id);
+            if (viewModel == null)
+                return NotFound();
+
+            return View(viewModel);
+        }
+
+        // Kreiranje izvjestaja
+
+        [HttpGet("izvjestaj/dodaj")]
+        public async Task<IActionResult> Kreiraj()
+        {
+            var viewModel = await _izvjestajService.DohvatiViewModelZaKreiranjeAsync();
+            return View(viewModel);
+        }
+
+        [HttpPost("izvjestaj/dodaj")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Kreiraj(IzvjestajKreirajViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                model.DostupniParkinzi = (
+                    await _izvjestajService.DohvatiViewModelZaKreiranjeAsync()
+                ).DostupniParkinzi;
+                return View(model);
+            }
+
+            try
+            {
+                var izvjestaj = await _izvjestajService.GenerisiIzvjestajAsync(model);
+                TempData["Uspjeh"] = "Izvještaj uspješno generisan!";
+
+                if (model.GenerisiPdf)
+                {
+                    var pdf = await _izvjestajService.GenerisiPdfIzvjestajAsync(
+                        izvjestaj.IzvjestajId
+                    );
+                    return File(pdf, "application/pdf", $"Izvjestaj_{izvjestaj.IzvjestajId}.pdf");
+                }
+
+                if (model.GenerisiExcel)
+                {
+                    var excel = await _izvjestajService.GenerisiExcelIzvjestajAsync(
+                        izvjestaj.IzvjestajId
+                    );
+                    return File(
+                        excel,
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        $"Izvjestaj_{izvjestaj.IzvjestajId}.xlsx"
+                    );
+                }
+
+                return RedirectToAction(nameof(Detalji), new { id = izvjestaj.IzvjestajId });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                ModelState.AddModelError("", ex.Message);
+                model.DostupniParkinzi = (
+                    await _izvjestajService.DohvatiViewModelZaKreiranjeAsync()
+                ).DostupniParkinzi;
+                return View(model);
+            }
+        }
+
+
+        [HttpPost("izvjestaj/obrisi/{id}")]
+        [Authorize(Roles = "Administrator")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Obrisi(int id)
+        {
+            var rezultat = await _izvjestajService.ObrisiIzvjestajAsync(id);
+            if (rezultat)
+                TempData["Uspjeh"] = "Izvještaj uspješno obrisan!";
+            else
+                TempData["Greska"] = "Izvještaj nije pronađen.";
+
             return RedirectToAction(nameof(Index));
         }
-        return View(izvjestaj);
-    }
 
-    // GET: IZVJESTAJS/Edit/5
-    public async Task<IActionResult> Edit(int? izvjestajid)
-    {
-        if (izvjestajid == null)
-        {
-            return NotFound();
-        }
+        // Popunjenost
 
-        var izvjestaj = await _context.Izvjestaji.FindAsync(izvjestajid);
-        if (izvjestaj == null)
-        {
-            return NotFound();
-        }
-        return View(izvjestaj);
-    }
-
-    // POST: IZVJESTAJS/Edit/5
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(
-        int? izvjestajid,
-        [Bind("Id,Title,ReleaseDate,Genre,Price")] Izvjestaj izvjestaj
-    )
-    {
-        if (izvjestajid != izvjestaj.IzvjestajId)
-        {
-            return NotFound();
-        }
-
-        if (ModelState.IsValid)
+        [HttpGet("izvjestaj/generisi-popunjenost")]
+        public async Task<IActionResult> GenerisiPopunjenost(
+            int parkingId,
+            DateTime od,
+            DateTime doo
+        )
         {
             try
             {
-                _context.Update(izvjestaj);
-                await _context.SaveChangesAsync();
+                var izvjestaj = await _izvjestajService.GenerisiPopunjenostIzvjestajAsync(
+                    parkingId,
+                    od,
+                    doo
+                );
+                return Json(izvjestaj);
             }
-            catch (DbUpdateConcurrencyException)
+            catch (KeyNotFoundException ex)
             {
-                if (!IzvjestajExists(izvjestaj.IzvjestajId))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return NotFound(new { message = ex.Message });
             }
-            return RedirectToAction(nameof(Index));
         }
-        return View(izvjestaj);
-    }
 
-    // GET: IZVJESTAJS/Delete/5
-    public async Task<IActionResult> Delete(int? izvjestajid)
-    {
-        if (izvjestajid == null)
+        // Prihodi
+
+        [HttpGet("izvjestaj/generisi-prihode")]
+        public async Task<IActionResult> GenerisiPrihode(int parkingId, DateTime od, DateTime doo)
         {
-            return NotFound();
+            try
+            {
+                var izvjestaj = await _izvjestajService.GenerisiPrihodiIzvjestajAsync(
+                    parkingId,
+                    od,
+                    doo
+                );
+                return Json(izvjestaj);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
         }
 
-        var izvjestaj = await _context.Izvjestaji.FirstOrDefaultAsync(m =>
-            m.IzvjestajId == izvjestajid
-        );
-        if (izvjestaj == null)
+        // Korisnici
+
+        [HttpGet("izvjestaj/generisi-korisnike")]
+        public async Task<IActionResult> GenerisiKorisnike(int parkingId, DateTime od, DateTime doo)
         {
-            return NotFound();
+            try
+            {
+                var izvjestaj = await _izvjestajService.GenerisiKorisniciIzvjestajAsync(
+                    parkingId,
+                    od,
+                    doo
+                );
+                return Json(izvjestaj);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
         }
-
-        return View(izvjestaj);
-    }
-
-    // POST: IZVJESTAJS/Delete/5
-    [HttpPost, ActionName("Delete")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(int? izvjestajid)
-    {
-        var izvjestaj = await _context.Izvjestaji.FindAsync(izvjestajid);
-        if (izvjestaj != null)
-        {
-            _context.Izvjestaji.Remove(izvjestaj);
-        }
-
-        await _context.SaveChangesAsync();
-        return RedirectToAction(nameof(Index));
-    }
-
-    private bool IzvjestajExists(int? izvjestajid)
-    {
-        return _context.Izvjestaji.Any(e => e.IzvjestajId == izvjestajid);
     }
 }

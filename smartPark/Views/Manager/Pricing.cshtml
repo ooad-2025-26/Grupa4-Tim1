@@ -1,0 +1,124 @@
+@model smartPark.Models.ViewModels.Cjenovnik.CjenovnikManagerViewModel
+
+@{
+    ViewBag.Title = "Upravljanje cijenama";
+    var parkinzi = ViewBag.Parkinzi as IEnumerable<smartPark.Models.Entities.Parking>;
+}
+
+<button onclick="history.back()" class="btn btn-back mb-2"><i class="bi bi-arrow-left"></i> Nazad</button>
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="sp-card">
+            <h1 class="h4 mb-3">Upravljanje cijenama</h1>
+            
+            @if (parkinzi != null && parkinzi.Any())
+            {
+                <form asp-action="PricingSave" asp-controller="Manager" method="post">
+                    @Html.AntiForgeryToken()
+                    
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+                    
+                    <!-- Odabir parkinga (samo ako menadžer upravlja više parkinga) -->
+                    @if (parkinzi.Count() > 1)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Parking</label>
+                            <select asp-for="ParkingId" class="form-select">
+                                @foreach (var p in parkinzi)
+                                {
+                                    <option value="@p.ParkingId">@p.Naziv - @p.Adresa</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    else
+                    {
+                        <input type="hidden" asp-for="ParkingId" value="@parkinzi.First().ParkingId" />
+                        <div class="mb-3">
+                            <label class="form-label">Parking</label>
+                            <input type="text" class="form-control" value="@parkinzi.First().Naziv" disabled />
+                        </div>
+                    }
+                    
+                    <!-- Cijena po satu -->
+                    <div class="mb-3">
+                        <label asp-for="CijenaPoSatu" class="form-label">Standardna satnica (KM)</label>
+                        <input asp-for="CijenaPoSatu" type="number" step="0.5" min="0" class="form-control" required />
+                        <span asp-validation-for="CijenaPoSatu" class="text-danger small"></span>
+                    </div>
+                    
+                    
+                    <!-- Tip perioda -->
+                    <div class="mb-3">
+                        <label asp-for="TipPerioda" class="form-label">Tip perioda</label>
+                        <select asp-for="TipPerioda" class="form-select" asp-items="Html.GetEnumSelectList<TipPerioda>()">
+                            <option value="">-- Odaberite tip perioda --</option>
+                        </select>
+                        <span asp-validation-for="TipPerioda" class="text-danger small"></span>
+                    </div>
+                    
+                    <!-- Datum početka važenja -->
+                    <div class="mb-3">
+                        <label asp-for="DatumPocetka" class="form-label">Datum početka važenja</label>
+                        <input asp-for="DatumPocetka" type="date" class="form-control" required />
+                        <span asp-validation-for="DatumPocetka" class="text-danger small"></span>
+                    </div>
+                    
+                    <!-- Datum kraja važenja (opciono) -->
+                    <div class="mb-3">
+                        <label asp-for="DatumKraja" class="form-label">Datum kraja važenja (opciono)</label>
+                        <input asp-for="DatumKraja" type="date" class="form-control" />
+                        <span asp-validation-for="DatumKraja" class="text-danger small"></span>
+                    </div>
+                    
+                    <!-- Aktivan -->
+                    <div class="mb-3 form-check">
+                        <input asp-for="Aktivan" class="form-check-input" />
+                        <label asp-for="Aktivan" class="form-check-label">Aktivan cjenovnik</label>
+                    </div>
+                    
+                    <hr />
+                    
+                    <!-- Pregled (informativno) -->
+                    <div class="alert alert-light border small">
+                        <div class="d-flex justify-content-between">
+                            <span>Ukupna cijena za 1 sat:</span>
+                            <strong id="pregledCijena">@Model.CijenaPoSatu.ToString("F2") KM</strong>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-save"></i> Sačuvaj izmjene
+                    </button>
+                </form>
+            }
+            else
+            {
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Nema parkinga za koje ste zaduženi. Kontaktirajte administratora.
+                </div>
+                <a asp-controller="Manager" asp-action="Dashboard" class="btn btn-outline-secondary w-100">
+                    <i class="bi bi-arrow-left"></i> Povratak na dashboard
+                </a>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    
+    <script>
+        // Ažuriranje pregleda cijene
+        var cijenaInput = document.getElementById('CijenaPoSatu');
+        var pregledSpan = document.getElementById('pregledCijena');
+        
+        if (cijenaInput && pregledSpan) {
+            cijenaInput.addEventListener('input', function() {
+                pregledSpan.innerText = parseFloat(this.value).toFixed(2) + ' KM';
+            });
+        }
+    </script>
+}

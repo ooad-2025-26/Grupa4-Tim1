@@ -36,7 +36,22 @@ jobs:
           docker rm smartpark-app 2>/dev/null || true
 
       - name: Pokreni novi kontejner
-        run: docker run -d --name smartpark-app --restart unless-stopped -p 9090:9090 -e ASPNETCORE_ENVIRONMENT=Development -e ConnectionStrings__DefaultConnection="${{secrets.ConnectionStrings__DefaultConnection}}" ${{vars.DOCKERHUB_USERNAME}}/smartpark-mvc:latest
+        run: |
+          docker run -d \
+            --name smartpark-app \
+            --restart unless-stopped \
+            -p 9090:9090 \
+            -e ASPNETCORE_ENVIRONMENT=Production \
+            -e ConnectionStrings__DefaultConnection="${{ secrets.CONNECTION_STRINGS__DEFAULTCONNECTION }}" \
+            -e Email__Username="${{ secrets.EMAIL_USERNAME }}" \
+            -e Email__Password="${{ secrets.EMAIL_PASSWORD }}" \
+            -e Email__FromAddress="${{ secrets.EMAIL_FROM_ADDRESS }}" \
+            -e Email__FromName="${{ secrets.EMAIL_FROM_NAME }}" \
+            -e Email__SmtpHost="${{ secrets.EMAIL_HOST }}" \
+            -e Email__SmtpPort="${{ secrets.EMAIL_PORT }}" \
+            -e Email__UseTls="true" \
+            -e Email__UseSsl="false" \
+            ${{ vars.DOCKERHUB_USERNAME }}/smartpark-mvc:latest
 
       - name: Provjeri deployment
         run: |

@@ -56,5 +56,10 @@ namespace smartPark.Models.Entities
 
         [Display(Name = "QR kod rezervacije")]
         public virtual QRKod? QRKodRezervacije { get; set; }
+        
+        // flagovi za mail da li je mail poslan
+        public bool PocetakPodsjetnikPoslan { get; set; } = false;
+
+        public bool IstekPodsjetnikPoslan { get; set; } = false;
     }
 }

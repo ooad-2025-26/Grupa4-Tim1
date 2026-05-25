@@ -1,0 +1,77 @@
+@model smartPark.Models.ViewModels.Rezervacija.QRKodViewModel
+
+@{
+    ViewBag.Title = "Plaćanje uspješno";
+}
+
+<div class="min-h-[calc(100vh-3.5rem)] bg-muted/30 flex flex-col items-center justify-center py-10 px-4">
+    <div class="w-full max-w-md">
+        <div class="bg-card rounded-xl border border-border p-8 shadow-sm text-center flex flex-col items-center">
+            
+            <!-- Green checkmark circle -->
+            <div class="w-16 h-16 rounded-full bg-success/10 text-success flex items-center justify-center mb-6">
+                <i class="bi bi-check-lg text-3xl"></i>
+            </div>
+
+            <!-- Titles -->
+            <h1 class="text-xl font-bold text-foreground mb-2">Plaćanje uspješno!</h1>
+            <p class="text-xs text-muted-foreground mb-6">Vaš QR kod za ulaz na parking</p>
+
+            <!-- QR code container (Grey card) -->
+            <div class="w-full bg-muted/50 rounded-xl border border-border p-6 flex flex-col items-center justify-center mb-6">
+                @if (Model != null && !string.IsNullOrEmpty(Model.Base64Slika))
+                {
+                    <img src="data:image/png;base64,@Model.Base64Slika" alt="QR Kod" class="w-40 h-40 object-contain mb-3 bg-white p-2 rounded" />
+                    <span class="text-[10px] font-mono text-muted-foreground uppercase">QR: @Model.Kod</span>
+                }
+                else
+                {
+                    <div class="w-40 h-40 bg-muted border border-border flex items-center justify-center mb-3 rounded font-mono text-xs text-muted-foreground p-4 text-center">
+                        QR: @(Model?.Kod ?? "Nema koda")
+                    </div>
+                }
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex flex-col gap-2.5 w-full">
+                @if (Model != null)
+                {
+                    <a href="data:image/png;base64,@Model.Base64Slika" download="QR_Rezervacija_@Model.RezervacijaId" class="w-full bg-primary text-primary-foreground py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity no-underline text-center">
+                        Preuzmi QR
+                    </a>
+                }
+                <a href="/" class="w-full bg-muted text-foreground py-2.5 rounded-lg text-sm font-semibold hover:bg-muted/80 transition-colors no-underline text-center">
+                    Početna
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Toast Popup (bottom right) -->
+<div id="paymentToast" class="fixed bottom-6 right-6 bg-card border border-border shadow-lg rounded-xl p-4 flex items-center gap-3 translate-y-10 opacity-0 transition-all duration-300 pointer-events-none z-50">
+    <div class="w-8 h-8 rounded-full bg-success/15 text-success flex items-center justify-center shrink-0">
+        <i class="bi bi-credit-card-2-front-fill"></i>
+    </div>
+    <div>
+        <h4 class="text-xs font-bold text-foreground mb-0.5">Plaćanje uspješno!</h4>
+        <p class="text-[10px] text-muted-foreground mb-0">Hvala vam na povjerenju.</p>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var toast = document.getElementById('paymentToast');
+            if (toast) {
+                toast.classList.remove('translate-y-10', 'opacity-0');
+                toast.classList.add('translate-y-0', 'opacity-100');
+                
+                setTimeout(function() {
+                    toast.classList.remove('translate-y-0', 'opacity-100');
+                    toast.classList.add('translate-y-10', 'opacity-0');
+                }, 3500);
+            }
+        });
+    </script>
+}

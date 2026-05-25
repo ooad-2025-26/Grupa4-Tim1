@@ -21,5 +21,9 @@ namespace smartPark.Models.ViewModels.Parking.Menadzer
 
         [Display(Name = "Aktivan")]
         public bool Aktivan { get; set; }
+
+        [StringLength(50)]
+        [Display(Name = "Radno vrijeme")]
+        public string? RadnoVrijeme { get; set; }
     }
 }

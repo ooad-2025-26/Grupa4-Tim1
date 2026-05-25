@@ -1,81 +1,232 @@
+@model IEnumerable<smartPark.Models.Entities.Parking>
 @{
-    ViewData["Title"] = "Mapa parkinga";
+    ViewBag.Title = "Mapa parkinga";
 }
 
 @section Head {
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <style>
+        /* Sakrij podrazumijevani padding i margin u main kontejneru za mapu */
+        main.container {
+            max-width: none !important;
+            width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        /* Leaflet popup premium custom stilovi */
+        .leaflet-popup-close-button {
+            top: 22px !important;
+            right: 20px !important;
+            color: hsl(240, 3.8%, 46.1%) !important;
+            font-size: 18px !important;
+            font-weight: normal !important;
+            width: 20px !important;
+            height: 20px !important;
+        }
+        .leaflet-popup-content-wrapper {
+            border-radius: 0.75rem !important;
+            padding: 4px !important;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
+            border: 1px solid var(--sp-border) !important;
+        }
+        .leaflet-popup-content {
+            margin: 16px 20px !important;
+            line-height: inherit !important;
+        }
+        /* Darken streets by adjusting leaflet map tiles */
+        .leaflet-tile {
+            filter: brightness(0.95) contrast(1.05) saturate(1.1);
+        }
+    </style>
 }
 
-@section Styles {
-<style>
-#map { height: calc(100vh - 56px); }
-        .sidebar { width: 320px; border-right: 1px solid #e5e7eb; background: #fff; overflow-y: auto; }
-        .sidebar.closed { width: 0; overflow: hidden; border-right: none; }
-        .parking-item { border-bottom: 1px solid #e5e7eb; padding: 12px 16px; cursor: pointer; transition: background 0.15s; }
-        .parking-item:hover { background: #f9fafb; }
-        .badge-free { background: rgba(34,197,94,0.1); color: #16a34a; }
-        .badge-busy { background: rgba(245,158,11,0.1); color: #d97706; }
-        .badge-full { background: rgba(239,68,68,0.1); color: #ef4444; }
-</style>
-}
+<div class="flex h-[calc(100vh-3.5rem)] relative overflow-hidden w-full">
+    <!-- Sidebar -->
+    <div id="sidebar" class="bg-card border-r border-border flex flex-col overflow-hidden shrink-0 transition-all duration-300 w-80">
+        <div class="p-4 border-b border-border flex items-center gap-2">
+            <div class="relative flex-1">
+                <i class="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm"></i>
+                <input id="searchInput" oninput="filterParkings()" placeholder="Pretraži lokacije..." class="w-full pl-9 pr-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+            </div>
+            <button onclick="toggleSidebar(false)" class="text-muted-foreground hover:text-foreground shrink-0 bg-transparent border-0 p-1" title="Zatvori panel">
+                <i class="bi bi-arrow-bar-left text-lg"></i>
+            </button>
+        </div>
 
-<div class="d-flex" style="height:calc(100vh - 56px)">
-  <div class="sidebar" id="sidebar">
-    <div class="p-3 border-bottom d-flex align-items-center gap-2">
-      <div class="input-group input-group-sm"><span class="input-group-text"><i class="bi bi-search"></i></span><input class="form-control" placeholder="Pretraži lokacije..." id="searchInput"></div>
-      <button class="btn btn-sm btn-light" onclick="toggleSidebar()" title="Zatvori"><i class="bi bi-layout-sidebar-inset"></i></button>
+        <div class="px-4 py-2 flex items-center justify-between">
+            <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Lokacije u blizini</span>
+            <button class="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground bg-transparent border-0 p-0">
+                <i class="bi bi-sliders"></i> Filteri
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto" id="parkingsList">
+            @foreach (var p in Model)
+            {
+                var occupied = p.UkupnoMjesta - p.SlobodnaMjesta;
+                var pct = p.UkupnoMjesta > 0 ? (double)occupied / p.UkupnoMjesta : 0.0;
+                
+                string statusLabel = "Slobodno";
+                string statusBg = "bg-success/15 text-success";
+                
+                if (!p.Aktivan)
+                {
+                    statusLabel = "Nedostupno";
+                    statusBg = "bg-muted text-muted-foreground";
+                }
+                else if (pct >= 0.95)
+                {
+                    statusLabel = "Puno";
+                    statusBg = "bg-destructive text-white";
+                }
+                else if (pct >= 0.8)
+                {
+                    statusLabel = "Popunjeno";
+                    statusBg = "bg-destructive/15 text-destructive";
+                }
+                else if (pct >= 0.5)
+                {
+                    statusLabel = "Djelimično";
+                    statusBg = "bg-warning/15 text-warning";
+                }
+
+                // Generišemo nasumičnu distancu za demonstraciju
+                var randomDistance = new Random(p.ParkingId).NextDouble() * 4.5 + 0.3;
+
+                <button onclick="focusParking(@p.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture), @p.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture), @p.ParkingId)" 
+                        class="parking-item w-full text-left px-4 py-3 border-b border-border hover:bg-muted/50 transition-colors bg-transparent border-t-0 border-x-0 cursor-pointer"
+                        data-name="@p.Naziv.ToLower()" 
+                        data-address="@p.Adresa.ToLower()">
+                    <div class="flex items-start justify-between mb-1">
+                        <span class="font-medium text-sm text-foreground">@p.Naziv</span>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold @statusBg">@statusLabel</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-xs text-muted-foreground mb-1">
+                        <span class="flex items-center gap-1"><i class="bi bi-geo-alt"></i> @randomDistance.ToString("F1") km</span>
+                        <span class="flex items-center gap-1"><i class="bi bi-car-front"></i> @p.SlobodnaMjesta/@p.UkupnoMjesta</span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-semibold text-foreground">@p.CijenaPoSatu.ToString("F2") KM / h</span>
+                        <span class="text-muted-foreground">@(p.TipParkinga == smartPark.Models.Enums.TipParkinga.Otvoreni ? "Otvoreni" : (p.TipParkinga == smartPark.Models.Enums.TipParkinga.Zatvoreni ? "Garaža" : "Vanjski"))</span>
+                    </div>
+                </button>
+            }
+        </div>
     </div>
-    <div class="px-3 py-2 d-flex justify-content-between align-items-center"><small class="text-muted text-uppercase fw-medium" style="font-size:0.65rem;letter-spacing:0.05em">Lokacije u blizini</small><button class="btn btn-sm btn-light" style="font-size:0.7rem"><i class="bi bi-sliders2"></i> Filteri</button></div>
-    <div id="parkingList"></div>
-  </div>
-  <button class="btn btn-light position-absolute top-0 start-0 mt-5 ms-2 d-none" id="openBtn" onclick="toggleSidebar()" style="z-index:1000"><i class="bi bi-layout-sidebar"></i></button>
-  <div class="flex-grow-1"><div id="map"></div></div>
+
+    <!-- Toggle button when sidebar is closed -->
+    <button id="openSidebarBtn"
+            onclick="toggleSidebar(true)"
+            class="hidden absolute top-3 left-3 z-[1000] bg-card border border-border rounded-lg p-2.5 shadow-md text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            title="Otvori panel">
+        <i class="bi bi-arrow-bar-right text-lg"></i>
+    </button>
+
+    <!-- Map container -->
+    <div class="flex-1 h-full w-full relative">
+        <div id="parkingMap" class="h-full w-full"></div>
+    </div>
 </div>
 
 @section Scripts {
-<script>
-const parkings = [
-  {id:"p1",name:"Centar - Zona 1",address:"Ferhadija 15, Sarajevo",capacity:300,occupied:125,zone:"Zona 1",type:"Otvoreni parking",dayPrice:2.5,lat:43.8563,lng:18.4131},
-  {id:"p2",name:"Tržni Centar Delta",address:"Trg Djece Sarajeva 1",capacity:500,occupied:417,zone:"Zona 2",type:"Garaža",dayPrice:1,lat:43.848,lng:18.356},
-  {id:"p3",name:"Aerodrom - Terminal A",address:"Kurta Schorka 36",capacity:200,occupied:198,zone:"Zona 4",type:"Vanjski",dayPrice:3,lat:43.8246,lng:18.3315},
-  {id:"p4",name:"Bolnica - Glavni ulaz",address:"Bolnička 25, Sarajevo",capacity:150,occupied:53,zone:"Zona 3",type:"Rampa",dayPrice:1.5,lat:43.852,lng:18.387},
-  {id:"p5",name:"BBI Centar",address:"Trg Djece Sarajeva 1",capacity:400,occupied:274,zone:"Zona 1",type:"Garaža",dayPrice:2,lat:43.857,lng:18.42},
-  {id:"p6",name:"Skenderija",address:"Terezija bb, Sarajevo",capacity:250,occupied:184,zone:"Zona 1",type:"Otvoreni parking",dayPrice:1.5,lat:43.859,lng:18.426}
-];
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        var map;
+        var markers = {};
 
-function getColor(p){const pct=p.occupied/p.capacity;if(pct>=0.8)return"#EF4444";if(pct>=0.5)return"#F59E0B";return"#22C55E";}
-function getLabel(p){const pct=p.occupied/p.capacity;if(pct>=0.95)return{t:"Puno",c:"badge-full"};if(pct>=0.8)return{t:"Popunjeno",c:"badge-full"};if(pct>=0.5)return{t:"Djelimično",c:"badge-busy"};return{t:"Slobodno",c:"badge-free"};}
+        // Inicijalizacija mape
+        document.addEventListener("DOMContentLoaded", function () {
+            // Ukloni gornji i donji margin/padding iz main elementa
+            var mainEl = document.querySelector('main');
+            if (mainEl) {
+                mainEl.className = "w-full p-0 m-0 max-w-none flex-grow";
+            }
 
-const map=L.map("map").setView([43.8563,18.4131],13);
-L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",{attribution:'&copy; OSM &copy; CARTO'}).addTo(map);
+            map = L.map('parkingMap', {
+                zoomControl: false // Sakrijemo defaultne komande
+            }).setView([43.8563, 18.4131], 14);
 
-parkings.forEach(p=>{
-  const m=L.circleMarker([p.lat,p.lng],{radius:14,fillColor:getColor(p),fillOpacity:0.9,color:"#fff",weight:2}).addTo(map);
-  m.bindPopup('<b>'+p.name+'</b><br>'+p.address+'<br>Slobodno: '+(p.capacity-p.occupied)+'/'+p.capacity+'<br>'+p.dayPrice.toFixed(2)+' KM/h');
-  m.on("click",()=>window.location.href="/parking-details.html?id="+p.id);
-});
+            // Dodajemo bolji svjetliji tile layer za moderan UI (CartoDB Positron)
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
+            }).addTo(map);
 
-function renderList(filter=""){
-  const list=document.getElementById("parkingList");
-  list.innerHTML="";
-  parkings.filter(p=>!filter||p.name.toLowerCase().includes(filter)||p.address.toLowerCase().includes(filter)).forEach(p=>{
-    const s=getLabel(p);
-    list.innerHTML+=`<a href="/parking-details.html?id=${p.id}" class="parking-item d-block text-decoration-none">
-      <div class="d-flex justify-content-between mb-1"><span class="fw-medium small text-dark">${p.name}</span><span class="badge-status ${s.c}">${s.t}</span></div>
-      <div class="d-flex gap-3 small text-muted mb-1"><span><i class="bi bi-geo-alt" style="font-size:0.65rem"></i> ${(Math.random()*5+0.2).toFixed(1)} km</span><span><i class="bi bi-car-front" style="font-size:0.65rem"></i> ${p.capacity-p.occupied}/${p.capacity}</span></div>
-      <div class="d-flex justify-content-between small"><span class="fw-medium text-dark">${p.dayPrice.toFixed(2)} KM / h</span><span class="text-muted">${p.type}</span></div>
-    </a>`;
-  });
-}
-renderList();
-document.getElementById("searchInput").addEventListener("input",e=>renderList(e.target.value.toLowerCase()));
+            // Pozicioniraj zumiranje na desnu stranu dolje
+            L.control.zoom({
+                position: 'bottomright'
+            }).addTo(map);
 
-function toggleSidebar(){
-  const sb=document.getElementById("sidebar"),btn=document.getElementById("openBtn");
-  sb.classList.toggle("closed");
-  btn.classList.toggle("d-none");
-  setTimeout(()=>map.invalidateSize(),300);
-}
-</script>
+            // Dodavanje markera
+            @foreach (var p in Model)
+            {
+                var occupied = p.UkupnoMjesta - p.SlobodnaMjesta;
+                var pct = p.UkupnoMjesta > 0 ? (double)occupied / p.UkupnoMjesta : 0.0;
+                string color = "#22C55E"; // Green
+                if (!p.Aktivan) color = "#9CA3AF"; // Gray
+                else if (pct >= 0.8) color = "#EF4444"; // Red
+                else if (pct >= 0.5) color = "#F59E0B"; // Yellow
+
+                <text>
+                var marker = L.circleMarker([@p.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture), 
+                                              @p.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture)], {
+                    radius: 12,
+                    fillColor: '@color',
+                    fillOpacity: 0.9,
+                    color: '#ffffff',
+                    weight: 2
+                }).addTo(map);
+
+                marker.bindPopup(`
+                    <div class="p-1 text-sm font-sans" style="min-width: 150px;">
+                        <p class="font-bold text-foreground mb-1">@p.Naziv</p>
+                        <p class="text-xs text-muted-foreground mb-1"><i class="bi bi-geo-alt"></i> @p.Adresa</p>
+                        <p class="text-xs mb-1"><strong>Slobodno:</strong> @p.SlobodnaMjesta / @p.UkupnoMjesta</p>
+                        <p class="text-xs mb-2"><strong>Cijena:</strong> @p.CijenaPoSatu.ToString("F2") KM/h</p>
+                        <a href="/rezervacije/nova?parkingId=@p.ParkingId" style="color: white !important;" class="inline-block bg-primary text-white text-xs font-semibold px-2.5 py-1.5 rounded no-underline hover:opacity-90">Rezerviši mjesto</a>
+                    </div>
+                `);
+
+                markers[@p.ParkingId] = marker;
+                </text>
+            }
+        });
+
+        function toggleSidebar(open) {
+            var sidebar = document.getElementById('sidebar');
+            var openBtn = document.getElementById('openSidebarBtn');
+            if (open) {
+                sidebar.classList.remove('w-0');
+                sidebar.classList.add('w-80');
+                openBtn.classList.add('hidden');
+            } else {
+                sidebar.classList.remove('w-80');
+                sidebar.classList.add('w-0');
+                openBtn.classList.remove('hidden');
+            }
+            // Invalidate map size after animation completed
+            setTimeout(function () {
+                map.invalidateSize();
+            }, 305);
+        }
+
+        function filterParkings() {
+            var query = document.getElementById('searchInput').value.toLowerCase();
+            document.querySelectorAll('.parking-item').forEach(function (item) {
+                var name = item.getAttribute('data-name');
+                var address = item.getAttribute('data-address');
+                if (name.indexOf(query) > -1 || address.indexOf(query) > -1) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function focusParking(lat, lng, id) {
+            map.setView([lat, lng], 16);
+            if (markers[id]) {
+                markers[id].openPopup();
+            }
+        }
+    </script>
 }

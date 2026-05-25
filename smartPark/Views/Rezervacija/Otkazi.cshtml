@@ -1,0 +1,67 @@
+@model smartPark.Models.ViewModels.Rezervacija.RezervacijaOtkaziViewModel
+
+@{
+    ViewBag.Title = "Otkaži rezervaciju";
+}
+
+<button onclick="history.back()" class="btn btn-back mb-2"><i class="bi bi-arrow-left"></i> Nazad</button>
+
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="sp-card">
+            <h1 class="h5 mb-3">Otkazivanje rezervacije</h1>
+            
+            @if (Model != null && Model.RezervacijaId > 0)
+            {
+                <div class="alert alert-info small mb-3">
+                    <strong>Rezervacija #@Model.RezervacijaId</strong><br />
+                    Parking: <strong>@Model.ParkingNaziv</strong><br />
+                    Datum: @Model.PocetakRezervacije.ToString("dd.MM.yyyy")<br />
+                    Vrijeme: @Model.PocetakRezervacije.ToString("HH:mm") - @Model.KrajRezervacije.ToString("HH:mm")<br />
+                    <strong>Ukupna cijena: @Model.UkupnaCijena.ToString("F2") KM</strong>
+                </div>
+                
+                <div class="alert alert-warning small">
+                    <i class="bi bi-exclamation-triangle"></i> 
+                    Nakon otkazivanja, novac će biti refundiran u roku od 24h.
+                </div>
+                
+                <form asp-action="OtkaziPotvrdi" asp-controller="Rezervacija" asp-route-id="@Model.RezervacijaId" method="post" onsubmit="return potvrdi('Sigurno želite otkazati ovu rezervaciju?');">
+                    @Html.AntiForgeryToken()
+                    
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+                    
+                    <input type="hidden" name="id" value="@Model.RezervacijaId" />
+                    
+                    <!-- Razlog otkazivanja (opciono, prema specifikaciji) -->
+                    <div class="mb-3">
+                        <label asp-for="RazlogOtkazivanja" class="form-label">Razlog otkazivanja (opciono)</label>
+                        <textarea asp-for="RazlogOtkazivanja" class="form-control" rows="2" placeholder="Navedite razlog otkazivanja..."></textarea>
+                        <span asp-validation-for="RazlogOtkazivanja" class="text-danger small"></span>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-danger w-100">
+                        <i class="bi bi-x-circle"></i> Potvrdi otkazivanje
+                    </button>
+                </form>
+            }
+            else
+            {
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle"></i> Rezervacija nije pronađena.
+                    <a asp-action="Moje" class="alert-link">Vrati se na moje rezervacije</a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    
+    <script>
+        function potvrdi(poruka) {
+            return confirm(poruka || 'Da li ste sigurni?');
+        }
+    </script>
+}

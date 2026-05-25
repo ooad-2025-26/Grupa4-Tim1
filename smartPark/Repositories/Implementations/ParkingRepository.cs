@@ -21,8 +21,6 @@ namespace smartPark.Repositories.Implementations
             _skup = kontekst.Parkinzi;
         }
 
-        // ========== OSNOVNE RADNJE ==========
-
         public async Task<Parking?> DohvatiPoIdAsync(int id)
         {
             return await _skup.Include(p => p.Menadzer).FirstOrDefaultAsync(p => p.ParkingId == id);
@@ -67,8 +65,6 @@ namespace smartPark.Repositories.Implementations
             return await _skup.Include(p => p.Menadzer).Where(uslov).ToListAsync();
         }
 
-        // ========== RADNJE ZA DODAVANJE, IZMJENU I BRISANJE ==========
-
         public async Task DodajAsync(Parking parking)
         {
             await _skup.AddAsync(parking);
@@ -89,8 +85,6 @@ namespace smartPark.Repositories.Implementations
             await _kontekst.SaveChangesAsync();
         }
 
-        // ========== RADNJE ZA MENADŽERA ==========
-
         public async Task<Parking?> DohvatiParkingPoMenadzeruAsync(string menadzerId)
         {
             return await _skup
@@ -99,14 +93,21 @@ namespace smartPark.Repositories.Implementations
                 .FirstOrDefaultAsync(p => p.MenadzerID == menadzerId);
         }
 
+        public async Task<List<Parking>> DohvatiSveParkingePoMenadzeruAsync(string menadzerId)
+        {
+            return await _skup
+                .Include(p => p.ParkingMjesta)
+                .Include(p => p.Rezervacije)
+                .Where(p => p.MenadzerID == menadzerId)
+                .ToListAsync();
+        }
+
         public async Task<bool> DaLiMenadzerUpravljaParkingomAsync(string menadzerId, int parkingId)
         {
             return await _skup.AnyAsync(p =>
                 p.ParkingId == parkingId && p.MenadzerID == menadzerId
             );
         }
-
-        // ========== RADNJE ZA STATISTIKU ==========
 
         public async Task<int> DohvatiBrojRezervacijaZaParkingAsync(
             int parkingId,
@@ -208,7 +209,7 @@ namespace smartPark.Repositories.Implementations
             return rezultat;
         }
 
-        // ========== ZA ADMIN DASHBOARD ==========
+        // Za admina
 
         public async Task<int> DohvatiUkupnoParkingaAsync()
         {
@@ -318,8 +319,6 @@ namespace smartPark.Repositories.Implementations
             return prihodi.OrderBy(r => r.Key).ToDictionary(r => r.Key, r => r.Value);
         }
 
-        // ========== SPECIFIČNE RADNJE ZA MENADŽERA ==========
-
         public async Task<
             List<MenadzerParkingDetaljiViewModel.AktivnaRezervacija>
         > DohvatiAktivneRezervacijeZaParkingAsync(int parkingId)
@@ -359,8 +358,6 @@ namespace smartPark.Repositories.Implementations
                 && r.KrajRezervacije >= sada
             );
         }
-
-        // ========== POMOĆNE RADNJE ==========
 
         public async Task<bool> PostojiLiAsync(int id)
         {
@@ -403,12 +400,16 @@ namespace smartPark.Repositories.Implementations
             return rezultat;
         }
 
-        // ========== ZA DROPDOWN LISTE ==========
-
         public async Task<IEnumerable<SelectListItem>> DohvatiSveMenadzereZaSelectListAsync()
         {
-            var menadzeri = await _kontekst
-                .Users.Where(k => k.MenadzerOdgovorniParkingId != null)
+            var menadzerRole = await _kontekst.Roles.FirstOrDefaultAsync(r => r.Name == "Menadzer");
+            if (menadzerRole == null)
+            {
+                return new List<SelectListItem> { new SelectListItem { Value = "", Text = "-- Bez menadžera --" } };
+            }
+
+            var menadzeri = await _kontekst.Users
+                .Where(k => _kontekst.UserRoles.Any(ur => ur.UserId == k.Id && ur.RoleId == menadzerRole.Id))
                 .Select(k => new SelectListItem
                 {
                     Value = k.Id,
@@ -419,7 +420,7 @@ namespace smartPark.Repositories.Implementations
             menadzeri.Insert(0, new SelectListItem { Value = "", Text = "-- Bez menadžera --" });
 
             return menadzeri;
-        } // ========== DODATNE METODE ZA STATISTIKU ==========
+        } 
 
         public async Task<int> PrebrojRezervacijeAsync()
         {

@@ -1,19 +1,227 @@
+@model smartPark.Models.ViewModels.Parking.Admin.AdminParkingUrediViewModel
+
 @{
-    ViewData["Title"] = "Uredi parking";
+    ViewBag.Title = "Uredi parking";
 }
 
-<div class="container py-4" style="max-width:520px">
-  <div class="card p-4">
-    <h4 class="fw-bold mb-4">Dodaj parking</h4>
-    <form action="/manage-parkings.html">
-      <div class="mb-3"><label class="form-label small fw-medium">Naziv</label><input class="form-control" required></div>
-      <div class="mb-3"><label class="form-label small fw-medium">Adresa</label><input class="form-control" required></div>
-      <div class="mb-3"><label class="form-label small fw-medium">Kapacitet</label><input type="number" class="form-control" value="50" required></div>
-      <div class="mb-3"><label class="form-label small fw-medium">Zona</label><select class="form-select"><option>Zona 1</option><option>Zona 2</option><option>Zona 3</option><option>Zona 4</option></select></div>
-      <div class="mb-3"><label class="form-label small fw-medium">Tip parkinga</label><select class="form-select"><option>Otvoreni parking</option><option>Garaža</option><option>Rampa</option><option>Vanjski</option></select></div>
-      <div class="mb-3"><label class="form-label small fw-medium">Radno vrijeme</label><input class="form-control" value="06:00 - 22:00"></div>
-      <div class="row mb-3"><div class="col"><label class="form-label small fw-medium">Dnevna cijena (KM/h)</label><input type="number" step="0.5" class="form-control" value="3"></div><div class="col"><label class="form-label small fw-medium">Noćna cijena (KM/h)</label><input type="number" step="0.5" class="form-control" value="1.5"></div></div>
-      <div class="d-flex gap-2"><button type="submit" class="btn btn-primary">Sačuvaj</button><a href="@Url.Action("Index", "Parking")" class="btn btn-light">Odustani</a></div>
-    </form>
-  </div>
+@section Head {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+}
+
+<div class="min-h-[calc(100vh-3.5rem)] bg-muted/30 flex flex-col items-center py-10 px-4">
+    <div class="w-full max-w-lg">
+        <button onclick="history.back()" class="text-muted-foreground hover:text-foreground text-sm font-medium mb-4 flex items-center gap-1 bg-transparent border-0 self-start">
+            <i class="bi bi-arrow-left"></i> Nazad
+        </button>
+
+        <div class="bg-card rounded-xl border border-border p-8 shadow-sm">
+            <h1 class="text-xl font-bold text-foreground mb-6">Uredi parking</h1>
+
+            <form asp-action="Edit" asp-route-id="@Model.ParkingId" method="post" id="editParkingForm" class="space-y-4">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="ParkingId" />
+                <div asp-validation-summary="ModelOnly" class="text-danger text-sm mb-3"></div>
+
+                <!-- Hidden map fields -->
+                <input type="hidden" asp-for="Latitude" id="latitudeInput" />
+                <input type="hidden" asp-for="Longitude" id="longitudeInput" />
+                @if (User.IsInRole("Administrator"))
+                {
+                    <div>
+                        <label asp-for="MenadzerId" class="block text-sm font-medium text-foreground mb-1">Menadžer</label>
+                        <select asp-for="MenadzerId" asp-items="Model.DostupniMenadzeri" class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                            <option value="">Bez menadžera...</option>
+                        </select>
+                        <span asp-validation-for="MenadzerId" class="text-danger text-xs"></span>
+                    </div>
+                }
+                else
+                {
+                    <input type="hidden" asp-for="MenadzerId" value="@Model.MenadzerId" />
+                }
+
+                <!-- Naziv -->
+                <div>
+                    <label asp-for="Naziv" class="block text-sm font-medium text-foreground mb-1">Naziv</label>
+                    <input asp-for="Naziv" class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" required />
+                    <span asp-validation-for="Naziv" class="text-danger text-xs"></span>
+                </div>
+
+                <!-- Adresa -->
+                <div>
+                    <label asp-for="Adresa" class="block text-sm font-medium text-foreground mb-1">Adresa</label>
+                    <input asp-for="Adresa" class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" required />
+                    <span asp-validation-for="Adresa" class="text-danger text-xs"></span>
+                </div>
+
+                <!-- Kapacitet & Slobodna Mjesta -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label asp-for="UkupnoMjesta" class="block text-sm font-medium text-foreground mb-1">Kapacitet</label>
+                        <input asp-for="UkupnoMjesta" type="number" min="1" class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" required />
+                        <span asp-validation-for="UkupnoMjesta" class="text-danger text-xs"></span>
+                    </div>
+                    <div>
+                        <label asp-for="SlobodnaMjesta" class="block text-sm font-medium text-foreground mb-1">Slobodna mjesta</label>
+                        <input asp-for="SlobodnaMjesta" type="number" min="0" class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" required />
+                        <span asp-validation-for="SlobodnaMjesta" class="text-danger text-xs"></span>
+                    </div>
+                </div>
+
+
+
+                <!-- Tip parkinga -->
+                <div>
+                    <label asp-for="TipParkinga" class="block text-sm font-medium text-foreground mb-1">Tip parkinga</label>
+                    <select asp-for="TipParkinga" class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                        <option value="1" selected="@((int)Model.TipParkinga == 1 ? "selected" : null)">Otvoreni parking</option>
+                        <option value="2" selected="@((int)Model.TipParkinga == 2 ? "selected" : null)">Garaža</option>
+                    </select>
+                    <span asp-validation-for="TipParkinga" class="text-danger text-xs"></span>
+                </div>
+
+                <!-- Radno vrijeme -->
+                <div>
+                    <label class="block text-sm font-medium text-foreground mb-1">Radno vrijeme</label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <span class="text-xs text-muted-foreground block mb-1">Početak</span>
+                            <select id="radnoVrijemePocetak" onchange="updateRadnoVrijeme()" class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                                @for (int h = 0; h < 24; h++)
+                                {
+                                    var t1 = $"{h:D2}:00";
+                                    var t2 = $"{h:D2}:30";
+                                    <option value="@t1">@t1</option>
+                                    <option value="@t2">@t2</option>
+                                }
+                                <option value="24:00">24:00</option>
+                            </select>
+                        </div>
+                        <div>
+                            <span class="text-xs text-muted-foreground block mb-1">Kraj</span>
+                            <select id="radnoVrijemeKraj" onchange="updateRadnoVrijeme()" class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                                @for (int h = 0; h < 24; h++)
+                                {
+                                    var t1 = $"{h:D2}:00";
+                                    var t2 = $"{h:D2}:30";
+                                    <option value="@t1">@t1</option>
+                                    <option value="@t2">@t2</option>
+                                }
+                                <option value="24:00">24:00</option>
+                            </select>
+                        </div>
+                    </div>
+                    <input type="hidden" asp-for="RadnoVrijeme" id="RadnoVrijemeInput" />
+                    <span asp-validation-for="RadnoVrijeme" class="text-danger text-xs"></span>
+                </div>
+
+                <input type="hidden" asp-for="CijenaPoSatu" />
+
+                <!-- Cjenovnici -->
+                <div class="space-y-4">
+                    <div>
+                        <label asp-for="DefaultniCjenovnikId" class="block text-sm font-medium text-foreground mb-1">Defaultni cjenovnik</label>
+                        <select asp-for="DefaultniCjenovnikId" asp-items="Model.DostupniCjenovniciDefault" class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"></select>
+                        <span asp-validation-for="DefaultniCjenovnikId" class="text-danger text-xs"></span>
+                    </div>
+                    <div>
+                        <label asp-for="DnevniCjenovnikId" class="block text-sm font-medium text-foreground mb-1">Dnevni cjenovnik</label>
+                        <select asp-for="DnevniCjenovnikId" asp-items="Model.DostupniCjenovniciDan" class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"></select>
+                        <span asp-validation-for="DnevniCjenovnikId" class="text-danger text-xs"></span>
+                    </div>
+                    <div>
+                        <label asp-for="NocniCjenovnikId" class="block text-sm font-medium text-foreground mb-1">Noćni cjenovnik</label>
+                        <select asp-for="NocniCjenovnikId" asp-items="Model.DostupniCjenovniciNoc" class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"></select>
+                        <span asp-validation-for="NocniCjenovnikId" class="text-danger text-xs"></span>
+                    </div>
+                </div>
+
+                <!-- Map selection -->
+                <div class="pt-2">
+                    <label class="block text-sm font-medium text-foreground mb-1.5">Lokacija na mapi (Sarajevo)</label>
+                    <div id="selectLocationMap" class="w-full h-64 rounded-lg border border-input overflow-hidden"></div>
+                    <small class="text-xs text-muted-foreground mt-1 block"><i class="bi bi-info-circle"></i> Kliknite na mapu ili prevucite marker da izaberete novu lokaciju.</small>
+                </div>
+
+                <div class="flex items-center gap-2 pt-2 form-check form-switch">
+                    <input asp-for="Aktivan" class="form-check-input" type="checkbox" id="aktivanSwitch" />
+                    <label class="form-check-label text-sm text-foreground" for="aktivanSwitch">Parking je aktivan i dostupan za rezervacije</label>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center gap-3 pt-4">
+                    <button type="submit" class="flex-1 bg-primary text-primary-foreground py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity">
+                        Sačuvaj izmjene
+                    </button>
+                    <a asp-action="Index" class="flex-1 bg-transparent text-foreground border border-input py-2.5 rounded-lg text-sm font-semibold hover:bg-muted transition-colors text-center no-underline">
+                        Odustani
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+
+
+        function updateRadnoVrijeme() {
+            var pocetak = document.getElementById('radnoVrijemePocetak').value;
+            var kraj = document.getElementById('radnoVrijemeKraj').value;
+            document.getElementById('RadnoVrijemeInput').value = pocetak + ' - ' + kraj;
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            var radnoVrijeme = '@Model.RadnoVrijeme';
+            if (radnoVrijeme) {
+                var parts = radnoVrijeme.split('-');
+                if (parts.length === 2) {
+                    var pocetak = parts[0].trim();
+                    var kraj = parts[1].trim();
+                    document.getElementById('radnoVrijemePocetak').value = pocetak;
+                    document.getElementById('radnoVrijemeKraj').value = kraj;
+                }
+            }
+            updateRadnoVrijeme();
+            // Sarajevo centar
+            var defaultLat = 43.8563;
+            var defaultLng = 18.4131;
+
+            var latInput = document.getElementById("latitudeInput");
+            var lngInput = document.getElementById("longitudeInput");
+
+            var initialLat = parseFloat(latInput.value) || defaultLat;
+            var initialLng = parseFloat(lngInput.value) || defaultLng;
+
+            // Inicijalizuj mapu
+            var map = L.map('selectLocationMap').setView([initialLat, initialLng], 14);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OSM'
+            }).addTo(map);
+
+            var marker = L.marker([initialLat, initialLng], { draggable: true }).addTo(map);
+
+            function updateCoordinates(lat, lng) {
+                latInput.value = lat.toFixed(6);
+                lngInput.value = lng.toFixed(6);
+            }
+
+            marker.on('dragend', function (event) {
+                var position = marker.getLatLng();
+                updateCoordinates(position.lat, position.lng);
+            });
+
+            map.on('click', function (event) {
+                var lat = event.latlng.lat;
+                var lng = event.latlng.lng;
+                marker.setLatLng([lat, lng]);
+                updateCoordinates(lat, lng);
+            });
+
+
+        });
+    </script>
+}

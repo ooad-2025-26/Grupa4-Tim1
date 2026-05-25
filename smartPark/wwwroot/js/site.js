@@ -1,4 +1,6 @@
-﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-// for details on configuring this project to bundle and minify static web assets.
-
-// Write your JavaScript code.
+// SmartPark - pomocne JS funkcije
+function spConfirm(msg) { return window.confirm(msg || 'Da li ste sigurni?'); }
+function spToggleSidebar() {
+  var s = document.getElementById('parkingSidebar');
+  if (s) s.classList.toggle('d-none');
+}

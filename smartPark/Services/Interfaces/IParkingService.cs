@@ -6,12 +6,10 @@ namespace smartPark.Services.Interfaces
 {
     public interface IParkingService
     {
-        // ========== OSNOVNE RADNJE ==========
         Task<Parking?> DohvatiParkingPoIdAsync(int id);
         Task<IEnumerable<Parking>> DohvatiSveParkingeAsync();
         Task<IEnumerable<Parking>> DohvatiAktivneParkingeAsync();
 
-        // ========== ADMIN RADNJE ==========
         Task<AdminParkingListaViewModel> DohvatiAdminListuParkingaAsync(
             string? filterStatus = null,
             string? filterTip = null
@@ -25,7 +23,6 @@ namespace smartPark.Services.Interfaces
         Task<Parking?> AdminAzurirajParkingAsync(AdminParkingUrediViewModel model);
         Task<bool> AdminObrisiParkingAsync(int id);
 
-        // ========== MENADŽER RADNJE ==========
         Task<MenadzerParkingDetaljiViewModel?> DohvatiMenadzerParkingDetaljiAsync(
             string menadzerId
         );
@@ -37,15 +34,16 @@ namespace smartPark.Services.Interfaces
         );
         Task<Parking?> MenadzerAzurirajParkingAsync(MenadzerParkingUrediViewModel model);
 
-        // ========== ZAJEDNIČKE RADNJE ==========
         Task<bool> ParkingPostojiAsync(int id);
         Task<bool> NazivParkingaPostojiAsync(string naziv, int? izuzmiId = null);
         Task<int> DohvatiBrojSlobodnihMjestaAsync(int parkingId);
         Task<decimal> IzracunajCijenuAsync(int parkingId, DateTime pocetak, DateTime kraj);
 
-        // ========== ZA DROPDOWN LISTE ==========
         Task<
             IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>
         > DohvatiSveMenadzereZaSelectListAsync();
+
+        Task PopuniCjenovnikeZaKreirajAsync(AdminParkingKreirajViewModel model);
+        Task PopuniCjenovnikeZaUrediAsync(AdminParkingUrediViewModel model);
     }
 }

@@ -1,156 +1,187 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using smartPark.Data;
 using smartPark.Models.Entities;
+using smartPark.Models.ViewModels.Notifikacija;
+using smartPark.Services.Interfaces;
 
-public class NotifikacijaController : Controller
+namespace smartPark.Controllers
 {
-    private readonly ApplicationDbContext _context;
-
-    public NotifikacijaController(ApplicationDbContext context)
+    [Authorize(Roles = "Administrator,Menadzer")]
+    public class NotifikacijaController : Controller
     {
-        _context = context;
-    }
+        private readonly INotifikacijaService _notifikacijaService;
+        private readonly UserManager<Korisnik> _userManager;
 
-    // GET: NOTIFIKACIJAS
-    public async Task<IActionResult> Index()
-    {
-        return View(await _context.Notifikacije.ToListAsync());
-    }
-
-    // GET: NOTIFIKACIJAS/Details/5
-    public async Task<IActionResult> Details(int? notifikacijaid)
-    {
-        if (notifikacijaid == null)
+        public NotifikacijaController(
+            INotifikacijaService notifikacijaService,
+            UserManager<Korisnik> userManager
+        )
         {
-            return NotFound();
+            _notifikacijaService = notifikacijaService;
+            _userManager = userManager;
         }
 
-        var notifikacija = await _context.Notifikacije.FirstOrDefaultAsync(m =>
-            m.NotifikacijaId == notifikacijaid
-        );
-        if (notifikacija == null)
+        // Slanje notifikacije
+
+        [HttpGet("notifikacija/posalji")]
+        public IActionResult Posalji()
         {
-            return NotFound();
+            return View(new NotifikacijaPosaljiViewModel());
         }
 
-        return View(notifikacija);
-    }
-
-    // GET: NOTIFIKACIJAS/Create
-    public IActionResult Create()
-    {
-        return View();
-    }
-
-    // POST: NOTIFIKACIJAS/Create
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(
-        [Bind("Title,ReleaseDate,Genre,Price")] Notifikacija notifikacija
-    )
-    {
-        if (ModelState.IsValid)
+        [HttpPost("notifikacija/posalji")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Posalji(NotifikacijaPosaljiViewModel model)
         {
-            _context.Add(notifikacija);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
-        return View(notifikacija);
-    }
+            if (!ModelState.IsValid)
+                return View(model);
 
-    // GET: NOTIFIKACIJAS/Edit/5
-    public async Task<IActionResult> Edit(int? notifikacijaid)
-    {
-        if (notifikacijaid == null)
-        {
-            return NotFound();
-        }
+            var rezultat = await _notifikacijaService.PosaljiEmailAsync(model);
 
-        var notifikacija = await _context.Notifikacije.FindAsync(notifikacijaid);
-        if (notifikacija == null)
-        {
-            return NotFound();
-        }
-        return View(notifikacija);
-    }
-
-    // POST: NOTIFIKACIJAS/Edit/5
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(
-        int? notifikacijaid,
-        [Bind("Id,Title,ReleaseDate,Genre,Price")] Notifikacija notifikacija
-    )
-    {
-        if (notifikacijaid != notifikacija.NotifikacijaId)
-        {
-            return NotFound();
-        }
-
-        if (ModelState.IsValid)
-        {
-            try
+            if (rezultat)
             {
-                _context.Update(notifikacija);
-                await _context.SaveChangesAsync();
+                TempData["Uspjeh"] = $"Email uspješno poslan na {model.EmailPrimaoca}!";
+                return RedirectToAction(nameof(Posalji));
             }
-            catch (DbUpdateConcurrencyException)
+
+            TempData["Greska"] = "Greška pri slanju emaila. Provjerite konfiguraciju.";
+            return View(model);
+        }
+
+        // Flooding mail svima
+
+        [HttpGet("notifikacija/posalji-svima")]
+        public IActionResult PosaljiSvima()
+        {
+            return View();
+        }
+
+        [HttpPost("notifikacija/posalji-svima")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> PosaljiSvima(NotifikacijaPosaljiViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return View(model);
+
+            var korisnici = _userManager.Users.Where(k => k.EmailConfirmed).ToList();
+            var uspjesno = 0;
+            var greske = 0;
+
+            foreach (var korisnik in korisnici)
             {
-                if (!NotifikacijaExists(notifikacija.NotifikacijaId))
-                {
-                    return NotFound();
-                }
+                model.EmailPrimaoca = korisnik.Email ?? string.Empty;
+                var rezultat = await _notifikacijaService.PosaljiEmailAsync(model);
+
+                if (rezultat)
+                    uspjesno++;
                 else
-                {
-                    throw;
-                }
+                    greske++;
             }
-            return RedirectToAction(nameof(Index));
-        }
-        return View(notifikacija);
-    }
 
-    // GET: NOTIFIKACIJAS/Delete/5
-    public async Task<IActionResult> Delete(int? notifikacijaid)
-    {
-        if (notifikacijaid == null)
+            TempData["Uspjeh"] = $"Email poslan na {uspjesno} adresa. Greške: {greske}";
+            return RedirectToAction(nameof(PosaljiSvima));
+        }
+
+        // Mailovi za 4 akcije
+
+        [HttpPost("notifikacija/potvrda")]
+        public async Task<IActionResult> PosaljiPotvrduRezervacije(
+            string email,
+            string ime,
+            string prezime,
+            string parkingNaziv,
+            DateTime pocetak,
+            DateTime kraj,
+            decimal cijena
+        )
         {
-            return NotFound();
+            var rezultat = await _notifikacijaService.PosaljiPotvrduRezervacijeAsync(
+                email,
+                ime,
+                prezime,
+                parkingNaziv,
+                pocetak,
+                kraj,
+                cijena
+            );
+
+            if (rezultat)
+                TempData["Uspjeh"] = "Potvrda rezervacije poslana!";
+            else
+                TempData["Greska"] = "Greška pri slanju potvrde rezervacije.";
+
+            return RedirectToAction("Detalji", "Rezervacija", new { id = 0 });
         }
 
-        var notifikacija = await _context.Notifikacije.FirstOrDefaultAsync(m =>
-            m.NotifikacijaId == notifikacijaid
-        );
-        if (notifikacija == null)
+        [HttpPost("notifikacija/otkazano")]
+        public async Task<IActionResult> PosaljiObavjestenjeOtkazano(
+            string email,
+            string ime,
+            string prezime,
+            string parkingNaziv,
+            DateTime pocetak,
+            DateTime kraj,
+            string razlog
+        )
         {
-            return NotFound();
+            var rezultat = await _notifikacijaService.PosaljiObavjestenjeOtkazanoAsync(
+                email,
+                ime,
+                prezime,
+                parkingNaziv,
+                pocetak,
+                kraj,
+                razlog
+            );
+
+            if (rezultat)
+                TempData["Uspjeh"] = "Obavještenje o otkazanoj rezervaciji poslano!";
+            else
+                TempData["Greska"] = "Greška pri slanju obavještenja o otkazanoj rezervaciji.";
+
+            return RedirectToAction("Detalji", "Rezervacija", new { id = 0 });
         }
 
-        return View(notifikacija);
-    }
+        // Konfiguracija mail-a
 
-    // POST: NOTIFIKACIJAS/Delete/5
-    [HttpPost, ActionName("Delete")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(int? notifikacijaid)
-    {
-        var notifikacija = await _context.Notifikacije.FindAsync(notifikacijaid);
-        if (notifikacija != null)
+        [HttpGet("notifikacija/testiraj-konfiguraciju")]
+        [Authorize(Roles = "Administrator")]
+        public async Task<IActionResult> TestirajKonfiguraciju()
         {
-            _context.Notifikacije.Remove(notifikacija);
+            var adminEmail = _userManager.GetUserAsync(User).Result?.Email;
+            if (string.IsNullOrEmpty(adminEmail))
+                adminEmail = "admin@smartpark.com";
+
+            var rezultat = await _notifikacijaService.TestirajEmailKonfiguracijuAsync(adminEmail);
+
+            if (rezultat)
+                TempData["Uspjeh"] =
+                    $"Test email poslan na {adminEmail}. Provjerite vaš email sandučić.";
+            else
+                TempData["Greska"] =
+                    "Greška pri slanju test emaila. Provjerite email konfiguraciju u appsettings.json.";
+
+            return RedirectToAction(nameof(Posalji));
         }
 
-        await _context.SaveChangesAsync();
-        return RedirectToAction(nameof(Index));
-    }
+        // Api test
 
-    private bool NotifikacijaExists(int? notifikacijaid)
-    {
-        return _context.Notifikacije.Any(e => e.NotifikacijaId == notifikacijaid);
+        [HttpPost("notifikacija/api-posalji")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ApiPosalji([FromBody] NotifikacijaPosaljiViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var rezultat = await _notifikacijaService.PosaljiEmailAsync(model);
+
+            if (rezultat)
+                return Ok(
+                    new { success = true, message = $"Email poslan na {model.EmailPrimaoca}" }
+                );
+
+            return StatusCode(500, new { success = false, message = "Greška pri slanju emaila" });
+        }
     }
 }

@@ -26,6 +26,7 @@ namespace smartPark.Models.Entities
         [Display(Name = "Parking")]
         public virtual Parking Parking { get; set; } = null!;
 
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
         [Display(Name = "Trenutna rezervacija")]
         public virtual Rezervacija? TrenutnaRezervacija { get; set; }
     }

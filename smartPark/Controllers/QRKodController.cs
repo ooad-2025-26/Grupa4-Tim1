@@ -1,150 +1,117 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using smartPark.Data;
 using smartPark.Models.Entities;
+using smartPark.Models.ViewModels.Rezervacija;
+using smartPark.Services.Interfaces;
 
+namespace smartPark.Controllers;
+
+[Authorize]
 public class QRKodController : Controller
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IRezervacijaService _rezervacijaService;
+    private readonly IQRKodService _qrKodService;
+    private readonly UserManager<Korisnik> _userManager;
 
-    public QRKodController(ApplicationDbContext context)
-    {
-        _context = context;
-    }
-
-    // GET: QRKODS
-    public async Task<IActionResult> Index()
-    {
-        return View(await _context.QRKodovi.ToListAsync());
-    }
-
-    // GET: QRKODS/Details/5
-    public async Task<IActionResult> Details(int? qrkodid)
-    {
-        if (qrkodid == null)
-        {
-            return NotFound();
-        }
-
-        var qrkod = await _context.QRKodovi.FirstOrDefaultAsync(m => m.QRKodId == qrkodid);
-        if (qrkod == null)
-        {
-            return NotFound();
-        }
-
-        return View(qrkod);
-    }
-
-    // GET: QRKODS/Create
-    public IActionResult Create()
-    {
-        return View();
-    }
-
-    // POST: QRKODS/Create
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Title,ReleaseDate,Genre,Price")] QRKod qrkod)
-    {
-        if (ModelState.IsValid)
-        {
-            _context.Add(qrkod);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
-        return View(qrkod);
-    }
-
-    // GET: QRKODS/Edit/5
-    public async Task<IActionResult> Edit(int? qrkodid)
-    {
-        if (qrkodid == null)
-        {
-            return NotFound();
-        }
-
-        var qrkod = await _context.QRKodovi.FindAsync(qrkodid);
-        if (qrkod == null)
-        {
-            return NotFound();
-        }
-        return View(qrkod);
-    }
-
-    // POST: QRKODS/Edit/5
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(
-        int? qrkodid,
-        [Bind("Id,Title,ReleaseDate,Genre,Price")] QRKod qrkod
+    public QRKodController(
+        IRezervacijaService rezervacijaService,
+        IQRKodService qrKodService,
+        UserManager<Korisnik> userManager
     )
     {
-        if (qrkodid != qrkod.QRKodId)
+        _rezervacijaService = rezervacijaService;
+        _qrKodService = qrKodService;
+        _userManager = userManager;
+    }
+
+    [HttpGet("qr-kod/prikaz/{id}")]
+    public async Task<IActionResult> Show(int id)
+    {
+        var rezervacija = await _rezervacijaService.DohvatiRezervacijuPoIdAsync(id);
+        if (rezervacija == null)
         {
-            return NotFound();
+            TempData["Greska"] = "Rezervacija nije pronađena.";
+            return RedirectToAction("MojeRezervacije", "Rezervacija");
         }
 
-        if (ModelState.IsValid)
+        // Provjera autorizacije
+        var korisnik = await _userManager.GetUserAsync(User);
+        var jeAdmin = User.IsInRole("Administrator") || User.IsInRole("Menadzer");
+
+        if (!jeAdmin && rezervacija.KorisnikId != korisnik?.Id)
         {
-            try
+            return Forbid();
+        }
+
+        var qrKodViewModel = await _qrKodService.DohvatiQRKodPoRezervacijiAsync(id);
+
+        if (qrKodViewModel == null)
+        {
+            // Ako QR kod ne postoji, generiši ga
+            qrKodViewModel = await _qrKodService.GenerisiQRKodZaRezervacijuAsync(id);
+        }
+
+        ViewBag.Rezervacija = rezervacija;
+        return View("~/Views/QR/Show.cshtml", qrKodViewModel);
+    }
+
+    [HttpGet("qr-kod/skener")]
+    [Authorize(Roles = "Administrator,Menadzer")]
+    public IActionResult Scanner()
+    {
+        return View("~/Views/QR/Scanner.cshtml");
+    }
+
+    [HttpPost("qr-kod/validiraj")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Validiraj([FromBody] ValidirajQRKodDto dto)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(dto.Kod))
             {
-                _context.Update(qrkod);
-                await _context.SaveChangesAsync();
+                return Ok(new { uspjeh = false, poruka = "QR kod nije poslan." });
             }
-            catch (DbUpdateConcurrencyException)
+
+            var validan = await _qrKodService.ValidirajQRKodAsync(dto.Kod);
+
+            if (validan)
             {
-                if (!QRKodExists(qrkod.QRKodId))
+                var qrKod = await _qrKodService.DohvatiQRKodPoKoduAsync(dto.Kod);
+                if (qrKod == null)
                 {
-                    return NotFound();
+                    return Ok(new { uspjeh = false, poruka = "QR kod nije pronađen." });
                 }
-                else
-                {
-                    throw;
-                }
+
+                var rezervacija = await _rezervacijaService.DohvatiRezervacijuPoIdAsync(
+                    qrKod.RezervacijaId
+                );
+
+                return Ok(
+                    new
+                    {
+                        uspjeh = true,
+                        rezervacijaId = qrKod.RezervacijaId,
+                        parkingNaziv = rezervacija?.Parking?.Naziv,
+                        korisnikIme = rezervacija?.Korisnik?.Ime,
+                        korisnikPrezime = rezervacija?.Korisnik?.Prezime,
+                        pocetak = rezervacija != null ? rezervacija.PocetakRezervacije.ToString("dd.MM.yyyy HH:mm") : null,
+                        kraj = rezervacija != null ? rezervacija.KrajRezervacije.ToString("HH:mm") : null,
+                    }
+                );
             }
-            return RedirectToAction(nameof(Index));
-        }
-        return View(qrkod);
-    }
 
-    // GET: QRKODS/Delete/5
-    public async Task<IActionResult> Delete(int? qrkodid)
-    {
-        if (qrkodid == null)
+            return Ok(new { uspjeh = false, poruka = "Nevažeći ili iskorišteni QR kod." });
+        }
+        catch (Exception ex)
         {
-            return NotFound();
+            return Ok(new { uspjeh = false, poruka = ex.Message });
         }
-
-        var qrkod = await _context.QRKodovi.FirstOrDefaultAsync(m => m.QRKodId == qrkodid);
-        if (qrkod == null)
-        {
-            return NotFound();
-        }
-
-        return View(qrkod);
     }
+}
 
-    // POST: QRKODS/Delete/5
-    [HttpPost, ActionName("Delete")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(int? qrkodid)
-    {
-        var qrkod = await _context.QRKodovi.FindAsync(qrkodid);
-        if (qrkod != null)
-        {
-            _context.QRKodovi.Remove(qrkod);
-        }
-
-        await _context.SaveChangesAsync();
-        return RedirectToAction(nameof(Index));
-    }
-
-    private bool QRKodExists(int? qrkodid)
-    {
-        return _context.QRKodovi.Any(e => e.QRKodId == qrkodid);
-    }
+public class ValidirajQRKodDto
+{
+    public string Kod { get; set; } = string.Empty;
 }

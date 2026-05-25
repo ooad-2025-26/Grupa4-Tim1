@@ -1,31 +1,76 @@
-html {
-  font-size: 14px;
-}
-
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
+/* SmartPark - Glavni CSS (Bootstrap 5 nadogradnja) */
+:root {
+  --sp-bg: #f8fafc;
+  --sp-card: #ffffff;
+  --sp-border: #e2e8f0;
+  --sp-text: #0f172a;
+  --sp-muted: #64748b;
+  --sp-primary: #2563eb;
+  --sp-primary-hover: #1d4ed8;
+  --sp-success: #16a34a;
+  --sp-warning: #f59e0b;
+  --sp-danger: #dc2626;
+  --sp-info: #0ea5e9;
 }
 
 body {
-  margin-bottom: 60px;
+  background: var(--sp-bg);
+  color: var(--sp-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
 }
 
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-  color: var(--bs-secondary-color);
-  text-align: end;
+/* Navbar */
+.sp-navbar {
+  background: var(--sp-card);
+  border-bottom: 1px solid var(--sp-border);
+  padding: 0.5rem 0;
 }
+.sp-navbar .navbar-brand { font-weight: 700; letter-spacing: -0.02em; color: var(--sp-text); }
+.sp-navbar .nav-link { color: var(--sp-muted); font-size: 0.9rem; padding: 0.5rem 0.85rem; }
+.sp-navbar .nav-link:hover, .sp-navbar .nav-link.active { color: var(--sp-text); font-weight: 600; }
 
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-  text-align: start;
+/* Kartice */
+.sp-card {
+  background: var(--sp-card);
+  border: 1px solid var(--sp-border);
+  border-radius: 0.5rem;
+  padding: 1.25rem;
 }
+.sp-stat-card { padding: 1.5rem; }
+.sp-stat-card .label { color: var(--sp-muted); font-size: 0.8rem; }
+.sp-stat-card .value { font-size: 1.75rem; font-weight: 700; margin-top: 0.25rem; }
+
+/* Dugmad */
+.btn-primary { background: var(--sp-primary); border-color: var(--sp-primary); }
+.btn-primary:hover { background: var(--sp-primary-hover); border-color: var(--sp-primary-hover); }
+.btn-back { color: var(--sp-muted); background: transparent; border: none; padding: 0.25rem 0.5rem; font-size: 0.9rem; }
+.btn-back:hover { color: var(--sp-text); }
+
+/* Status oznake */
+.badge-status { font-weight: 500; padding: 0.25rem 0.6rem; border-radius: 999px; font-size: 0.75rem; }
+.badge-active   { background: rgba(22,163,74,.1);  color: var(--sp-success); }
+.badge-upcoming { background: rgba(14,165,233,.1); color: var(--sp-info); }
+.badge-expired  { background: rgba(100,116,139,.1); color: var(--sp-muted); }
+.badge-cancelled{ background: rgba(220,38,38,.1);  color: var(--sp-danger); }
+.badge-warning  { background: rgba(245,158,11,.1); color: var(--sp-warning); }
+.badge-error    { background: rgba(220,38,38,.1);  color: var(--sp-danger); }
+.badge-info     { background: rgba(14,165,233,.1); color: var(--sp-info); }
+
+/* Tabele */
+.table-sp { background: var(--sp-card); border: 1px solid var(--sp-border); border-radius: .5rem; overflow: hidden; }
+.table-sp thead { background: #f1f5f9; }
+.table-sp th { font-weight: 600; color: var(--sp-muted); font-size: .8rem; }
+
+/* Mapa */
+#parkingMap { height: 85vh; border-radius: .5rem; border: 1px solid var(--sp-border); }
+.sidebar-parkings { background: var(--sp-card); border-right: 1px solid var(--sp-border); height: 85vh; overflow-y: auto; transition: transform .3s ease; }
+.sidebar-toggle { position: absolute; z-index: 1000; top: 1rem; left: 1rem; }
+
+/* QR */
+.qr-box { background: #fff; border: 2px dashed var(--sp-border); border-radius: .5rem; padding: 2rem; text-align: center; }
+
+/* Pomocno */
+.text-muted-sp { color: var(--sp-muted); }
+.section-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 1.25rem; }
+.page-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap; }

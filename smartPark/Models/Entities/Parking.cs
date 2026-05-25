@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using smartPark.Models.Enums;
 
 namespace smartPark.Models.Entities
@@ -47,10 +48,7 @@ namespace smartPark.Models.Entities
         [Display(Name = "Slobodna mjesta")]
         public int SlobodnaMjesta { get; set; }
 
-        [Required]
-        [Range(0.01, 1000, ErrorMessage = "Cijena po satu mora biti izmedju 0.01 i 1000")]
-        [DataType(DataType.Currency)]
-        [Display(Name = "Cijena po satu (KM")]
+        [Display(Name = "Cijena po satu (KM)")]
         public decimal CijenaPoSatu { get; set; }
 
         [Required]
@@ -65,8 +63,30 @@ namespace smartPark.Models.Entities
         [DataType(DataType.DateTime)]
         public DateTime DatumKreiranja { get; set; } = DateTime.Now;
 
+        [StringLength(100)]
+        [Display(Name = "Radno vrijeme")]
+        public string? RadnoVrijeme { get; set; }
+
         [Display(Name = "ID menadzera")]
         public string? MenadzerID { get; set; }
+
+        [Display(Name = "Defaultni cjenovnik")]
+        public int? DefaultniCjenovnikId { get; set; }
+
+        [ForeignKey("DefaultniCjenovnikId")]
+        public virtual Cjenovnik? DefaultniCjenovnik { get; set; }
+
+        [Display(Name = "Dnevni cjenovnik")]
+        public int? DnevniCjenovnikId { get; set; }
+
+        [ForeignKey("DnevniCjenovnikId")]
+        public virtual Cjenovnik? DnevniCjenovnik { get; set; }
+
+        [Display(Name = "Noćni cjenovnik")]
+        public int? NocniCjenovnikId { get; set; }
+
+        [ForeignKey("NocniCjenovnikId")]
+        public virtual Cjenovnik? NocniCjenovnik { get; set; }
 
         // NAVIGACIJA
 

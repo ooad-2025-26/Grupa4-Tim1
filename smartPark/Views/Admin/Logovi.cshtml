@@ -1,0 +1,65 @@
+@{
+    ViewBag.Title = "Sistemski logovi";
+    
+    // Mock log data since there is no log repository in the backend
+    var mockLogs = new List<dynamic>
+    {
+        new { Vrijeme = DateTime.Now.AddMinutes(-5), Tip = "INFO", Opis = "Korisnik admin@smartpark.ba se uspješno prijavio na sistem.", Korisnik = "admin@smartpark.ba" },
+        new { Vrijeme = DateTime.Now.AddMinutes(-12), Tip = "SUCCESS", Opis = "Kreiran novi parking prostor 'SmartPark Skenderija'.", Korisnik = "admin@smartpark.ba" },
+        new { Vrijeme = DateTime.Now.AddMinutes(-20), Tip = "INFO", Opis = "Korisnik m.muslic@smartpark.ba je kreirao novu rezervaciju.", Korisnik = "m.muslic@smartpark.ba" },
+        new { Vrijeme = DateTime.Now.AddMinutes(-34), Tip = "WARNING", Opis = "Neuspješan pokušaj prijave za email test@user.com (pogrešna lozinka).", Korisnik = "test@user.com" },
+        new { Vrijeme = DateTime.Now.AddHours(-1).AddMinutes(-5), Tip = "INFO", Opis = "Ažuriran cjenovnik za parking 'SmartPark Grbavica'.", Korisnik = "manager1@smartpark.ba" },
+        new { Vrijeme = DateTime.Now.AddHours(-2), Tip = "INFO", Opis = "Korisnik a.anic@smartpark.ba je ažurirao podatke profila.", Korisnik = "a.anic@smartpark.ba" },
+        new { Vrijeme = DateTime.Now.AddHours(-3).AddMinutes(-15), Tip = "SUCCESS", Opis = "Skeniran QR kod za ulaz na parking 'SmartPark Centar'. Rezervacija ID: 124.", Korisnik = "skener_gate1" },
+        new { Vrijeme = DateTime.Now.AddHours(-5), Tip = "ERROR", Opis = "Neuspješno generisanje QR koda za rezervaciju ID: 120. Povezivanje sa QR servisom prekinuto.", Korisnik = "Sistem" }
+    };
+}
+
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="fw-bold mb-1">Sistemski logovi</h2>
+                <p class="text-muted">Pregled svih sistemskih aktivnosti i grešaka u realnom vremenu</p>
+            </div>
+            <button onclick="window.location.reload();" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-clockwise"></i> Osvježi
+            </button>
+        </div>
+    </div>
+
+    <div class="sp-card">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Vrijeme</th>
+                        <th>Tip</th>
+                        <th>Opis aktivnosti</th>
+                        <th>Korisnik</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var log in mockLogs)
+                    {
+                        var badgeClass = log.Tip switch
+                        {
+                            "INFO" => "bg-info text-dark",
+                            "SUCCESS" => "bg-success",
+                            "WARNING" => "bg-warning text-dark",
+                            "ERROR" => "bg-danger",
+                            _ => "bg-secondary"
+                        };
+
+                        <tr>
+                            <td class="text-nowrap text-muted small">@log.Vrijeme.ToString("dd.MM.yyyy HH:mm:ss")</td>
+                            <td><span class="badge @badgeClass">@log.Tip</span></td>
+                            <td>@log.Opis</td>
+                            <td class="text-nowrap font-monospace small">@log.Korisnik</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

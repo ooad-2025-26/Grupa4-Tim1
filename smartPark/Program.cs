@@ -11,11 +11,15 @@ namespace smartPark;
 
 public class Program
 {
-    public static async Task Main(string[] args) // ← DODAJ "async Task" umjesto "void"
+    public static async Task Main(string[] args)
     {
+        var cultureInfo = new System.Globalization.CultureInfo("bs-BA");
+        System.Globalization.CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
+        System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
+
         var builder = WebApplication.CreateBuilder(args);
 
-        // ========== 1. DB CONTEXT ==========
+        // Baza (Azure)
         var connectionString =
             builder.Configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException(
@@ -26,7 +30,7 @@ public class Program
             options.UseSqlServer(connectionString)
         );
 
-        // ========== 2. IDENTITY (SAMO JEDNOM!) ==========
+        // ASP.NET Core Identity
         builder
             .Services.AddIdentity<Korisnik, IdentityRole>(options =>
             {
@@ -36,54 +40,153 @@ public class Program
                 options.Password.RequireUppercase = true;
                 options.Password.RequireLowercase = true;
                 options.User.RequireUniqueEmail = true;
-                options.SignIn.RequireConfirmedAccount = false; // Promijeni na false za lakše testiranje
+                options.SignIn.RequireConfirmedAccount = false;
             })
             .AddEntityFrameworkStores<ApplicationDbContext>()
-            .AddDefaultTokenProviders();
+            .AddDefaultTokenProviders()
+            .AddErrorDescriber<smartPark.Helpers.BosnianIdentityErrorDescriber>();
 
-        // ========== 3. DODATNI SERVISI ==========
-        builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+        builder.Services.ConfigureApplicationCookie(options =>
+        {
+            options.LoginPath = "/login";
+            options.AccessDeniedPath = "/Home/AccessDenied";
+        });
+
+        // MVC pattern
         builder.Services.AddControllersWithViews();
 
-        // ========== 4. REPOSITORIJI ==========
+        // Session storage (cookie)
+        builder.Services.AddDistributedMemoryCache();
+        builder.Services.AddSession(options =>
+        {
+            options.IdleTimeout = TimeSpan.FromMinutes(30);
+            options.Cookie.HttpOnly = true;
+            options.Cookie.IsEssential = true;
+        });
+
+        // Repozitoriji
         builder.Services.AddScoped<ICjenovnikRepository, CjenovnikRepository>();
         builder.Services.AddScoped<IParkingRepository, ParkingRepository>();
         builder.Services.AddScoped<IKorisnikRepository, KorisnikRepository>();
+        builder.Services.AddScoped<IParkingMjestoRepository, ParkingMjestoRepository>();
+        builder.Services.AddScoped<IRezervacijaRepository, RezervacijaRepository>();
+        builder.Services.AddScoped<IQRKodRepository, QRKodRepository>();
+        builder.Services.AddScoped<IIzvjestajRepository, IzvjestajRepository>();
 
-        // ========== 5. SERVISI ==========
+        // Servisi
         builder.Services.AddScoped<IParkingService, ParkingService>();
         builder.Services.AddScoped<IKorisnikService, KorisnikService>();
         builder.Services.AddScoped<ICjenovnikService, CjenovnikService>();
+        builder.Services.AddScoped<IParkingMjestoService, ParkingMjestoService>();
+        builder.Services.AddScoped<IRezervacijaService, RezervacijaService>();
+        builder.Services.AddScoped<IQRKodService, QRKodService>();
+        builder.Services.AddScoped<IIzvjestajService, IzvjestajService>();
+
+        // Email i podsjetnik
+        builder.Services.AddScoped<IEmailService, EmailService>();
+        builder.Services.AddHostedService<RezervacijaPodsjetnikService>();
+
+        // Swagger (opcionalno za dalje testiranje)
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen();
 
         var app = builder.Build();
 
-        // ========== 6. HARDKODIRANJE ULOGA (ASYNC) ==========
+        // Hardkodirane uloge
         using (var scope = app.Services.CreateScope())
         {
-            var services = scope.ServiceProvider;
-            var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            try
+            {
+                await db.Database.ExecuteSqlRawAsync(@"
+                    IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Rezervacije_ParkingMjestoId' AND object_id = OBJECT_ID('Rezervacije'))
+                    BEGIN
+                        DROP INDEX IX_Rezervacije_ParkingMjestoId ON Rezervacije;
+                    END
+                    CREATE INDEX IX_Rezervacije_ParkingMjestoId ON Rezervacije(ParkingMjestoId);
+
+                    IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Parkinzi_MenadzerID' AND object_id = OBJECT_ID('Parkinzi'))
+                    BEGIN
+                        DROP INDEX IX_Parkinzi_MenadzerID ON Parkinzi;
+                    END
+                    CREATE INDEX IX_Parkinzi_MenadzerID ON Parkinzi(MenadzerID);
+
+                    IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_AspNetUsers_MenadzerOdgovorniParkingId' AND object_id = OBJECT_ID('AspNetUsers'))
+                    BEGIN
+                        DROP INDEX IX_AspNetUsers_MenadzerOdgovorniParkingId ON AspNetUsers;
+                    END
+                    CREATE INDEX IX_AspNetUsers_MenadzerOdgovorniParkingId ON AspNetUsers(MenadzerOdgovorniParkingId);
+                ");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Greska prilikom popravke indeksa: {ex.Message}");
+            }
+
+            var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<Korisnik>>();
 
             string[] uloge = { "Vozac", "Menadzer", "Administrator" };
 
             foreach (var uloga in uloge)
             {
-                // OVDJE JE POPRAVKA - koristi await umjesto .Result
                 if (!await roleManager.RoleExistsAsync(uloga))
                 {
                     await roleManager.CreateAsync(new IdentityRole(uloga));
                     Console.WriteLine($"Kreirana uloga: {uloga}");
                 }
-                else
+            }
+
+            var adminEmail = "admin@smartpark.com";
+            if (await userManager.FindByEmailAsync(adminEmail) == null)
+            {
+                var admin = new Korisnik
                 {
-                    Console.WriteLine($"Uloga već postoji: {uloga}");
+                    UserName = adminEmail,
+                    Email = adminEmail,
+                    Ime = "Sistem",
+                    Prezime = "Administrator",
+                    Aktivan = true,
+                    DatumRegistracije = DateTime.Now,
+                    EmailConfirmed = true,
+                };
+
+                var result = await userManager.CreateAsync(admin, "Admin123!");
+                if (result.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(admin, "Administrator");
                 }
             }
+
+            // Automatsko kreiranje nedostajućih parking mjesta za postojeće parkinge
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var sviParkinzi = await dbContext.Parkinzi.Include(p => p.ParkingMjesta).ToListAsync();
+            foreach (var p in sviParkinzi)
+            {
+                var trenutniBrojMjesta = p.ParkingMjesta.Count;
+                if (trenutniBrojMjesta < p.UkupnoMjesta)
+                {
+                    for (int i = 1; i <= p.UkupnoMjesta; i++)
+                    {
+                        if (!p.ParkingMjesta.Any(m => m.BrojMjesta == i))
+                        {
+                            dbContext.ParkingMjesta.Add(new ParkingMjesto
+                            {
+                                ParkingId = p.ParkingId,
+                                BrojMjesta = i,
+                                StatusMjesta = smartPark.Models.Enums.StatusMjesta.Slobodno
+                            });
+                        }
+                    }
+                }
+            }
+            await dbContext.SaveChangesAsync();
         }
 
-        // ========== 7. MIDDLEWARE ==========
+        // Middleware
         if (app.Environment.IsDevelopment())
         {
-            app.UseMigrationsEndPoint();
+            app.UseDeveloperExceptionPage();
         }
         else
         {
@@ -92,14 +195,18 @@ public class Program
         }
 
         app.UseHttpsRedirection();
+        app.UseStaticFiles();
         app.UseRouting();
-        app.UseAuthentication(); // ← DODAJ OVO!
+        app.UseSession();
+        app.UseAuthentication();
         app.UseAuthorization();
 
-        app.MapStaticAssets();
-        app.MapControllerRoute(name: "default", pattern: "{controller=Home}/{action=Index}/{id?}")
-            .WithStaticAssets();
+        // Swagger middleware
+        app.UseSwagger();
+        app.UseSwaggerUI();
 
-        await app.RunAsync(); // ← KORISTI RunAsync umjesto Run
+        app.MapControllerRoute(name: "default", pattern: "{controller=Home}/{action=Index}/{id?}");
+
+        await app.RunAsync();
     }
 }

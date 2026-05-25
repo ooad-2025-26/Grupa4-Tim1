@@ -1,0 +1,263 @@
+@model smartPark.Models.ViewModels.Rezervacija.RezervacijaListaViewModel
+
+@{
+    ViewBag.Title = "Moje rezervacije";
+    
+    var allRes = Model.Rezervacije ?? new List<smartPark.Models.ViewModels.Rezervacija.RezervacijaOsnovniViewModel>();
+    
+    // Nadolazeće: Aktivna i Pocetak u buducnosti - SORTIRANO PO DATUMU POCETKA (najranije prvo)
+    var upcomingRes = allRes
+        .Where(r => r.StatusRezervacije == smartPark.Models.Enums.StatusRezervacije.Aktivna && r.PocetakRezervacije > DateTime.Now)
+        .OrderBy(r => r.PocetakRezervacije)  // ← Najranije prvo (23. maj prije 24. maja)
+        .ToList();
+    
+    // Aktivne (U toku): Aktivna i trenutno traje - SORTIRANO PO DATUMU KREIRANJA (najnovije prvo)
+    var activeRes = allRes
+        .Where(r => r.StatusRezervacije == smartPark.Models.Enums.StatusRezervacije.Aktivna && r.PocetakRezervacije <= DateTime.Now && r.KrajRezervacije >= DateTime.Now)
+        .OrderByDescending(r => r.RezervacijaId)  // ← Po ID-u (veći ID = noviji)
+        .ToList();
+    
+    // Historija: Istekla ili Zavrsena - SORTIRANO PO DATUMU KREIRANJA (najnovije prvo)
+    var historyRes = allRes
+        .Where(r => r.StatusRezervacije == smartPark.Models.Enums.StatusRezervacije.Istekla || r.StatusRezervacije == smartPark.Models.Enums.StatusRezervacije.Zavrsena || (r.StatusRezervacije == smartPark.Models.Enums.StatusRezervacije.Aktivna && r.KrajRezervacije < DateTime.Now))
+        .OrderByDescending(r => r.RezervacijaId)  // ← Po ID-u (veći ID = noviji)
+        .ToList();
+    
+    // Otkazane: Otkazana - SORTIRANO PO DATUMU KREIRANJA (najnovije prvo)
+    var cancelledRes = allRes
+        .Where(r => r.StatusRezervacije == smartPark.Models.Enums.StatusRezervacije.Otkazana)
+        .OrderByDescending(r => r.RezervacijaId)  // ← Po ID-u (veći ID = noviji)
+        .ToList();
+    
+    // Sve rezervacije - sortirano: prvo nadolazeće, pa ostale po ID-u (novije prvo)
+    var allResSorted = upcomingRes
+        .Concat(activeRes)
+        .Concat(historyRes)
+        .Concat(cancelledRes)
+        .ToList();
+}
+
+<div class="min-h-[calc(100vh-3.5rem)] bg-muted/30 py-10 px-4">
+    <div class="container mx-auto max-w-3xl">
+        <!-- Header with back arrow -->
+        <div class="flex items-center gap-4 mb-8">
+            <button onclick="history.back()" class="flex items-center justify-center w-10 h-10 rounded-full border border-border bg-card text-muted-foreground hover:text-foreground hover:shadow-sm transition-all cursor-pointer">
+                <i class="bi bi-arrow-left text-lg"></i>
+            </button>
+            <div>
+                <h1 class="text-2xl font-bold text-foreground">Moje rezervacije</h1>
+                <p class="text-sm text-muted-foreground mt-0.5">Pregled svih vaših rezervacija</p>
+            </div>
+        </div>
+
+        <!-- Tabs Header -->
+        <div class="flex border-b border-border mb-6 overflow-x-auto whitespace-nowrap scrollbar-none">
+            <button onclick="setTab('all')" id="tab-all" class="tab-btn px-6 py-3 text-sm font-semibold border-b-2 border-primary text-foreground bg-transparent cursor-pointer transition-all">
+                Sve (@allRes.Count)
+            </button>
+            <button onclick="setTab('upcoming')" id="tab-upcoming" class="tab-btn px-6 py-3 text-sm font-semibold border-b-2 border-transparent text-muted-foreground hover:text-foreground bg-transparent cursor-pointer transition-all">
+                Nadolazeće (@upcomingRes.Count)
+            </button>
+            <button onclick="setTab('active')" id="tab-active" class="tab-btn px-6 py-3 text-sm font-semibold border-b-2 border-transparent text-muted-foreground hover:text-foreground bg-transparent cursor-pointer transition-all">
+                U toku (@activeRes.Count)
+            </button>
+            <button onclick="setTab('history')" id="tab-history" class="tab-btn px-6 py-3 text-sm font-semibold border-b-2 border-transparent text-muted-foreground hover:text-foreground bg-transparent cursor-pointer transition-all">
+                Historija (@historyRes.Count)
+            </button>
+            <button onclick="setTab('cancelled')" id="tab-cancelled" class="tab-btn px-6 py-3 text-sm font-semibold border-b-2 border-transparent text-muted-foreground hover:text-foreground bg-transparent cursor-pointer transition-all">
+                Otkazane (@cancelledRes.Count)
+            </button>
+        </div>
+
+        @if (!allRes.Any())
+        {
+            <div class="bg-card border border-border rounded-xl p-12 text-center text-muted-foreground shadow-sm">
+                <i class="bi bi-calendar-x text-4xl mb-3 block text-muted-foreground/60"></i>
+                <p class="text-sm">Nemate rezervisanih termina.</p>
+            </div>
+        }
+        else
+        {
+            <div class="space-y-6" id="reservationsList">
+                @foreach (var r in allResSorted)
+                {
+                    var isUpcoming = r.PocetakRezervacije > DateTime.Now;
+                    var isOngoing = r.PocetakRezervacije <= DateTime.Now && r.KrajRezervacije >= DateTime.Now;
+                    var isExpired = r.KrajRezervacije < DateTime.Now;
+                    
+                    string category = "history";
+                    if (r.StatusRezervacije == smartPark.Models.Enums.StatusRezervacije.Otkazana)
+                    {
+                        category = "cancelled";
+                    }
+                    else if (r.StatusRezervacije == smartPark.Models.Enums.StatusRezervacije.Aktivna)
+                    {
+                        if (isOngoing)
+                        {
+                            category = "active";
+                        }
+                        else if (isUpcoming)
+                        {
+                            category = "upcoming";
+                        }
+                        else
+                        {
+                            category = "history";
+                        }
+                    }
+
+                    var statusLabel = "ISTEKLA";
+                    var statusClass = "bg-muted text-muted-foreground border border-border";
+                    if (r.StatusRezervacije == smartPark.Models.Enums.StatusRezervacije.Otkazana)
+                    {
+                        statusLabel = "OTKAZANA";
+                        statusClass = "bg-red-50 text-red-600 border border-red-100";
+                    }
+                    else if (r.StatusRezervacije == smartPark.Models.Enums.StatusRezervacije.Aktivna)
+                    {
+                        if (isOngoing)
+                        {
+                            statusLabel = "U TOKU";
+                            statusClass = "bg-blue-600 text-white font-semibold";
+                        }
+                        else if (isUpcoming)
+                        {
+                            statusLabel = "NADOLAZEĆA";
+                            statusClass = "bg-amber-500 text-white font-semibold";
+                        }
+                        else
+                        {
+                            statusLabel = "ISTEKLA";
+                            statusClass = "bg-muted text-muted-foreground border border-border";
+                        }
+                    }
+                    else if (r.StatusRezervacije == smartPark.Models.Enums.StatusRezervacije.Zavrsena)
+                    {
+                        statusLabel = "ZAVRŠENA";
+                        statusClass = "bg-green-600 text-white font-semibold";
+                    }
+
+                    var displayTitle = r.ParkingNaziv;
+
+                    var durationMinutes = (int)(r.KrajRezervacije - r.PocetakRezervacije).TotalMinutes;
+                    var durationHours = (int)Math.Ceiling(durationMinutes / 60.0);
+
+                    <div class="reservation-card bg-card rounded-xl border border-border p-6 shadow-sm relative transition-all hover:shadow-md" data-category="@category">
+                        <!-- Top Row: Title & Badge, Action buttons -->
+                        <div class="flex justify-between items-start mb-5 gap-4">
+                            <div class="flex items-center gap-3 flex-wrap">
+                                <h3 class="text-base font-bold text-foreground mb-0">@displayTitle</h3>
+                                <span class="text-[10px] tracking-wider px-2.5 py-0.5 rounded-full font-bold @statusClass">@statusLabel</span>
+                            </div>
+                            
+                            <div class="flex items-center gap-2.5 shrink-0">
+                                <a href="/qr-kod/prikaz/@r.RezervacijaId" class="inline-flex items-center gap-1.5 border border-border bg-card hover:bg-muted text-foreground text-xs font-semibold px-3 py-1.5 rounded-lg no-underline transition-colors shadow-sm">
+                                    <i class="bi bi-qr-code text-sm"></i> Detalji
+                                </a>
+
+                                @if (r.StatusRezervacije == smartPark.Models.Enums.StatusRezervacije.Aktivna && !isExpired)
+                                {
+                                    <!-- Action Dropdown Menu - SAMO ZA AKTIVNE I NEISTEKLE -->
+                                    <div class="relative actions-dropdown">
+                                        <button onclick="toggleDropdown(this)" class="text-muted-foreground hover:text-foreground bg-transparent border-0 cursor-pointer p-1.5 flex items-center justify-center rounded-lg hover:bg-muted transition-colors" title="Opcije">
+                                            <i class="bi bi-three-dots-vertical text-lg"></i>
+                                        </button>
+                                        <div class="hidden absolute right-0 mt-1 w-36 bg-card border border-border rounded-lg shadow-lg py-1 z-10">
+                                            @if (isUpcoming)
+                                            {
+                                                <a href="/rezervacije/produzi/@r.RezervacijaId" class="block px-4 py-2 text-xs text-foreground hover:bg-muted no-underline">
+                                                    <i class="bi bi-clock-history me-1.5"></i> Produži
+                                                </a>
+                                            }
+                                            <a href="/rezervacije/otkazi/@r.RezervacijaId" class="block px-4 py-2 text-xs text-destructive hover:bg-destructive/10 no-underline border-t border-border">
+                                                <i class="bi bi-x-circle me-1.5"></i> Otkaži
+                                            </a>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <!-- Za neaktivne rezervacije prikaži samo placeholder za razmak -->
+                                    <div class="w-8"></div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Details Section -->
+                        <div class="space-y-3 text-xs text-muted-foreground mb-5 border-b border-border/50 pb-5">
+                            <div class="flex items-center gap-3">
+                                <i class="bi bi-calendar4 text-base text-muted-foreground/60 w-4"></i> 
+                                <span>@r.PocetakRezervacije.ToString("dddd, d. MMMM yyyy.", new System.Globalization.CultureInfo("bs-Latn-BA"))</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <i class="bi bi-clock text-base text-muted-foreground/60 w-4"></i> 
+                                <span>@r.PocetakRezervacije.ToString("HH:mm") - @r.KrajRezervacije.ToString("HH:mm") (@durationHours @(durationHours == 1 ? "sat" : (durationHours >= 2 && durationHours <= 4 ? "sata" : "sati")))</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <i class="bi bi-car-front text-base text-muted-foreground/60 w-4"></i> 
+                                <span>Mjesto: @(r.ParkingMjestoBroj?.ToString() ?? "Nije dodijeljeno") | @(r.ParkingTip == smartPark.Models.Enums.TipParkinga.Otvoreni ? "Otvoreni parking" : "Garaža")</span>
+                            </div>
+                        </div>
+
+                        <!-- Bottom Row: Price & Monospace ID -->
+                        <div class="flex items-center justify-between">
+                            <div class="text-xs text-muted-foreground">
+                                Cijena: <span class="text-sm font-bold text-foreground ml-1">@r.UkupnaCijena.ToString("F2") KM</span>
+                            </div>
+                            <div class="text-xs text-muted-foreground font-mono">
+                                ID: RES-@r.RezervacijaId.ToString("D3")
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function setTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('border-primary', 'text-foreground');
+                btn.classList.add('border-transparent', 'text-muted-foreground');
+            });
+            const activeBtn = document.getElementById('tab-' + tabName);
+            if (activeBtn) {
+                activeBtn.classList.remove('border-transparent', 'text-muted-foreground');
+                activeBtn.classList.add('border-primary', 'text-foreground');
+            }
+
+            document.querySelectorAll('.reservation-card').forEach(card => {
+                if (tabName === 'all') {
+                    card.classList.remove('hidden');
+                } else {
+                    const cat = card.getAttribute('data-category');
+                    if (cat === tabName) {
+                        card.classList.remove('hidden');
+                    } else {
+                        card.classList.add('hidden');
+                    }
+                }
+            });
+        }
+
+        function toggleDropdown(button) {
+            var dropdownMenu = button.nextElementSibling;
+            document.querySelectorAll('.actions-dropdown div').forEach(function(el) {
+                if (el !== dropdownMenu) {
+                    el.classList.add('hidden');
+                }
+            });
+            dropdownMenu.classList.toggle('hidden');
+        }
+
+        window.addEventListener('click', function(e) {
+            if (!e.target.closest('.actions-dropdown')) {
+                document.querySelectorAll('.actions-dropdown div').forEach(function(el) {
+                    el.classList.add('hidden');
+                });
+            }
+        });
+    </script>
+}

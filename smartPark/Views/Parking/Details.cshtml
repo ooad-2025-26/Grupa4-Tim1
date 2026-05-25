@@ -1,43 +1,45 @@
+@model smartPark.Models.ViewModels.Parking.ParkingDetailsViewModel
+
 @{
-    ViewData["Title"] = "Detalji parkinga";
+    ViewBag.Title = Model?.Naziv ?? "Detalji parkinga";
 }
 
-<div class="d-flex justify-content-center py-5 px-3" style="min-height:calc(100vh - 56px);background:#f7f7f8">
-  <div class="card p-4 shadow-sm" style="max-width:560px;width:100%">
-    <a href="@Url.Action("Map", "Parking")" class="text-muted small text-decoration-none mb-3 d-inline-block"><i class="bi bi-arrow-left"></i> Nazad</a>
-    <h3 class="fw-bold" id="parkingName">Centar</h3>
-    <p class="text-muted small mb-4" id="parkingAddr">Ferhadija 15, Sarajevo</p>
-    <div class="row g-2 mb-4" id="infoGrid">
-      <div class="col-6"><div class="bg-light rounded p-3"><small class="text-muted d-block">Kapacitet</small><span class="fw-semibold">300 mjesta</span></div></div>
-      <div class="col-6"><div class="bg-light rounded p-3"><small class="text-muted d-block">Slobodno</small><span class="fw-semibold text-success">175</span></div></div>
-      <div class="col-6"><div class="bg-light rounded p-3"><small class="text-muted d-block">Dnevna cijena</small><span class="fw-semibold">2.50 KM/h</span></div></div>
-      <div class="col-6"><div class="bg-light rounded p-3"><small class="text-muted d-block">Noćna cijena</small><span class="fw-semibold">1.50 KM/h</span></div></div>
-      <div class="col-6"><div class="bg-light rounded p-3"><small class="text-muted d-block">Radno vrijeme</small><span class="fw-semibold">00:00 - 24:00</span></div></div>
-      <div class="col-6"><div class="bg-light rounded p-3"><small class="text-muted d-block">Zona</small><span class="fw-semibold">Zona 1</span></div></div>
-    </div>
-    <h5 class="fw-semibold mb-3">Rezervacija</h5>
-    <form action="/payment.html">
-      <div class="mb-3"><label class="form-label small fw-medium">Datum</label><input type="date" class="form-control" value="2026-04-11"></div>
-      <div class="mb-3"><label class="form-label small fw-medium">Vrijeme početka</label><input type="time" class="form-control" value="10:00" id="startTime"></div>
-      <div class="mb-3"><label class="form-label small fw-medium">Trajanje</label>
-        <select class="form-select" id="duration">
-          <option value="60">1h</option><option value="120">2h</option><option value="180">3h</option><option value="240">4h</option><option value="360">6h</option><option value="720">12h</option><option value="1440">24h</option>
-        </select>
-      </div>
-      <div class="bg-primary bg-opacity-10 rounded p-3 d-flex justify-content-between align-items-center mb-3">
-        <span class="small">Ukupna cijena:</span>
-        <span class="fs-5 fw-bold text-primary" id="totalPrice">2.50 KM</span>
-      </div>
-      <button type="submit" class="btn btn-primary w-100">Rezerviši</button>
-    </form>
-  </div>
-</div>
+<button onclick="history.back()" class="btn btn-back mb-2"><i class="bi bi-arrow-left"></i> Nazad</button>
 
-@section Scripts {
-<script>
-const price=2.5;
-function calc(){const d=parseInt(document.getElementById("duration").value);document.getElementById("totalPrice").textContent=(price*(d/60)).toFixed(2)+" KM";}
-document.getElementById("duration").addEventListener("change",calc);
-calc();
-</script>
+@if (Model != null)
+{
+    <div class="sp-card">
+        <div class="d-flex justify-content-between flex-wrap gap-2">
+            <div>
+                <h1 class="h3 mb-1">@Model.Naziv</h1>
+                <div class="text-muted-sp"><i class="bi bi-geo-alt"></i> @Model.Adresa</div>
+            </div>
+            <span class="badge-status @(Model.ZauzetostProcenat < 80 ? "badge-active" : "badge-cancelled")">
+                @Model.SlobodnaMjesta / @Model.UkupnoMjesta slobodno
+            </span>
+        </div>
+        <hr/>
+        <div class="row g-3">
+            <div class="col-md-4"><strong>Tip:</strong> @Model.TipParkingaTekst</div>
+            <div class="col-md-4"><strong>Radno vrijeme:</strong> @(!string.IsNullOrEmpty(Model.RadnoVrijeme) ? Model.RadnoVrijeme : "24/7")</div>
+            <div class="col-md-4"><strong>Cijena:</strong> @Model.CijenaPoSatu.ToString("F2") KM/h</div>
+        </div>
+        <hr/>
+        <h5>Tarife</h5>
+        <ul class="list-unstyled small">
+            <li>Standardna: <strong>@Model.CijenaPoSatu.ToString("F2") KM/h</strong></li>
+            <li>Noćna (22–06h): <strong>@(Model.CijenaPoSatu * 0.7m).ToString("F2") KM/h</strong></li>
+            <li>Vikend: <strong>@(Model.CijenaPoSatu * 1.2m).ToString("F2") KM/h</strong></li>
+        </ul>
+        <a asp-controller="Rezervacija" asp-action="Kreiraj" asp-route-parkingId="@Model.ParkingId" class="btn btn-primary">
+            Rezerviši mjesto
+        </a>
+    </div>
+}
+else
+{
+    <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle"></i> Parking nije pronađen.
+        <a asp-action="Map" class="alert-link">Vrati se na mapu</a>
+    </div>
 }

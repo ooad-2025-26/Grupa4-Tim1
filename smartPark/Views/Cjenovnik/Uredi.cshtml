@@ -1,0 +1,86 @@
+@model smartPark.Models.ViewModels.Cjenovnik.CjenovnikUrediViewModel
+
+@{
+    ViewBag.Title = "Uredi cjenovnik";
+}
+
+<div class="min-h-[calc(100vh-3.5rem)] bg-muted/30 flex flex-col items-center py-10 px-4">
+    <div class="w-full max-w-lg">
+        <button onclick="history.back()" class="text-muted-foreground hover:text-foreground text-sm font-medium mb-4 flex items-center gap-1 bg-transparent border-0 self-start">
+            <i class="bi bi-arrow-left"></i> Nazad
+        </button>
+
+        <div class="bg-card rounded-xl border border-border p-8 shadow-sm">
+            <h1 class="text-xl font-bold text-foreground mb-6">Uredi cjenovnik</h1>
+
+            <form asp-action="Uredi" asp-route-id="@Model.CjenovnikId" method="post" class="space-y-4">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="CjenovnikId" />
+                <div asp-validation-summary="ModelOnly" class="text-danger text-sm mb-3"></div>
+
+                <!-- Naziv Cjenovnika -->
+                <div>
+                    <label asp-for="Naziv" class="block text-sm font-medium text-foreground mb-1">Naziv cjenovnika</label>
+                    <input asp-for="Naziv" class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" required />
+                    <span asp-validation-for="Naziv" class="text-danger text-xs"></span>
+                </div>
+
+                <!-- Parking Selection -->
+                <div>
+                    <label asp-for="ParkingId" class="block text-sm font-medium text-foreground mb-1">Parking</label>
+                    <select asp-for="ParkingId" asp-items="Model.DostupniParkinzi" class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                    </select>
+                    <span asp-validation-for="ParkingId" class="text-danger text-xs"></span>
+                </div>
+
+                <!-- Cijena Dnevna -->
+                <div>
+                    <label asp-for="CijenaDnevna" class="block text-sm font-medium text-foreground mb-1">Cijena za dnevni termin (Dan) (KM/h)</label>
+                    <input asp-for="CijenaDnevna" type="number" step="0.01" min="0.01" class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" required />
+                    <span asp-validation-for="CijenaDnevna" class="text-danger text-xs"></span>
+                </div>
+
+                <!-- Cijena Nocna -->
+                <div>
+                    <label asp-for="CijenaNocna" class="block text-sm font-medium text-foreground mb-1">Cijena za noćni termin (Noć) (KM/h)</label>
+                    <input asp-for="CijenaNocna" type="number" step="0.01" min="0.01" class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" required />
+                    <span asp-validation-for="CijenaNocna" class="text-danger text-xs"></span>
+                </div>
+
+                <!-- Datumi -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label asp-for="DatumPocetka" class="block text-sm font-medium text-foreground mb-1">Datum početka</label>
+                        <input asp-for="DatumPocetka" type="date" class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" required />
+                        <span asp-validation-for="DatumPocetka" class="text-danger text-xs"></span>
+                    </div>
+                    <div>
+                        <label asp-for="DatumKraja" class="block text-sm font-medium text-foreground mb-1">Datum kraja (opcionalno)</label>
+                        <input asp-for="DatumKraja" type="date" class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+                        <span asp-validation-for="DatumKraja" class="text-danger text-xs"></span>
+                    </div>
+                </div>
+
+                <!-- Aktivan switch -->
+                <div class="flex items-center gap-2 pt-2 form-check form-switch">
+                    <input asp-for="Aktivan" class="form-check-input" type="checkbox" id="aktivanSwitch" />
+                    <label class="form-check-label text-sm text-foreground" for="aktivanSwitch">Cjenovnik je aktivan</label>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center gap-3 pt-4">
+                    <button type="submit" class="flex-1 bg-primary text-primary-foreground py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity">
+                        Sačuvaj izmjene
+                    </button>
+                    <a href="/cjenovnik" class="flex-1 bg-transparent text-foreground border border-input py-2.5 rounded-lg text-sm font-semibold hover:bg-muted transition-colors text-center no-underline">
+                        Odustani
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

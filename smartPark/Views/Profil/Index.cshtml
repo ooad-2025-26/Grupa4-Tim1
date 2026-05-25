@@ -1,0 +1,183 @@
+@model smartPark.Models.ViewModels.Korisnik.ProfilViewModel
+
+@{
+    ViewBag.Title = "Moj profil";
+    var initials = $"{Model?.Ime?[0]}{Model?.Prezime?[0]}".ToUpper();
+    var roleLabel = Model?.Uloga == "Administrator" || Model?.Uloga == "admin" ? "Administrator" : 
+                    (Model?.Uloga == "Menadzer" || Model?.Uloga == "manager" ? "Menadžer" : "Vozač");
+    
+    // Check if there are validation errors to auto-open edit mode
+    var hasErrors = !ViewData.ModelState.IsValid;
+}
+
+<div class="min-h-[calc(100vh-3.5rem)] bg-muted/30 flex flex-col items-center py-10 px-4">
+    <div class="w-full max-w-lg">
+        
+        @if (Model != null && !string.IsNullOrEmpty(Model.Id))
+        {
+            <!-- Top Avatar Card (Always Visible) -->
+            <div class="bg-card rounded-xl border border-border p-8 text-center mb-6 shadow-sm">
+                <div class="w-24 h-24 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-3xl font-bold mx-auto mb-4">
+                    @initials
+                </div>
+                <h1 class="text-2xl font-bold text-foreground">@Model.Ime @Model.Prezime</h1>
+                <p class="text-sm text-muted-foreground mt-1">@Model.Email</p>
+                <span class="inline-block mt-3 text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-100 px-4 py-1.5 rounded-full">
+                    @roleLabel
+                </span>
+            </div>
+
+            <!-- VIEW MODE CARD -->
+            <div id="viewModeCard" class="bg-card rounded-xl border border-border p-6 shadow-sm space-y-6">
+                <h2 class="text-lg font-bold text-foreground border-b border-border pb-3">Informacije o korisniku</h2>
+
+                <div class="space-y-4">
+                    <!-- Name row -->
+                    <div class="flex items-center py-2 border-b border-border/50">
+                        <div class="flex items-center">
+                            <i class="bi bi-person text-muted-foreground text-lg mr-3"></i>
+                            <span class="text-sm text-muted-foreground">Ime i prezime</span>
+                        </div>
+                        <span class="text-sm font-semibold text-foreground ml-auto">@Model.Ime @Model.Prezime</span>
+                    </div>
+
+                    <!-- Email row -->
+                    <div class="flex items-center py-2 border-b border-border/50">
+                        <div class="flex items-center">
+                            <i class="bi bi-envelope text-muted-foreground text-lg mr-3"></i>
+                            <span class="text-sm text-muted-foreground">Email</span>
+                        </div>
+                        <span class="text-sm font-semibold text-foreground ml-auto">@Model.Email</span>
+                    </div>
+
+                    <!-- Role row -->
+                    <div class="flex items-center py-2 border-b border-border/50">
+                        <div class="flex items-center">
+                            <i class="bi bi-shield text-muted-foreground text-lg mr-3"></i>
+                            <span class="text-sm text-muted-foreground">Uloga</span>
+                        </div>
+                        <span class="text-sm font-semibold text-foreground ml-auto">@roleLabel</span>
+                    </div>
+
+                    <!-- Registered row -->
+                    <div class="flex items-center py-2 border-b border-border/50">
+                        <div class="flex items-center">
+                            <i class="bi bi-calendar text-muted-foreground text-lg mr-3"></i>
+                            <span class="text-sm text-muted-foreground">Registrovan</span>
+                        </div>
+                        <span class="text-sm font-semibold text-foreground ml-auto">@Model.DatumRegistracije.ToString("yyyy-MM-dd")</span>
+                    </div>
+
+                    @if (Model.Uloga == "Vozac" || Model.Uloga == "driver")
+                    {
+                        <!-- Plates row -->
+                        <div class="flex items-center py-2 border-b border-border/50">
+                            <div class="flex items-center">
+                                <i class="bi bi-card-list text-muted-foreground text-lg mr-3"></i>
+                                <span class="text-sm text-muted-foreground">Broj tablica vozila</span>
+                            </div>
+                            <span class="text-sm font-semibold text-foreground ml-auto">@Model.BrojVozacke</span>
+                        </div>
+                    }
+                </div>
+
+                <!-- View Mode Actions -->
+                <div class="grid grid-cols-2 gap-4 pt-2">
+                    <button onclick="toggleEditMode(true)" class="bg-primary text-white py-2.5 rounded-lg text-sm font-medium hover:opacity-90 flex items-center justify-center gap-2 cursor-pointer border-0">
+                        <i class="bi bi-pencil"></i> Uredi profil
+                    </button>
+                    
+                    <form asp-controller="Korisnik" asp-action="Logout" method="post" id="logoutForm" class="m-0">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="w-full bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2 cursor-pointer border-0">
+                            <i class="bi bi-box-arrow-right"></i> Odjavi se
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- EDIT MODE CARD -->
+            <div id="editModeCard" class="hidden bg-card rounded-xl border border-border p-6 shadow-sm">
+                <h2 class="text-lg font-bold text-foreground border-b border-border pb-3 mb-4">Uredi profil</h2>
+
+                <form asp-action="UpdateProfil" asp-controller="Korisnik" method="post" class="space-y-4">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-destructive text-xs"></div>
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="Uloga" />
+                    <input type="hidden" asp-for="DatumRegistracije" />
+
+                    <div>
+                        <label asp-for="Ime" class="block text-xs font-semibold text-muted-foreground mb-1">Ime</label>
+                        <input asp-for="Ime" class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" required />
+                        <span asp-validation-for="Ime" class="text-destructive text-xs"></span>
+                    </div>
+
+                    <div>
+                        <label asp-for="Prezime" class="block text-xs font-semibold text-muted-foreground mb-1">Prezime</label>
+                        <input asp-for="Prezime" class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" required />
+                        <span asp-validation-for="Prezime" class="text-destructive text-xs"></span>
+                    </div>
+
+                    <div>
+                        <label asp-for="Email" class="block text-xs font-semibold text-muted-foreground mb-1">Email</label>
+                        <input asp-for="Email" type="email" class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" required />
+                        <span asp-validation-for="Email" class="text-destructive text-xs"></span>
+                    </div>
+
+                    @if (Model.Uloga == "Vozac" || Model.Uloga == "driver")
+                    {
+                        <div>
+                            <label asp-for="BrojVozacke" class="block text-xs font-semibold text-muted-foreground mb-1">Broj tablica vozila</label>
+                            <input asp-for="BrojVozacke" class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" required />
+                            <span asp-validation-for="BrojVozacke" class="text-destructive text-xs"></span>
+                        </div>
+                    }
+
+                    <!-- Edit Mode Actions -->
+                    <div class="grid grid-cols-2 gap-4 pt-4">
+                        <button type="submit" class="bg-primary text-white py-2.5 rounded-lg text-sm font-medium hover:opacity-90 flex items-center justify-center gap-2 cursor-pointer border-0">
+                            Sačuvaj
+                        </button>
+                        <button type="button" onclick="toggleEditMode(false)" class="bg-muted text-muted-foreground py-2.5 rounded-lg text-sm font-medium hover:bg-muted/80 flex items-center justify-center gap-2 cursor-pointer border-0">
+                            Odustani
+                        </button>
+                    </div>
+                </form>
+            </div>
+        }
+        else
+        {
+            <div class="bg-destructive/15 border border-destructive/30 text-destructive text-sm px-4 py-3 rounded-lg">
+                <i class="bi bi-exclamation-triangle"></i> Profil nije pronađen.
+                <a asp-controller="Home" asp-action="Index" class="font-bold underline hover:opacity-80">Vrati se na početnu</a>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function toggleEditMode(isEditing) {
+            var viewCard = document.getElementById('viewModeCard');
+            var editCard = document.getElementById('editModeCard');
+            
+            if (isEditing) {
+                viewCard.classList.add('hidden');
+                editCard.classList.remove('hidden');
+            } else {
+                viewCard.classList.remove('hidden');
+                editCard.classList.add('hidden');
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            // If server validation failed, immediately show edit mode
+            var hasErrors = @(hasErrors ? "true" : "false");
+            if (hasErrors) {
+                toggleEditMode(true);
+            }
+        });
+    </script>
+}

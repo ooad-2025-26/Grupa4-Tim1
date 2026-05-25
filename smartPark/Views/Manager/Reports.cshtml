@@ -1,0 +1,246 @@
+@model smartPark.Models.ViewModels.Parking.Menadzer.MenadzerParkingStatistikaViewModel
+
+@{
+    ViewBag.Title = "Izvještaji - menadžer";
+}
+
+<button onclick="history.back()" class="btn btn-back mb-2"><i class="bi bi-arrow-left"></i> Nazad</button>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="section-title mb-0">Izvještaji</h1>
+    <div class="btn-group">
+        <button class="btn btn-outline-primary btn-sm" onclick="window.location.reload()">
+            <i class="bi bi-arrow-repeat"></i> Osvježi
+        </button>
+        <button class="btn btn-outline-success btn-sm" onclick="exportToExcel()">
+            <i class="bi bi-file-excel"></i> Export Excel
+        </button>
+    </div>
+</div>
+
+<!-- Filter perioda -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small">Period od</label>
+                <input type="date" name="datumOd" class="form-control form-control-sm" value="@ViewBag.DatumOd?.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small">Period do</label>
+                <input type="date" name="datumDo" class="form-control form-control-sm" value="@ViewBag.DatumDo?.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary btn-sm w-100">Primijeni filter</button>
+            </div>
+            <div class="col-md-2">
+                <a asp-action="Izvjestaji" class="btn btn-outline-secondary btn-sm w-100">Resetuj</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Statistika -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="sp-card sp-stat-card text-center">
+            <div class="label text-muted">Ukupan prihod</div>
+            <div class="value fs-3 fw-bold text-success">@Model.PrihodMjesec.ToString("F2") KM</div>
+            <small class="text-muted">posljednjih 30 dana</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="sp-card sp-stat-card text-center">
+            <div class="label text-muted">Ukupno rezervacija</div>
+            <div class="value fs-3 fw-bold text-primary">@Model.RezervacijaMjesec</div>
+            <small class="text-muted">posljednjih 30 dana</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="sp-card sp-stat-card text-center">
+            <div class="label text-muted">Današnji prihod</div>
+            <div class="value fs-3 fw-bold text-info">@Model.PrihodDanas.ToString("F2") KM</div>
+            <small class="text-muted">@Model.RezervacijaDanas rezervacija</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="sp-card sp-stat-card text-center">
+            <div class="label text-muted">Prosječna popunjenost</div>
+            <div class="value fs-3 fw-bold @(Model.ProsjecnaZauzetostMjesec > 80 ? "text-danger" : (Model.ProsjecnaZauzetostMjesec > 50 ? "text-warning" : "text-success"))">
+                @Model.ProsjecnaZauzetostMjesec.ToString("F1")%
+            </div>
+            <small class="text-muted">posljednjih 30 dana</small>
+        </div>
+    </div>
+</div>
+
+<!-- Prikaz parkinga -->
+<div class="alert alert-info small mb-3">
+    <i class="bi bi-info-circle"></i> Prikazani su podaci za parking: <strong>@Model.ParkingNaziv</strong>
+</div>
+
+<!-- Rezervacije po satima grafikon -->
+<div class="sp-card mb-4">
+    <h5 class="mb-3">Rezervacije po satima</h5>
+    <canvas id="satniGrafikon" height="80"></canvas>
+</div>
+
+<div class="row">
+    <!-- Rezervacije po danima sedmice -->
+    <div class="col-md-6">
+        <div class="sp-card mb-3">
+            <h5 class="mb-3">Rezervacije po danima sedmice</h5>
+            <canvas id="sedmicniGrafikon" height="200"></canvas>
+        </div>
+    </div>
+    
+    <!-- Zadnjih 7 dana - rezervacije i prihodi -->
+    <div class="col-md-6">
+        <div class="sp-card mb-3">
+            <h5 class="mb-3">Aktivnost zadnjih 7 dana</h5>
+            <canvas id="sedmodnevniGrafikon" height="200"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela za prikaz rezervacija po satima (detaljno) -->
+<div class="sp-card">
+    <h5 class="mb-3">Detaljna statistika</h5>
+    <div class="table-responsive">
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Sat</th>
+                    <th>Broj rezervacija</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var sat in Model.RezervacijePoSatima.OrderBy(x => x.Key))
+                {
+                    <tr>
+                        <td>@sat.Key:00 - @(sat.Key + 1):00</td>
+                        <td>@sat.Value</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        // Rezervacije po satima - Bar Chart
+        const satiLabels = @Html.Raw(Json.Serialize(Model.RezervacijePoSatima.Select(x => $"{x.Key}:00")));
+        const satiValues = @Html.Raw(Json.Serialize(Model.RezervacijePoSatima.Select(x => x.Value)));
+        
+        new Chart(document.getElementById('satniGrafikon'), {
+            type: 'bar',
+            data: {
+                labels: satiLabels,
+                datasets: [{
+                    label: 'Broj rezervacija',
+                    data: satiValues,
+                    backgroundColor: 'rgba(37, 99, 235, 0.7)',
+                    borderColor: '#2563eb',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Broj rezervacija'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Rezervacije po danima sedmice
+        const daniLabels = @Html.Raw(Json.Serialize(Model.RezervacijePoDanimaSedmice.Select(x => x.Key.ToString())));
+        const daniValues = @Html.Raw(Json.Serialize(Model.RezervacijePoDanimaSedmice.Select(x => x.Value)));
+        
+        new Chart(document.getElementById('sedmicniGrafikon'), {
+            type: 'line',
+            data: {
+                labels: ['Ponedjeljak', 'Utorak', 'Srijeda', 'Četvrtak', 'Petak', 'Subota', 'Nedjelja'],
+                datasets: [{
+                    label: 'Broj rezervacija',
+                    data: daniValues,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true
+            }
+        });
+        
+        // Zadnjih 7 dana - kombinovani grafikon
+        const dani7Labels = @Html.Raw(Json.Serialize(Model.RezervacijeZadnjih7Dana.Select(x => x.Key.ToString("dd.MM"))));
+        const rezervacije7Values = @Html.Raw(Json.Serialize(Model.RezervacijeZadnjih7Dana.Select(x => x.Value)));
+        const prihodi7Values = @Html.Raw(Json.Serialize(Model.PrihodiZadnjih7Dana.Select(x => x.Value)));
+        
+        new Chart(document.getElementById('sedmodnevniGrafikon'), {
+            type: 'bar',
+            data: {
+                labels: dani7Labels,
+                datasets: [
+                    {
+                        label: 'Broj rezervacija',
+                        data: rezervacije7Values,
+                        backgroundColor: 'rgba(37, 99, 235, 0.7)',
+                        borderColor: '#2563eb',
+                        borderWidth: 1,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Prihod (KM)',
+                        data: prihodi7Values,
+                        backgroundColor: 'rgba(245, 158, 11, 0.7)',
+                        borderColor: '#f59e0b',
+                        borderWidth: 1,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Broj rezervacija'
+                        }
+                    },
+                    y1: {
+                        position: 'right',
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Prihod (KM)'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
+            }
+        });
+        
+        function exportToExcel() {
+            window.location.href = '/Manager/ExportIzvjestajExcel' + window.location.search;
+        }
+    </script>
+}

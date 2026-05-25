@@ -1,0 +1,93 @@
+@model smartPark.Models.ViewModels.Rezervacija.RezervacijaProduziViewModel
+
+@{
+    ViewBag.Title = "Produži rezervaciju";
+}
+
+<button onclick="history.back()" class="btn btn-back mb-2"><i class="bi bi-arrow-left"></i> Nazad</button>
+
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="sp-card">
+            <h1 class="h5 mb-3">Produženje rezervacije</h1>
+            
+            @if (Model != null && Model.RezervacijaId > 0)
+            {
+                <div class="alert alert-info small mb-3">
+                    <strong>Rezervacija #@Model.RezervacijaId</strong><br />
+                    Parking: @Model.ParkingNaziv<br />
+                    Trenutno vrijeme: @Model.PocetakRezervacije.ToString("dd.MM.yyyy HH:mm") - @Model.KrajRezervacije.ToString("HH:mm")<br />
+                    <strong>Trenutna cijena: @Model.UkupnaCijena.ToString("F2") KM</strong>
+                </div>
+                
+                <form asp-action="ProduziPotvrdi" asp-controller="Rezervacija" method="post">
+                    @Html.AntiForgeryToken()
+                    
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+                    
+                    <input type="hidden" name="id" value="@Model.RezervacijaId" />
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Dodatno vrijeme</label>
+                        <select name="dodatnoVrijeme" id="dodatnoVrijeme" class="form-select" onchange="izracunajCijenu()">
+                            <option value="30">30 minuta</option>
+                            <option value="60">1 sat</option>
+                            <option value="120">2 sata</option>
+                            <option value="240">4 sata</option>
+                            <option value="480">8 sati</option>
+                            <option value="720">12 sati</option>
+                            <option value="1440">24 sata</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Prikaz dodatne cijene -->
+                    <div class="alert alert-light border mb-3" id="cijenaPreview">
+                        <div class="d-flex justify-content-between">
+                            <span>Cijena po satu:</span>
+                            <strong>@Model.CijenaPoSatu.ToString("F2") KM</strong>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Dodatno vrijeme:</span>
+                            <strong id="dodatnoVrijemeTekst">30 min</strong>
+                        </div>
+                        <hr class="my-2" />
+                        <div class="d-flex justify-content-between">
+                            <span>Dodatna cijena:</span>
+                            <strong class="text-primary" id="dodatnaCijena">@((Model.CijenaPoSatu * 0.5m).ToString("F2")) KM</strong>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-clock-history"></i> Potvrdi i plati
+                    </button>
+                </form>
+            }
+            else
+            {
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle"></i> Rezervacija nije pronađena.
+                    <a asp-action="Moje" class="alert-link">Vrati se na moje rezervacije</a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    
+    <script>
+        function izracunajCijenu() {
+            var select = document.getElementById('dodatnoVrijeme');
+            var dodatnoMinuta = parseInt(select.value);
+            var cijenaPoSatu = @(Model?.CijenaPoSatu ?? 0m);
+            
+            var dodatnoSati = dodatnoMinuta / 60;
+            var dodatnaCijena = cijenaPoSatu * dodatnoSati;
+            
+            // Prikaz
+            document.getElementById('dodatnoVrijemeTekst').innerText = dodatnoMinuta + ' min';
+            document.getElementById('dodatnaCijena').innerText = dodatnaCijena.toFixed(2) + ' KM';
+        }
+    </script>
+}

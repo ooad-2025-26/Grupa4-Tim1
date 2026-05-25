@@ -37,7 +37,7 @@ namespace smartPark.Repositories.Implementations
             Expression<Func<Cjenovnik, bool>> uslov
         )
         {
-            return await _cjenovnik.Include(c => c.CjenovnikId).Where(uslov).ToListAsync();
+            return await _cjenovnik.Include(c => c.Parking).Where(uslov).ToListAsync();
         }
 
         public async Task DodajCjenovnikAsync(Cjenovnik entitet)
@@ -80,20 +80,15 @@ namespace smartPark.Repositories.Implementations
             TipPerioda? period = null
         )
         {
-            var upit = _cjenovnik
+            return await _cjenovnik
                 .Include(c => c.Parking)
                 .Where(c =>
-                    c.Aktivan
+                    c.ParkingId == parkingId
+                    && c.Aktivan
                     && c.DatumPocetka <= DateTime.Now
                     && (c.DatumKraja == null || c.DatumKraja >= DateTime.Now)
-                );
-
-            if (period.HasValue)
-            {
-                upit.Where(c => c.TipPerioda == period.Value);
-            }
-
-            return await upit.FirstOrDefaultAsync();
+                )
+                .FirstOrDefaultAsync();
         }
 
         public async Task<bool> ImaAktivniCjenovnikAsync(
@@ -112,10 +107,7 @@ namespace smartPark.Repositories.Implementations
 
         public async Task DeaktivirajSveCjenovnikeZaParkingAsync(int parkingId)
         {
-            var aktivniCjenovnici = await _cjenovnik
-                .Where(c => c.ParkingId == parkingId && c.Aktivan)
-                .ToListAsync();
-
+            var aktivniCjenovnici = await _cjenovnik.Where(c => c.ParkingId == parkingId && c.Aktivan).ToListAsync();
             foreach (var cjenovnik in aktivniCjenovnici)
             {
                 cjenovnik.Aktivan = false;
@@ -125,7 +117,7 @@ namespace smartPark.Repositories.Implementations
         public async Task<Cjenovnik?> DohvatiPodrazumjevaniCjenovnikZaParkingAsync(int parkingId)
         {
             return await _cjenovnik
-                .Where(c => c.ParkingId == parkingId && c.TipPerioda == TipPerioda.Dan)
+                .Where(c => c.ParkingId == parkingId && c.Aktivan)
                 .OrderByDescending(c => c.DatumPocetka)
                 .FirstOrDefaultAsync();
         }

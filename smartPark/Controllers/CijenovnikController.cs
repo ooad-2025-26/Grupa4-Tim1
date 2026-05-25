@@ -7,11 +7,11 @@ using smartPark.Services.Interfaces;
 
 namespace smartPark.Controllers
 {
-    [Authorize(Roles = "Admin,Menadzer")]
+    [Authorize(Roles = "Administrator,Menadzer")]
     public class CjenovnikController : Controller
     {
         private readonly ICjenovnikService _cjenovnikServis;
-        private readonly IParkingService _parkingServis; // Dodaj parking servis za dropdown
+        private readonly IParkingService _parkingServis;
 
         public CjenovnikController(ICjenovnikService cjenovnikServis, IParkingService parkingServis)
         {
@@ -19,18 +19,14 @@ namespace smartPark.Controllers
             _parkingServis = parkingServis;
         }
 
-        // ========== PRIKAZ SVIH CJENOVNIKA ==========
-
-        [HttpGet]
+        [HttpGet("cjenovnik")]
         public async Task<IActionResult> Index(int? parkingId)
         {
             var viewModel = await _cjenovnikServis.DohvatiListuCjenovnikaViewModelAsync(parkingId);
             return View(viewModel);
         }
 
-        // ========== DETALJI CJENOVNIKA ==========
-
-        [HttpGet]
+        [HttpGet("cjenovnik/detalji/{id}")]
         public async Task<IActionResult> Detalji(int id)
         {
             var viewModel = await _cjenovnikServis.DohvatiDetaljeCjenovnikaViewModelAsync(id);
@@ -40,116 +36,120 @@ namespace smartPark.Controllers
             return View(viewModel);
         }
 
-        // ========== KREIRANJE CJENOVNIKA ==========
+        // Kreiranje cjenovnika (admin, manadzer)
 
-        [HttpGet]
-        [Authorize(Roles = "Admin")]
+        [HttpGet("cjenovnik/dodaj")]
+        [Authorize(Roles = "Administrator,Menadzer")]
         public async Task<IActionResult> Kreiraj()
         {
-            // Ručno napravi ViewModel sa listom parkinga
             var parkinzi = await _parkingServis.DohvatiSveParkingeAsync();
             var viewModel = new CjenovnikKreirajViewModel
             {
-                ParkingLista = parkinzi.Select(p => new SelectListItem
-                {
-                    Value = p.ParkingId.ToString(),
-                    Text = $"{p.Naziv} - {p.Adresa}",
-                }),
+                DostupniParkinzi = new[] { new SelectListItem { Value = "", Text = "Opšti cjenovnik (Nije dodijeljen)" } }
+                    .Concat(parkinzi.Select(p => new SelectListItem
+                    {
+                        Value = p.ParkingId.ToString(),
+                        Text = $"{p.Naziv} - {p.Adresa}",
+                    })),
                 DatumPocetka = DateTime.Now.Date,
-                TipPerioda = TipPerioda.Dan,
             };
 
             return View(viewModel);
         }
 
-        [HttpPost]
+        [HttpPost("cjenovnik/dodaj")]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Administrator,Menadzer")]
         public async Task<IActionResult> Kreiraj(CjenovnikKreirajViewModel model)
         {
             if (!ModelState.IsValid)
             {
-                // Ponovo napuni dropdown listu
                 var parkinzi = await _parkingServis.DohvatiSveParkingeAsync();
-                model.ParkingLista = parkinzi.Select(p => new SelectListItem
-                {
-                    Value = p.ParkingId.ToString(),
-                    Text = $"{p.Naziv} - {p.Adresa}",
-                });
+                model.DostupniParkinzi = new[] { new SelectListItem { Value = "", Text = "Opšti cjenovnik (Nije dodijeljen)" } }
+                    .Concat(parkinzi.Select(p => new SelectListItem
+                    {
+                        Value = p.ParkingId.ToString(),
+                        Text = $"{p.Naziv} - {p.Adresa}",
+                    }));
                 return View(model);
             }
 
             try
             {
                 var cjenovnik = await _cjenovnikServis.KreirajCjenovnikAsync(model);
-                TempData["Uspjeh"] = $"Cjenovnik za parking uspješno kreiran!";
+                TempData["Uspjeh"] = $"Cjenovnik '{model.Naziv}' uspješno kreiran!";
                 return RedirectToAction(nameof(Index));
             }
             catch (InvalidOperationException greska)
             {
                 ModelState.AddModelError("", greska.Message);
 
-                // Ponovo napuni dropdown listu
                 var parkinzi = await _parkingServis.DohvatiSveParkingeAsync();
-                model.ParkingLista = parkinzi.Select(p => new SelectListItem
-                {
-                    Value = p.ParkingId.ToString(),
-                    Text = $"{p.Naziv} - {p.Adresa}",
-                });
+                model.DostupniParkinzi = new[] { new SelectListItem { Value = "", Text = "Opšti cjenovnik (Nije dodijeljen)" } }
+                    .Concat(parkinzi.Select(p => new SelectListItem
+                    {
+                        Value = p.ParkingId.ToString(),
+                        Text = $"{p.Naziv} - {p.Adresa}",
+                    }));
                 return View(model);
             }
         }
 
-        // ========== UREDIVANJE CJENOVNIKA ==========
+        // Edit cjenovnika (admin, manadzer)
 
-        [HttpGet]
-        [Authorize(Roles = "Admin")]
+        [HttpGet("cjenovnik/uredi/{id}")]
+        [Authorize(Roles = "Administrator,Menadzer")]
         public async Task<IActionResult> Uredi(int id)
         {
             var cjenovnik = await _cjenovnikServis.DohvatiCjenovnikPoIdAsync(id);
             if (cjenovnik == null)
                 return NotFound();
 
+            var parkinzi = await _parkingServis.DohvatiSveParkingeAsync();
             var viewModel = new CjenovnikUrediViewModel
             {
                 CjenovnikId = cjenovnik.CjenovnikId,
-                CijenaPoSatu = cjenovnik.CijenaPoSatu,
+                Naziv = cjenovnik.Naziv,
+                ParkingId = cjenovnik.ParkingId,
+                CijenaDnevna = cjenovnik.CijenaDnevna,
+                CijenaNocna = cjenovnik.CijenaNocna,
                 Zona = cjenovnik.Zona,
-                TipPerioda = cjenovnik.TipPerioda,
                 DatumPocetka = cjenovnik.DatumPocetka,
                 DatumKraja = cjenovnik.DatumKraja,
+                DostupniParkinzi = new[] { new SelectListItem { Value = "", Text = "Opšti cjenovnik (Nije dodijeljen)" } }
+                    .Concat(parkinzi.Select(p => new SelectListItem
+                    {
+                        Value = p.ParkingId.ToString(),
+                        Text = $"{p.Naziv} - {p.Adresa}",
+                    })),
             };
 
             return View(viewModel);
         }
 
-        [HttpPost]
+        [HttpPost("cjenovnik/uredi/{id}")]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Administrator,Menadzer")]
         public async Task<IActionResult> Uredi(int id, CjenovnikUrediViewModel model)
         {
             if (id != model.CjenovnikId)
                 return NotFound();
 
             if (!ModelState.IsValid)
+            {
+                var parkinzi = await _parkingServis.DohvatiSveParkingeAsync();
+                model.DostupniParkinzi = new[] { new SelectListItem { Value = "", Text = "Opšti cjenovnik (Nije dodijeljen)" } }
+                    .Concat(parkinzi.Select(p => new SelectListItem
+                    {
+                        Value = p.ParkingId.ToString(),
+                        Text = $"{p.Naziv} - {p.Adresa}",
+                    }));
                 return View(model);
+            }
 
             try
             {
-                // Ažuriranje cijene
-                var cjenovnik = await _cjenovnikServis.AzurirajCijenuCjenovnikaAsync(
-                    id,
-                    model.CijenaPoSatu
-                );
-
-                // Ažuriranje ostalih polja
-                cjenovnik.Zona = model.Zona;
-                cjenovnik.TipPerioda = model.TipPerioda;
-                cjenovnik.DatumPocetka = model.DatumPocetka;
-                cjenovnik.DatumKraja = model.DatumKraja;
-
                 await _cjenovnikServis.AzurirajCjenovnikAsync(model);
-
                 TempData["Uspjeh"] = "Cjenovnik uspješno ažuriran!";
                 return RedirectToAction(nameof(Index));
             }
@@ -160,15 +160,22 @@ namespace smartPark.Controllers
             catch (InvalidOperationException greska)
             {
                 ModelState.AddModelError("", greska.Message);
+                var parkinzi = await _parkingServis.DohvatiSveParkingeAsync();
+                model.DostupniParkinzi = new[] { new SelectListItem { Value = "", Text = "Opšti cjenovnik (Nije dodijeljen)" } }
+                    .Concat(parkinzi.Select(p => new SelectListItem
+                    {
+                        Value = p.ParkingId.ToString(),
+                        Text = $"{p.Naziv} - {p.Adresa}",
+                    }));
                 return View(model);
             }
         }
 
-        // ========== DEAKTIVIRANJE CJENOVNIKA ==========
+        // Deaktivacija cjenovnika (admin, manadzer)
 
-        [HttpPost]
+        [HttpPost("cjenovnik/deaktiviraj/{id}")]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Administrator,Menadzer")]
         public async Task<IActionResult> Deaktiviraj(int id)
         {
             try
@@ -195,10 +202,10 @@ namespace smartPark.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // ========== BRISANJE CJENOVNIKA ==========
+        // Brisanje cjenovnika (admin, menadzer)
 
-        [HttpGet]
-        [Authorize(Roles = "Admin")]
+        [HttpGet("cjenovnik/obrisi/{id}")]
+        [Authorize(Roles = "Administrator,Menadzer")]
         public async Task<IActionResult> Obrisi(int id)
         {
             var cjenovnik = await _cjenovnikServis.DohvatiCjenovnikPoIdAsync(id);
@@ -208,10 +215,10 @@ namespace smartPark.Controllers
             return View(cjenovnik);
         }
 
-        [HttpPost]
+        [HttpPost("cjenovnik/obrisi/{id}")]
         [ActionName("Obrisi")]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Administrator,Menadzer")]
         public async Task<IActionResult> ObrisiPotvrda(int id)
         {
             var rezultat = await _cjenovnikServis.ObrisiCjenovnikAsync(id);
@@ -227,9 +234,9 @@ namespace smartPark.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // ========== API ENDPOINT ZA PRIMJENU CIJENE ==========
+        // Api testiranje cjenovnika
 
-        [HttpPost]
+        [HttpPost("cjenovnik/primjeni-cijenu")]
         public async Task<IActionResult> PrimjeniCijenu(int parkingId, int sati, TipPerioda period)
         {
             try

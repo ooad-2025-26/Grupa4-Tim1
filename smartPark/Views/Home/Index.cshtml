@@ -1,20 +1,31 @@
 @{
-    ViewData["Title"] = "Početna";
+    ViewBag.Title = "Početna";
+    var uloga = ViewBag.Uloga as string ?? "gost";
 }
 
-<div class="container py-4">
-  <h2 class="fw-bold mb-1">Dobrodošli, Amer!</h2>
-  <p class="text-muted mb-4">Pronađite i rezervišite parking mjesto u blizini.</p>
-  <div class="row g-3 mb-4">
-    <div class="col-md-4"><a href="@Url.Action("Map", "Parking")" class="card p-4 text-decoration-none d-flex flex-row align-items-center gap-3"><div class="stat-icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-geo-alt"></i></div><div><p class="fw-semibold mb-0 text-dark">Pronađi parking</p><small class="text-muted">Pregledaj dostupna mjesta</small></div></a></div>
-    <div class="col-md-4"><a href="@Url.Action("Index", "Rezervacija")" class="card p-4 text-decoration-none d-flex flex-row align-items-center gap-3"><div class="stat-icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-calendar-check"></i></div><div><p class="fw-semibold mb-0 text-dark">Moje rezervacije</p><small class="text-muted">4 ukupno</small></div></a></div>
-    <div class="col-md-4"><div class="card p-4 d-flex flex-row align-items-center gap-3"><div class="stat-icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-car-front"></i></div><div><p class="fw-semibold mb-0">Moja vozila</p><small class="text-muted">Upravljaj vozilima</small></div></div></div>
-  </div>
-  <div class="card p-4">
-    <h5 class="fw-semibold mb-3">Aktivna rezervacija</h5>
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-      <div><p class="fw-medium mb-0">Centar - Zona 1</p><small class="text-muted">2026-04-10 • 10:00 • 240 min</small></div>
-      <div class="d-flex align-items-center gap-3"><span class="badge-status badge-active">Aktivna</span><span class="fw-semibold">10.00 KM</span></div>
+@if (uloga == "admin" || uloga == "Administrator")
+{
+    @await Html.PartialAsync("~/Views/Admin/_Dashboard.cshtml")
+}
+else if (uloga == "manager" || uloga == "Menadzer")
+{
+    @await Html.PartialAsync("~/Views/Manager/_Dashboard.cshtml")
+}
+else if (uloga == "driver" || uloga == "Vozac")
+{
+    @await Html.PartialAsync("~/Views/Home/_DriverDashboard.cshtml")
+}
+else
+{
+    // Ako nije prijavljen, prikaži opšti pozdrav ili preusmjeri na login
+    <div class="text-center py-5">
+        <h1 class="display-4">Dobrodošli u SmartPark</h1>
+        <p class="lead">Sistem za inteligentno upravljanje parking prostorima</p>
+        <hr class="my-4">
+        <p>Molimo vas da se prijavite ili registrujete kako biste koristili sistem.</p>
+        <div class="d-flex justify-content-center gap-3">
+            <a asp-controller="Account" asp-action="Login" class="btn btn-primary">Prijava</a>
+            <a asp-controller="Account" asp-action="Register" class="btn btn-outline-secondary">Registracija</a>
+        </div>
     </div>
-  </div>
-</div>
+}

@@ -1,0 +1,227 @@
+@model smartPark.Models.ViewModels.Rezervacija.RezervacijaPlacanjeViewModel
+
+@{
+    ViewBag.Title = "Potvrda i plaćanje";
+}
+
+<div class="min-h-[calc(100vh-3.5rem)] bg-muted/30 flex flex-col items-center py-10 px-4">
+    <div class="w-full max-w-md">
+        <button onclick="history.back()" class="text-muted-foreground hover:text-foreground text-sm font-medium mb-4 flex items-center gap-1 bg-transparent border-0 self-start cursor-pointer p-0">
+            <i class="bi bi-arrow-left"></i> Nazad
+        </button>
+
+        <div class="bg-card rounded-xl border border-border p-6 shadow-sm">
+            <h1 class="text-xl font-bold text-foreground mb-6">Potvrda i plaćanje</h1>
+
+            @if (Model != null && Model.RezervacijaId > 0)
+            {
+                <!-- Info details box (Grey background) -->
+                <div class="p-4 bg-muted/50 rounded-lg text-xs space-y-2 mb-6 border border-border">
+                    <div class="flex justify-between">
+                        <span class="text-muted-foreground">Parking:</span>
+                        <strong class="text-foreground text-end">@Model.ParkingNaziv</strong>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-muted-foreground">Datum:</span>
+                        <strong class="text-foreground">@Model.PocetakRezervacije.ToString("yyyy-MM-dd")</strong>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-muted-foreground">Vrijeme:</span>
+                        <strong class="text-foreground">@Model.PocetakRezervacije.ToString("HH:mm")</strong>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-muted-foreground">Trajanje:</span>
+                        <strong class="text-foreground">@(Model.BrojSati * 60) min</strong>
+                    </div>
+                    <hr class="border-border my-2" />
+                    <div class="flex justify-between items-center">
+                        <span class="text-muted-foreground font-semibold">Ukupno:</span>
+                        <strong class="text-primary text-base">@Model.UkupnaCijena.ToString("F2") KM</strong>
+                    </div>
+                </div>
+
+                <!-- Payment Form -->
+                <form asp-action="Placanje" asp-controller="Rezervacija" method="post" id="paymentForm" class="space-y-4">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.RezervacijaId" />
+                    
+                    <div asp-validation-summary="ModelOnly" class="text-danger text-xs mb-3"></div>
+
+                    <!-- Card number -->
+                    <div>
+                        <label class="block text-xs font-semibold text-muted-foreground mb-1">Broj kartice</label>
+                        <input type="text" name="BrojKartice" id="cardInput" placeholder="1234 5678 9012 3456" 
+                               class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" required />
+                        <span class="text-danger text-[10px] hidden" id="cardError">Neispravan broj kartice (treba 16 cifara).</span>
+                    </div>
+
+                    <!-- Expiry & CVV -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-muted-foreground mb-1">Datum isteka</label>
+                            <input type="text" name="DatumIsteka" id="expiryInput" placeholder="MM/YY" 
+                                   class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" required />
+                            <span class="text-danger text-[10px] hidden" id="expiryError">Neispravan rok (MM/YY).</span>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-muted-foreground mb-1">CVV</label>
+                            <input type="password" name="Cvv" id="cvvInput" placeholder="123" maxlength="3"
+                                   class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" required />
+                            <span class="text-danger text-[10px] hidden" id="cvvError">Mora biti 3 cifre.</span>
+                        </div>
+                    </div>
+
+                    <!-- Cardholder name -->
+                    <div>
+                        <label class="block text-xs font-semibold text-muted-foreground mb-1">Ime na kartici</label>
+                        <input type="text" name="ImeNaKartici" id="nameInput" placeholder="Ime Prezime" 
+                               class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" required />
+                        <span class="text-danger text-[10px] hidden" id="nameError">Unesite ime i prezime (npr. Amer Hodžić).</span>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="w-full bg-primary text-primary-foreground py-3 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity mt-4">
+                        Plati i potvrdi
+                    </button>
+                </form>
+            }
+            else
+            {
+                <div class="p-4 bg-destructive/10 border border-destructive/20 rounded-xl text-xs text-center">
+                    <i class="bi bi-exclamation-triangle text-destructive text-xl block mb-2"></i>
+                    Rezervacija nije pronađena.
+                    <a href="/Rezervacija/MojeRezervacije" class="block text-primary hover:underline mt-2">Vrati se na moje rezervacije</a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Toast Popup (bottom right) -->
+<div id="successToast" class="fixed bottom-6 right-6 bg-card border border-border shadow-lg rounded-xl p-4 flex items-center gap-3 translate-y-10 opacity-0 transition-all duration-300 pointer-events-none z-50">
+    <div class="w-8 h-8 rounded-full bg-success/15 text-success flex items-center justify-center shrink-0">
+        <i class="bi bi-check-circle-fill"></i>
+    </div>
+    <div>
+        <h4 class="text-xs font-bold text-foreground mb-0.5">Rezervacija uspješna!</h4>
+        <p class="text-[10px] text-muted-foreground mb-0">Molimo unesite podatke za plaćanje.</p>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Prikaži toast na početku
+        document.addEventListener("DOMContentLoaded", function() {
+            var toast = document.getElementById('successToast');
+            if (toast) {
+                toast.classList.remove('translate-y-10', 'opacity-0');
+                toast.classList.add('translate-y-0', 'opacity-100');
+                
+                setTimeout(function() {
+                    toast.classList.remove('translate-y-0', 'opacity-100');
+                    toast.classList.add('translate-y-10', 'opacity-0');
+                }, 3500);
+            }
+        });
+
+        // Formats card number input with spaces
+        document.getElementById('cardInput').addEventListener('input', function (e) {
+            var target = e.target;
+            var position = target.selectionStart;
+            var value = target.value.replace(/\D/g, '').substring(0, 16);
+            var parts = [];
+            for (var i = 0; i < value.length; i += 4) {
+                parts.push(value.substring(i, i + 4));
+            }
+            target.value = parts.join(' ');
+            
+            // Validate length
+            if (value.length < 16) {
+                document.getElementById('cardError').classList.remove('hidden');
+            } else {
+                document.getElementById('cardError').classList.add('hidden');
+            }
+        });
+
+        // Formats expiry input with slash
+        document.getElementById('expiryInput').addEventListener('input', function (e) {
+            var target = e.target;
+            var value = target.value.replace(/\D/g, '').substring(0, 4);
+            if (value.length > 2) {
+                target.value = value.substring(0, 2) + '/' + value.substring(2);
+            } else {
+                target.value = value;
+            }
+
+            // Simple MM/YY regex check
+            var regex = /^(0[1-9]|1[0-2])\/[0-9]{2}$/;
+            if (target.value.length === 5 && !regex.test(target.value)) {
+                document.getElementById('expiryError').classList.remove('hidden');
+            } else {
+                document.getElementById('expiryError').classList.add('hidden');
+            }
+        });
+
+        // CVV digit restriction
+        document.getElementById('cvvInput').addEventListener('input', function (e) {
+            var target = e.target;
+            target.value = target.value.replace(/\D/g, '').substring(0, 3);
+            if (target.value.length < 3) {
+                document.getElementById('cvvError').classList.remove('hidden');
+            } else {
+                document.getElementById('cvvError').classList.add('hidden');
+            }
+        });
+
+        // Name verification
+        document.getElementById('nameInput').addEventListener('input', function (e) {
+            var target = e.target;
+            // Title case pattern (Amer Hodžić)
+            var regex = /^[A-ZŠĐČĆŽ][a-zšđčćž]+( [A-ZŠĐČĆŽ][a-zšđčćž]+)+$/;
+            if (target.value.length > 3 && !regex.test(target.value)) {
+                document.getElementById('nameError').classList.remove('hidden');
+            } else {
+                document.getElementById('nameError').classList.add('hidden');
+            }
+        });
+
+        // Submit checks
+        document.getElementById('paymentForm').addEventListener('submit', function (e) {
+            var cardVal = document.getElementById('cardInput').value.replace(/\s/g, '');
+            var expiryVal = document.getElementById('expiryInput').value;
+            var cvvVal = document.getElementById('cvvInput').value;
+            var nameVal = document.getElementById('nameInput').value;
+
+            var hasError = false;
+
+            if (cardVal.length !== 16) {
+                document.getElementById('cardError').classList.remove('hidden');
+                hasError = true;
+            }
+            if (!/^(0[1-9]|1[0-2])\/[0-9]{2}$/.test(expiryVal)) {
+                document.getElementById('expiryError').classList.remove('hidden');
+                hasError = true;
+            }
+            if (cvvVal.length !== 3) {
+                document.getElementById('cvvError').classList.remove('hidden');
+                hasError = true;
+            }
+            if (!/^[A-ZŠĐČĆŽ][a-zšđčćž]+( [A-ZŠĐČĆŽ][a-zšđčćž]+)+$/.test(nameVal)) {
+                // If it fails title case (e.g. they typed all caps or all lowercase), let's title-case it automatically to pass server-side regex!
+                var formattedName = nameVal.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+                if (/^[A-ZŠĐČĆŽ][a-zšđčćž]+( [A-ZŠĐČĆŽ][a-zšđčćž]+)+$/.test(formattedName)) {
+                    document.getElementById('nameInput').value = formattedName;
+                    document.getElementById('nameError').classList.add('hidden');
+                } else {
+                    document.getElementById('nameError').classList.remove('hidden');
+                    hasError = true;
+                }
+            }
+
+            if (hasError) {
+                e.preventDefault();
+            }
+        });
+    </script>
+}

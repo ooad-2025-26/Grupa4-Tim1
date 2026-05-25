@@ -1,0 +1,111 @@
+@model smartPark.Models.ViewModels.Parking.ParkingFormViewModel
+
+@{
+    ViewBag.Title = Model.ParkingId == 0 ? "Novi parking" : "Uredi parking";
+}
+
+<button onclick="history.back()" class="btn btn-back mb-2"><i class="bi bi-arrow-left"></i> Nazad</button>
+
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="sp-card">
+            <h1 class="h4 mb-3">@ViewBag.Title</h1>
+            
+            <form asp-action="ParkingSave" asp-controller="Manager" method="post">
+                @Html.AntiForgeryToken()
+                
+                <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+                
+                <input type="hidden" asp-for="ParkingId" />
+                
+                <div class="row g-2">
+                    <!-- Naziv -->
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Naziv" class="form-label">Naziv parkinga *</label>
+                        <input asp-for="Naziv" class="form-control" required />
+                        <span asp-validation-for="Naziv" class="text-danger small"></span>
+                    </div>
+                    
+                    <!-- Adresa -->
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Adresa" class="form-label">Adresa *</label>
+                        <input asp-for="Adresa" class="form-control" required />
+                        <span asp-validation-for="Adresa" class="text-danger small"></span>
+                    </div>
+                    
+                    <!-- Kapacitet (ukupno mjesta) -->
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="UkupnoMjesta" class="form-label">Ukupno mjesta *</label>
+                        <input asp-for="UkupnoMjesta" type="number" min="1" class="form-control" required />
+                        <span asp-validation-for="UkupnoMjesta" class="text-danger small"></span>
+                    </div>
+                    
+                    <!-- Slobodna mjesta -->
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="SlobodnaMjesta" class="form-label">Slobodna mjesta</label>
+                        <input asp-for="SlobodnaMjesta" type="number" min="0" class="form-control" />
+                        <span asp-validation-for="SlobodnaMjesta" class="text-danger small"></span>
+                    </div>
+                    
+                    <!-- Tip parkinga -->
+                    <div class="col-md-4 mb-3">
+                        <label asp-for="TipParkinga" class="form-label">Tip parkinga</label>
+                        <select asp-for="TipParkinga" class="form-select" asp-items="Html.GetEnumSelectList<TipParkinga>()">
+                            <option value="">-- Odaberite tip --</option>
+                        </select>
+                        <span asp-validation-for="TipParkinga" class="text-danger small"></span>
+                    </div>
+                    
+                    <!-- Radno vrijeme -->
+                    <div class="col-md-4 mb-3">
+                        <label asp-for="RadnoVrijeme" class="form-label">Radno vrijeme</label>
+                        <input asp-for="RadnoVrijeme" class="form-control" placeholder="npr. 00-24h" />
+                        <span asp-validation-for="RadnoVrijeme" class="text-danger small"></span>
+                    </div>
+                    
+                    <!-- Cijena po satu -->
+                    <div class="col-md-4 mb-3">
+                        <label asp-for="CijenaPoSatu" class="form-label">Cijena po satu (KM) *</label>
+                        <input asp-for="CijenaPoSatu" type="number" step="0.01" min="0" class="form-control" required />
+                        <span asp-validation-for="CijenaPoSatu" class="text-danger small"></span>
+                    </div>
+                    
+                    <!-- Geografska širina (Latitude) -->
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Latitude" class="form-label">Geografska širina (Lat)</label>
+                        <input asp-for="Latitude" type="number" step="0.0001" class="form-control" placeholder="43.8563" />
+                        <span asp-validation-for="Latitude" class="text-danger small"></span>
+                    </div>
+                    
+                    <!-- Geografska dužina (Longitude) -->
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Longitude" class="form-label">Geografska dužina (Lng)</label>
+                        <input asp-for="Longitude" type="number" step="0.0001" class="form-control" placeholder="18.4131" />
+                        <span asp-validation-for="Longitude" class="text-danger small"></span>
+                    </div>
+                    
+                    <!-- Aktivan -->
+                    <div class="col-md-6 mb-3 form-check">
+                        <input asp-for="Aktivan" class="form-check-input" />
+                        <label asp-for="Aktivan" class="form-check-label">Aktivan parking</label>
+                    </div>
+                </div>
+                
+                <hr />
+                
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Sačuvaj
+                    </button>
+                    <a asp-action="Parkinzi" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Otkaži
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

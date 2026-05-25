@@ -1,0 +1,108 @@
+@model smartPark.Models.ViewModels.Izvjestaj.IzvjestajDetaljiViewModel
+
+@{
+    ViewBag.Title = "Detalji izvještaja";
+}
+
+<div class="container py-4">
+    <div class="mb-3">
+        <a asp-action="Index" class="btn btn-back p-0"><i class="bi bi-arrow-left"></i> Nazad na izvještaje</a>
+    </div>
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h2 class="fw-bold mb-1">@Model.TipTekst</h2>
+            <p class="text-muted mb-0">Period: <strong>@Model.PeriodTekst</strong> | Generisan: @Model.DatumGenerisanjaTekst</p>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-outline-primary btn-sm" onclick="window.print()">
+                <i class="bi bi-printer"></i> Print
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Parking info i osnovne statistike -->
+        <div class="col-md-4">
+            <div class="sp-card mb-4">
+                <h5 class="fw-bold mb-3 text-dark">Informacije o parkingu</h5>
+                <p class="mb-2"><strong>Naziv:</strong> @Model.ParkingNaziv</p>
+                <p class="mb-2"><strong>Adresa:</strong> @Model.ParkingAdresa</p>
+                <p class="mb-2"><strong>Kapacitet:</strong> @Model.ParkingUkupnoMjesta mjesta</p>
+                <p class="mb-0"><strong>Cijena po satu:</strong> @Model.ParkingCijenaPoSatu.ToString("F2") KM</p>
+            </div>
+
+            <div class="sp-card">
+                <h5 class="fw-bold mb-3 text-dark">Prosječne vrijednosti</h5>
+                <div class="mb-3">
+                    <div class="text-muted small">Cijena po rezervaciji</div>
+                    <div class="fs-5 fw-bold text-primary">@Model.ProsjecnaCijenaPoRezervaciji.ToString("F2") KM</div>
+                </div>
+                <div class="mb-3">
+                    <div class="text-muted small">Dnevni prihod</div>
+                    <div class="fs-5 fw-bold text-success">@Model.ProsjecniDnevniPrihod.ToString("F2") KM</div>
+                </div>
+                <div class="mb-0">
+                    <div class="text-muted small">Dnevna popunjenost</div>
+                    <div class="fs-5 fw-bold text-info">@Model.ProsjecnaDnevnaPopunjenost.ToString("F0")%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Glavni statistički podaci -->
+        <div class="col-md-8">
+            <div class="row g-3 mb-4">
+                <div class="col-6">
+                    <div class="sp-card text-center p-3">
+                        <div class="text-muted small">Ukupan prihod</div>
+                        <div class="fs-3 fw-bold text-success">@Model.UkupniPrihodTekst</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="sp-card text-center p-3">
+                        <div class="text-muted small">Ukupno rezervacija</div>
+                        <div class="fs-3 fw-bold text-primary">@Model.UkupnoRezervacija</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dnevna statistika -->
+            <div class="sp-card">
+                <h5 class="fw-bold mb-3 text-dark">Dnevni pregled</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Datum</th>
+                                <th class="text-center">Rezervacije</th>
+                                <th class="text-end">Prihod</th>
+                                <th class="text-end">Popunjenost</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.DnevneStatistike != null && Model.DnevneStatistike.Any())
+                            {
+                                foreach (var dan in Model.DnevneStatistike)
+                                {
+                                    <tr>
+                                        <td>@dan.DatumTekst</td>
+                                        <td class="text-center fw-bold">@dan.BrojRezervacija</td>
+                                        <td class="text-end text-success fw-bold">@dan.Prihod.ToString("F2") KM</td>
+                                        <td class="text-end fw-bold text-info">@dan.PopunjenostProcenat.ToString("F0")%</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-3">Nema dnevnih podataka.</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

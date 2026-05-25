@@ -1,0 +1,175 @@
+@model smartPark.Models.ViewModels.Rezervacija.QRKodViewModel
+
+@{
+    ViewBag.Title = "QR Kod Rezervacije";
+    var rezervacija = ViewBag.Rezervacija as smartPark.Models.Entities.Rezervacija;
+    
+    var parkingNaziv = rezervacija?.Parking?.Naziv ?? Model?.ParkingNaziv ?? "Parking";
+    var parkingAdresa = rezervacija?.Parking?.Adresa ?? "";
+    var pocetak = rezervacija?.PocetakRezervacije ?? DateTime.Now;
+    var kraj = rezervacija?.KrajRezervacije ?? DateTime.Now.AddHours(1);
+    var durationMinutes = (int)(kraj - pocetak).TotalMinutes;
+    var spotNumber = rezervacija?.ParkingMjesto?.BrojMjesta.ToString() ?? Model?.ParkingMjestoBroj ?? "Nije dodijeljeno";
+    var tipParkinga = rezervacija?.Parking?.TipParkinga.ToString() ?? "Otvoreni";
+    
+    var mapsLink = "#";
+    if (rezervacija?.Parking != null)
+    {
+        var lat = rezervacija.Parking.Latitude.ToString().Replace(',', '.');
+        var lng = rezervacija.Parking.Longitude.ToString().Replace(',', '.');
+        mapsLink = $"https://www.google.com/maps/search/?api=1&query={lat},{lng}";
+    }
+
+    var statusText = "Nedolazeća";
+    var statusBg = "bg-primary/10 text-primary";
+    if (Model != null)
+    {
+        if (Model.Iskoristen)
+        {
+            statusText = "Iskorišten";
+            statusBg = "bg-muted text-muted-foreground";
+        }
+        else if (Model.DatumIsteka <= DateTime.Now)
+        {
+            statusText = "Istekla";
+            statusBg = "bg-destructive/10 text-destructive";
+        }
+        else if (pocetak <= DateTime.Now && kraj >= DateTime.Now)
+        {
+            statusText = "U toku";
+            statusBg = "bg-success/15 text-success font-bold";
+        }
+    }
+}
+
+<div class="min-h-[calc(100vh-3.5rem)] bg-muted/30 flex flex-col items-center py-10 px-4">
+    <div class="w-full max-w-md">
+        <button onclick="history.back()" class="text-muted-foreground hover:text-foreground text-sm font-medium mb-4 flex items-center gap-1 bg-transparent border-0 self-start cursor-pointer p-0">
+            <i class="bi bi-arrow-left"></i> Nazad
+        </button>
+
+        <div class="bg-card rounded-xl border border-border p-6 shadow-sm flex flex-col items-center text-center">
+            <!-- Header Titles -->
+            <h1 class="text-xl font-bold text-foreground">QR Kod</h1>
+            <p class="text-xs text-muted-foreground mt-0.5 mb-3">Potvrda rezervacije</p>
+
+            <!-- Status Badge -->
+            <span class="text-xs px-3 py-1 rounded-full font-semibold @statusBg mb-6">@statusText</span>
+
+            <!-- QR code image -->
+            <div class="w-48 h-48 bg-white border border-border rounded-xl p-3 flex items-center justify-center mb-4 shadow-inner">
+                @if (Model != null && !string.IsNullOrEmpty(Model.Base64Slika))
+                {
+                    <img src="data:image/png;base64,@Model.Base64Slika" alt="QR Kod" class="w-full h-full object-contain" />
+                }
+                else
+                {
+                    <div class="text-xs text-muted-foreground font-mono">Generisanje QR...</div>
+                }
+            </div>
+
+            <!-- Code info subtexts (Removed long ID text) -->
+            <p class="text-xs text-muted-foreground mb-6">Skenirajte ovaj kod na ulazu u parking</p>
+
+            <!-- Details Card (Card inside card) -->
+            <div class="w-full bg-muted/40 rounded-xl border border-border p-5 text-start mb-6 space-y-4">
+                <div class="flex justify-between items-center border-b border-border pb-2.5">
+                    <h3 class="text-xs font-bold text-foreground mb-0">Detalji rezervacije</h3>
+                    <span class="text-[10px] text-muted-foreground font-mono">ID: @(Model?.Kod?.Substring(0, Math.Min(12, Model.Kod.Length)) ?? "RES-001")</span>
+                </div>
+
+                <!-- Info Row: Parking -->
+                <div class="flex gap-3 items-start">
+                    <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <i class="bi bi-geo-alt-fill text-sm"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold text-foreground mb-0.5">@parkingNaziv</h4>
+                        <p class="text-[10px] text-muted-foreground mb-0">@parkingAdresa</p>
+                    </div>
+                </div>
+
+                <!-- Info Row: Date -->
+                <div class="flex gap-3 items-start">
+                    <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <i class="bi bi-calendar3 text-sm"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold text-foreground mb-0.5">@pocetak.ToString("dd.MM.yyyy")</h4>
+                        <p class="text-[10px] text-muted-foreground mb-0">Datum rezervacije</p>
+                    </div>
+                </div>
+
+                <!-- Info Row: Time & Duration -->
+                <div class="flex gap-3 items-start">
+                    <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <i class="bi bi-clock-fill text-sm"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold text-foreground mb-0.5">@pocetak.ToString("HH:mm") - @kraj.ToString("HH:mm")</h4>
+                        <p class="text-[10px] text-muted-foreground mb-0">Trajanje: @durationMinutes min</p>
+                    </div>
+                </div>
+
+                <!-- Info Row: Spot -->
+                <div class="flex gap-3 items-start">
+                    <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <i class="bi bi-car-front-fill text-sm"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold text-foreground mb-0.5">Mjesto: @spotNumber</h4>
+                        <p class="text-[10px] text-muted-foreground mb-0">@tipParkinga parking</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action buttons row (Adjusted to 2 columns, share removed) -->
+            <div class="grid grid-cols-2 gap-3 w-full mb-4">
+                @if (Model != null)
+                {
+                    <a href="data:image/png;base64,@Model.Base64Slika" download="QR_Rezervacija_@Model.RezervacijaId" class="inline-flex flex-col items-center justify-center py-2.5 rounded-lg border border-border hover:bg-muted text-foreground text-[10px] font-semibold no-underline gap-1 bg-card">
+                        <i class="bi bi-download text-sm text-primary"></i> Preuzmi
+                    </a>
+                }
+                <a href="@mapsLink" target="_blank" class="inline-flex flex-col items-center justify-center py-2.5 rounded-lg border border-border hover:bg-muted text-foreground text-[10px] font-semibold no-underline gap-1 bg-card">
+                    <i class="bi bi-compass text-sm text-primary"></i> Navigacija
+                </a>
+            </div>
+
+            <a href="/rezervacije/moje" class="w-full bg-muted text-foreground py-2.5 rounded-lg text-sm font-semibold hover:bg-muted/80 transition-colors no-underline text-center">
+                Nazad na rezervacije
+            </a>
+        </div>
+    </div>
+</div>
+
+@if (TempData["Uspjeh"] != null)
+{
+    <!-- Success Toast Popup (bottom right) -->
+    <div id="paymentToast" class="fixed bottom-6 right-6 bg-card border border-border shadow-lg rounded-xl p-4 flex items-center gap-3 translate-y-10 opacity-0 transition-all duration-300 pointer-events-none z-50">
+        <div class="w-8 h-8 rounded-full bg-success/15 text-success flex items-center justify-center shrink-0">
+            <i class="bi bi-check-lg text-lg"></i>
+        </div>
+        <div>
+            <h4 class="text-xs font-bold text-foreground mb-0.5">@TempData["Uspjeh"]</h4>
+            <p class="text-[10px] text-muted-foreground mb-0">Hvala vam na povjerenju.</p>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var toast = document.getElementById('paymentToast');
+            if (toast) {
+                toast.classList.remove('translate-y-10', 'opacity-0');
+                toast.classList.add('translate-y-0', 'opacity-100');
+                
+                setTimeout(function() {
+                    toast.classList.remove('translate-y-0', 'opacity-100');
+                    toast.classList.add('translate-y-10', 'opacity-0');
+                }, 3500);
+            }
+        });
+    </script>
+}

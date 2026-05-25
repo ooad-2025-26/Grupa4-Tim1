@@ -1,0 +1,112 @@
+@{
+    var ukupnoKorisnika = (int)(ViewBag.UkupnoKorisnika ?? 0);
+    var brojMenadzera = (int)(ViewBag.BrojMenadzera ?? 0);
+    var brojParkinga = (int)(ViewBag.BrojParkinga ?? 0);
+    var rezervacijeDanas = (int)(ViewBag.RezervacijeDanas ?? 0);
+    var ukupniPrihod = (decimal)(ViewBag.UkupniPrihod ?? 0);
+}
+
+<div class="container mx-auto px-4 py-8">
+    <!-- Welcome message -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-extrabold text-foreground tracking-tight">Dobrodošli, Administrator!</h1>
+        <p class="text-sm text-muted-foreground mt-1">Brzi pregled sistema i upravljanje resursima u realnom vremenu.</p>
+    </div>
+
+    <!-- Quick statistics grid -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        <!-- Card 1 -->
+        <div class="bg-card rounded-xl border border-border p-4 shadow-sm flex items-center gap-3">
+            <div class="bg-primary/10 p-2.5 rounded text-primary flex items-center justify-center w-10 h-10 shrink-0">
+                <i class="bi bi-people text-lg"></i>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-foreground leading-none mb-1">@ukupnoKorisnika</p>
+                <p class="text-xs text-muted-foreground mb-0">Ukupno korisnika</p>
+            </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="bg-card rounded-xl border border-border p-4 shadow-sm flex items-center gap-3">
+            <div class="bg-warning/10 p-2.5 rounded text-warning flex items-center justify-center w-10 h-10 shrink-0">
+                <i class="bi bi-person-badge text-lg"></i>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-foreground leading-none mb-1">@brojMenadzera</p>
+                <p class="text-xs text-muted-foreground mb-0">Menadžera</p>
+            </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="bg-card rounded-xl border border-border p-4 shadow-sm flex items-center gap-3">
+            <div class="bg-success/10 p-2.5 rounded text-success flex items-center justify-center w-10 h-10 shrink-0">
+                <i class="bi bi-p-square text-lg"></i>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-foreground leading-none mb-1">@brojParkinga</p>
+                <p class="text-xs text-muted-foreground mb-0">Parking prostora</p>
+            </div>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="bg-card rounded-xl border border-border p-4 shadow-sm flex items-center gap-3">
+            <div class="bg-info/10 p-2.5 rounded text-info flex items-center justify-center w-10 h-10 shrink-0">
+                <i class="bi bi-calendar-check text-lg"></i>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-foreground leading-none mb-1">@rezervacijeDanas</p>
+                <p class="text-xs text-muted-foreground mb-0">Rezervacije danas</p>
+            </div>
+        </div>
+
+        <!-- Card 5 -->
+        <div class="bg-card rounded-xl border border-border p-4 shadow-sm flex items-center gap-3 col-span-2 md:col-span-1">
+            <div class="bg-primary/10 p-2.5 rounded text-primary flex items-center justify-center w-10 h-10 shrink-0">
+                <i class="bi bi-cash-stack text-lg"></i>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-foreground leading-none mb-1">@ukupniPrihod.ToString("F0") KM</p>
+                <p class="text-xs text-muted-foreground mb-0">Ukupni prihod</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation & Quick Actions -->
+    <h2 class="text-lg font-bold text-foreground mb-4">Administracijske opcije</h2>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <!-- Card Opcioni 1 -->
+        <a href="/admin/korisnici" class="bg-card rounded-xl border border-border p-6 shadow-sm flex flex-col items-center text-center transition-all hover:shadow-md hover:border-primary group no-underline text-foreground">
+            <div class="w-12 h-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <i class="bi bi-people-fill text-xl"></i>
+            </div>
+            <h3 class="text-base font-bold mb-1">Upravljanje korisnicima</h3>
+            <p class="text-xs text-muted-foreground mb-0">Dodaj, uredi, blokiraj ili obriši korisničke naloge na sistemu.</p>
+        </a>
+        <!-- Card Opcioni 2 -->
+        <a href="/parking" class="bg-card rounded-xl border border-border p-6 shadow-sm flex flex-col items-center text-center transition-all hover:shadow-md hover:border-success group no-underline text-foreground">
+            <div class="w-12 h-12 rounded-lg bg-success/10 text-success flex items-center justify-center mb-4 group-hover:bg-success group-hover:text-success-foreground transition-colors">
+                <i class="bi bi-p-circle-fill text-xl"></i>
+            </div>
+            <h3 class="text-base font-bold mb-1">Upravljanje parkingom</h3>
+            <p class="text-xs text-muted-foreground mb-0">Pregledaj, registruj nove lokacije ili uredi kapacitete parking mjesta.</p>
+        </a>
+
+        <!-- Card Opcioni 3 -->
+        <a href="/qr-kod/skener" class="bg-card rounded-xl border border-border p-6 shadow-sm flex flex-col items-center text-center transition-all hover:shadow-md hover:border-warning group no-underline text-foreground">
+            <div class="w-12 h-12 rounded-lg bg-warning/10 text-warning flex items-center justify-center mb-4 group-hover:bg-warning group-hover:text-warning-foreground transition-colors">
+                <i class="bi bi-qr-code-scan text-xl"></i>
+            </div>
+            <h3 class="text-base font-bold mb-1">QR Skener</h3>
+            <p class="text-xs text-muted-foreground mb-0">Skeniraj barkod ili QR kod na ulazu za potvrdu i naplatu rezervacije.</p>
+        </a>
+
+        <!-- Card Opcioni 4 -->
+        <a href="/izvjestaj" class="bg-card rounded-xl border border-border p-6 shadow-sm flex flex-col items-center text-center transition-all hover:shadow-md hover:border-info group no-underline text-foreground">
+            <div class="w-12 h-12 rounded-lg bg-info/10 text-info flex items-center justify-center mb-4 group-hover:bg-info group-hover:text-info-foreground transition-colors">
+                <i class="bi bi-bar-graph-fill text-xl"></i>
+            </div>
+            <h3 class="text-base font-bold mb-1">Sistemski izvještaji</h3>
+            <p class="text-xs text-muted-foreground mb-0">Generiši analitiku prihoda, popunjenosti i statistiku korišćenja po periodima.</p>
+        </a>
+    </div>
+</div>

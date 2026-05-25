@@ -1,0 +1,149 @@
+@model smartPark.Models.ViewModels.Korisnik.Admin.AdminKorisnikDetaljiViewModel
+
+@{
+    ViewBag.Title = "Detalji korisnika";
+}
+
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="flex items-center gap-3 mb-6">
+        <button onclick="history.back()" class="text-muted-foreground hover:text-foreground text-xl bg-transparent border-0 p-0 cursor-pointer animate-pulse" title="Nazad">
+            <i class="bi bi-arrow-left"></i>
+        </button>
+        <div>
+            <h1 class="text-2xl font-bold text-foreground">Detalji korisnika</h1>
+            <p class="text-xs text-muted-foreground mt-0.5">Pregled svih informacija o korisniku @Model.Ime @Model.Prezime</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Osnovne informacije -->
+        <div class="bg-card rounded-xl border border-border p-6 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div>
+                <h3 class="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
+                    <i class="bi bi-person text-primary"></i> Osnovne informacije
+                </h3>
+                
+                <div class="space-y-4">
+                    <div class="border-b border-border pb-3">
+                        <span class="text-xs text-muted-foreground block mb-0.5">Puno ime</span>
+                        <span class="text-base font-semibold text-foreground">@Model.Ime @Model.Prezime</span>
+                    </div>
+                    
+                    <div class="border-b border-border pb-3">
+                        <span class="text-xs text-muted-foreground block mb-0.5">Email adresa</span>
+                        <span class="text-base text-foreground">@Model.Email</span>
+                    </div>
+
+                    <div class="border-b border-border pb-3">
+                        <span class="text-xs text-muted-foreground block mb-0.5">Uloga</span>
+                        @{
+                            var roleColor = "bg-primary/10 text-primary";
+                            if (Model.Uloga == "Administrator") roleColor = "bg-destructive/10 text-destructive";
+                            else if (Model.Uloga == "Menadzer") roleColor = "bg-warning/15 text-warning";
+                        }
+                        <span class="inline-flex text-xs px-2.5 py-0.5 rounded font-semibold @roleColor">@Model.Uloga</span>
+                    </div>
+
+                    <div class="border-b border-border pb-3">
+                        <span class="text-xs text-muted-foreground block mb-0.5">Datum registracije</span>
+                        <span class="text-sm text-foreground">@Model.DatumRegistracije.ToString("dd.MM.yyyy HH:mm")</span>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.BrojVozacke))
+                    {
+                        <div class="border-b border-border pb-3">
+                            <span class="text-xs text-muted-foreground block mb-0.5">Broj vozačke dozvole</span>
+                            <span class="text-sm text-foreground font-mono">@Model.BrojVozacke</span>
+                        </div>
+                    }
+
+                    @if (Model.OdgovorniParkinzi.Any())
+                    {
+                        <div class="pb-1">
+                            <span class="text-xs text-muted-foreground block mb-1.5">Odgovoran za parking prostori</span>
+                            <div class="space-y-2">
+                                @foreach (var p in Model.OdgovorniParkinzi)
+                                {
+                                    <div class="flex items-center gap-2 text-sm font-semibold text-success bg-success/10 rounded-lg px-3 py-2">
+                                        <i class="bi bi-geo-alt"></i>
+                                        <div>
+                                            <span class="block">@p.Naziv</span>
+                                            @if (!string.IsNullOrEmpty(p.Adresa))
+                                            {
+                                                <span class="text-xs font-normal text-success/80">@p.Adresa</span>
+                                            }
+                                        </div>
+                                        <span class="ml-auto text-[10px] bg-success/20 px-1.5 py-0.5 rounded font-mono">#@p.ParkingId</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                    else if (Model.Uloga == "Menadzer")
+                    {
+                        <div class="pb-1">
+                            <span class="text-xs text-muted-foreground block mb-0.5">Odgovoran za parking prostori</span>
+                            <span class="text-xs text-muted-foreground italic">Nije dodijeljen nijednom parkingu</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistika i status -->
+        <div class="bg-card rounded-xl border border-border p-6 shadow-sm flex flex-col justify-between gap-6 hover:shadow-md transition-shadow">
+            <div>
+                <h3 class="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
+                    <i class="bi bi-bar-chart text-primary"></i> Statistika i status
+                </h3>
+                
+                <div class="mb-6">
+                    <div class="bg-muted/50 rounded-lg p-4 border border-border/50 text-center">
+                        <span class="text-xs text-muted-foreground block mb-1">Ukupno rezervacija</span>
+                        <span class="text-2xl font-bold text-foreground">@Model.BrojRezervacija</span>
+                    </div>
+                </div>
+
+                <div class="bg-muted/30 rounded-lg p-4 border border-border/50">
+                    <span class="text-xs text-muted-foreground block mb-2">Status računa</span>
+                    <div class="flex align-items-center gap-2">
+                        @if (Model.JeZakljucan)
+                        {
+                            <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded bg-destructive text-destructive-foreground"><i class="bi bi-lock-fill"></i> Zaključan</span>
+                        }
+                        else
+                        {
+                            <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded bg-success text-success-foreground"><i class="bi bi-unlock-fill"></i> Aktivan / Otključan</span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Akcije -->
+            <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-border">
+                <a asp-action="Uredi" asp-route-id="@Model.Id" class="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-semibold px-4 py-2.5 rounded-lg text-sm hover:opacity-90 transition-opacity no-underline flex-1 text-center">
+                    <i class="bi bi-pencil"></i> Uredi korisnika
+                </a>
+                @if (Model.JeZakljucan)
+                {
+                    <form asp-action="Otkljucaj" asp-route-id="@Model.Id" method="post" class="flex-1 m-0">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 bg-success text-success-foreground font-semibold px-4 py-2.5 rounded-lg text-sm hover:opacity-90 transition-opacity cursor-pointer border-0">
+                            <i class="bi bi-unlock"></i> Otključaj
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <form asp-action="Zakljucaj" asp-route-id="@Model.Id" method="post" class="flex-1 m-0">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 bg-destructive text-destructive-foreground font-semibold px-4 py-2.5 rounded-lg text-sm hover:opacity-90 transition-opacity cursor-pointer border-0">
+                            <i class="bi bi-lock"></i> Zaključaj
+                        </button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+</div>

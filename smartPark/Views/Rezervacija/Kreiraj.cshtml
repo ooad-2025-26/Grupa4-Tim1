@@ -1,0 +1,313 @@
+@model smartPark.Models.ViewModels.Rezervacija.RezervacijaKreirajViewModel
+@inject smartPark.Services.Interfaces.IParkingService ParkingService
+@{
+    ViewBag.Title = "Nova rezervacija";
+
+    // Učitaj parking detalje
+    var parking = await ParkingService.DohvatiParkingPoIdAsync(Model.ParkingId);
+    if (parking == null && Model.DostupniParkinzi != null && Model.DostupniParkinzi.Any())
+    {
+        var firstId = int.Parse(Model.DostupniParkinzi.First().Value);
+        parking = await ParkingService.DohvatiParkingPoIdAsync(firstId);
+    }
+
+    var parkingNaziv = parking?.Naziv ?? "Parking";
+    var parkingAdresa = parking?.Adresa ?? "";
+    var ukupnoMjesta = parking?.UkupnoMjesta ?? 0;
+    var slobodnaMjesta = parking?.SlobodnaMjesta ?? 0;
+    var cijenaPoSatu = parking?.CijenaPoSatu ?? 1.50m;
+    var tipOtvoreni = parking == null || parking.TipParkinga == smartPark.Models.Enums.TipParkinga.Otvoreni;
+
+    // Odredi zonu na osnovu adrese ili ID-a
+
+    // Izračunaj datume za inicijalni prikaz
+    var startDateString = Model.PocetakRezervacije.ToString("yyyy-MM-dd");
+    var endDateString = Model.KrajRezervacije.ToString("yyyy-MM-dd");
+    var startTimeString = Model.PocetakRezervacije.ToString("HH:mm");
+    var endTimeString = Model.KrajRezervacije.ToString("HH:mm");
+}
+
+<div class="min-h-[calc(100vh-3.5rem)] bg-muted/30 flex items-start justify-center py-10 px-4">
+    <div class="bg-card rounded-xl border border-border p-8 w-full max-w-xl shadow-sm">
+        <button onclick="history.back()" class="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4 bg-transparent border-0 cursor-pointer p-0">
+            <i class="bi bi-arrow-left"></i> Nazad
+        </button>
+        <h1 class="text-2xl font-bold text-foreground">@parkingNaziv</h1>
+        <p class="text-sm text-muted-foreground mt-1 mb-6">@parkingAdresa</p>
+
+        <!-- Info grid -->
+        <div class="grid grid-cols-2 gap-3 mb-8">
+            <div class="bg-muted/50 rounded-lg px-4 py-3">
+                <p class="text-xs text-muted-foreground mb-0.5">Kapacitet</p>
+                <p class="font-semibold text-foreground mb-0 text-sm">@ukupnoMjesta mjesta</p>
+            </div>
+            <div class="bg-muted/50 rounded-lg px-4 py-3">
+                <p class="text-xs text-muted-foreground mb-0.5">Slobodno</p>
+                <p class="font-semibold text-success mb-0 text-sm">@slobodnaMjesta</p>
+            </div>
+            <div class="bg-muted/50 rounded-lg px-4 py-3">
+                <p class="text-xs text-muted-foreground mb-0.5">Dnevna cijena</p>
+                <p class="font-semibold text-foreground mb-0 text-sm">@cijenaPoSatu.ToString("F2") KM/h</p>
+            </div>
+            <div class="bg-muted/50 rounded-lg px-4 py-3">
+                <p class="text-xs text-muted-foreground mb-0.5">Noćna cijena</p>
+                <p class="font-semibold text-foreground mb-0 text-sm">@( (cijenaPoSatu * 0.7m).ToString("F2") ) KM/h</p>
+            </div>
+            <div class="bg-muted/50 rounded-lg px-4 py-3 col-span-2">
+                <p class="text-xs text-muted-foreground mb-0.5">Radno vrijeme</p>
+                <p class="font-semibold text-foreground mb-0 text-sm">@(parking != null && !string.IsNullOrEmpty(parking.RadnoVrijeme) ? parking.RadnoVrijeme : "00:00 - 24:00")</p>
+            </div>
+        </div>
+
+        <!-- Reservation form -->
+        <h2 class="text-lg font-semibold text-foreground mb-4">Rezervacija</h2>
+        
+        <form asp-action="Kreiraj" asp-controller="Rezervacija" method="post" id="reservationForm">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger text-xs mb-3"></div>
+
+            <input type="hidden" asp-for="ParkingId" />
+            <input type="hidden" asp-for="Popust" />
+            <input type="hidden" asp-for="PocetakRezervacije" id="PocetakRezervacije" />
+            <input type="hidden" asp-for="KrajRezervacije" id="KrajRezervacije" />
+
+            <div class="space-y-4 mb-6">
+                <!-- Početak Rezervacije -->
+                <div class="border border-border rounded-xl p-4 bg-muted/20">
+                    <h3 class="text-xs font-bold text-foreground mb-3 uppercase tracking-wider">Početak rezervacije</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-muted-foreground mb-1">Datum</label>
+                            <input type="date" id="startDateInput" value="@startDateString" onchange="updateTimes()" class="w-full px-3 py-2 rounded-lg border border-input bg-background text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-ring" required />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-muted-foreground mb-1">Vrijeme</label>
+                            <select id="startTimeSelect" onchange="updateTimes()" class="w-full px-3 py-2 rounded-lg border border-input bg-background text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-ring" required>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kraj Rezervacije -->
+                <div class="border border-border rounded-xl p-4 bg-muted/20">
+                    <h3 class="text-xs font-bold text-foreground mb-3 uppercase tracking-wider">Kraj rezervacije</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-muted-foreground mb-1">Datum</label>
+                            <input type="date" id="endDateInput" value="@endDateString" onchange="updateTimes()" class="w-full px-3 py-2 rounded-lg border border-input bg-background text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-ring" required />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-muted-foreground mb-1">Vrijeme</label>
+                            <select id="endTimeSelect" onchange="updateTimes()" class="w-full px-3 py-2 rounded-lg border border-input bg-background text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-ring" required>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Parking Mjesto hidden input for automatic allocation -->
+                <input type="hidden" asp-for="ParkingMjestoId" id="parkingMjestoSelect" value="" />
+            </div>
+
+            <!-- Error message if end date <= start date -->
+            <div id="dateValidationError" class="hidden text-danger text-xs mb-4">
+                <i class="bi bi-exclamation-circle-fill"></i> Kraj rezervacije mora biti poslije početka rezervacije.
+            </div>
+
+            <!-- Total -->
+            <div class="bg-primary/5 rounded-lg px-4 py-3 mb-6 flex justify-between items-center">
+                <span class="text-sm text-foreground">Ukupna cijena:</span>
+                <span class="text-xl font-bold text-primary" id="totalPriceText">0.00 KM</span>
+            </div>
+
+            <button type="submit" class="w-full bg-primary text-primary-foreground py-3 rounded-lg font-medium hover:opacity-90 transition-opacity text-sm">
+                Nastavi na plaćanje
+            </button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function populateTimeDropdowns() {
+            var startSelect = document.getElementById('startTimeSelect');
+            var endSelect = document.getElementById('endTimeSelect');
+            
+            var selectedStart = '@startTimeString';
+            var selectedEnd = '@endTimeString';
+            
+            startSelect.innerHTML = '';
+            endSelect.innerHTML = '';
+
+            var radnoVrijeme = '@(parking?.RadnoVrijeme ?? "00:00 - 24:00")';
+            var openMin = 0;
+            var closeMin = 24 * 60;
+            
+            var match = radnoVrijeme.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+            if (match) {
+                openMin = parseInt(match[1]) * 60 + parseInt(match[2]);
+                closeMin = parseInt(match[3]) * 60 + parseInt(match[4]);
+            }
+            
+            for (var hour = 0; hour < 24; hour++) {
+                for (var min of [0, 30]) {
+                    var currentMin = hour * 60 + min;
+                    if (currentMin < openMin || currentMin > closeMin) {
+                        continue;
+                    }
+                    var hourStr = String(hour).padStart(2, '0');
+                    var minStr = String(min).padStart(2, '0');
+                    var timeVal = `${hourStr}:${minStr}`;
+                    
+                    // Start option
+                    var optStart = document.createElement('option');
+                    optStart.value = timeVal;
+                    optStart.innerText = timeVal;
+                    if (timeVal === selectedStart) {
+                        optStart.selected = true;
+                    }
+                    startSelect.appendChild(optStart);
+                    
+                    // End option
+                    var optEnd = document.createElement('option');
+                    optEnd.value = timeVal;
+                    optEnd.innerText = timeVal;
+                    if (timeVal === selectedEnd) {
+                        optEnd.selected = true;
+                    }
+                    endSelect.appendChild(optEnd);
+                }
+            }
+        }
+
+        function updateTimes() {
+            var startDateVal = document.getElementById('startDateInput').value;
+            var startTimeVal = document.getElementById('startTimeSelect').value;
+            var endDateVal = document.getElementById('endDateInput').value;
+            var endTimeVal = document.getElementById('endTimeSelect').value;
+            
+            if (startDateVal && startTimeVal && endDateVal && endTimeVal) {
+                var startParts = startDateVal.split('-');
+                var startTimeParts = startTimeVal.split(':');
+                var startDt = new Date(startParts[0], startParts[1] - 1, startParts[2], startTimeParts[0], startTimeParts[1], 0);
+                
+                var endParts = endDateVal.split('-');
+                var endTimeParts = endTimeVal.split(':');
+                var endDt = new Date(endParts[0], endParts[1] - 1, endParts[2], endTimeParts[0], endTimeParts[1], 0);
+                
+                var formatLocal = function(dt) {
+                    var year = dt.getFullYear();
+                    var month = String(dt.getMonth() + 1).padStart(2, '0');
+                    var day = String(dt.getDate()).padStart(2, '0');
+                    var hours = String(dt.getHours()).padStart(2, '0');
+                    var minutes = String(dt.getMinutes()).padStart(2, '0');
+                    var seconds = String(dt.getSeconds()).padStart(2, '0');
+                    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+                };
+                
+                document.getElementById('PocetakRezervacije').value = formatLocal(startDt);
+                document.getElementById('KrajRezervacije').value = formatLocal(endDt);
+                
+                // Validate Dates
+                var submitBtn = document.querySelector('button[type="submit"]');
+                var errorDiv = document.getElementById('dateValidationError');
+                if (endDt <= startDt) {
+                    errorDiv.innerHTML = '<i class="bi bi-exclamation-circle-fill"></i> Kraj rezervacije mora biti poslije početka rezervacije.';
+                    errorDiv.classList.remove('hidden');
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    document.getElementById('totalPriceText').innerText = "0.00 KM";
+                    return;
+                } else {
+                    errorDiv.classList.add('hidden');
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+
+                // Validate Working Hours dynamically
+                var radnoVrijeme = '@(parking?.RadnoVrijeme ?? "00:00 - 24:00")';
+                var openMin = 0;
+                var closeMin = 24 * 60;
+                var match = radnoVrijeme.match(/(\d{2}):(\d{2})\s*-\s*(\d{2}):(\d{2})/);
+                if (match) {
+                    openMin = parseInt(match[1]) * 60 + parseInt(match[2]);
+                    closeMin = parseInt(match[3]) * 60 + parseInt(match[4]);
+                }
+                
+                var startHour = startDt.getHours();
+                var startMin = startDt.getMinutes();
+                var endHour = endDt.getHours();
+                var endMin = endDt.getMinutes();
+                
+                var startTimeMinutes = startHour * 60 + startMin;
+                var endTimeMinutes = endHour * 60 + endMin;
+                
+                var isSameDay = (startDt.toDateString() === endDt.toDateString());
+                
+                if (startTimeMinutes < openMin || startTimeMinutes > closeMin ||
+                    endTimeMinutes < openMin || endTimeMinutes > closeMin ||
+                    !isSameDay) {
+                    
+                    errorDiv.innerHTML = '<i class="bi bi-exclamation-circle-fill"></i> Rezervacija je izvan radnog vremena parking prostora (' + radnoVrijeme + ') ili nije u istom danu.';
+                    errorDiv.classList.remove('hidden');
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    document.getElementById('totalPriceText').innerText = "0.00 KM";
+                    return;
+                }
+                
+                // Calculate duration in hours
+                var diffMs = endDt - startDt;
+                var durationHours = Math.ceil(diffMs / (1000 * 60 * 60));
+                
+                // Base price calculation
+                var basePrice = parseFloat('@cijenaPoSatu'.replace(',', '.'));
+                var startHour = startDt.getHours();
+                var isNight = (startHour >= 22 || startHour < 6);
+                var currentPrice = isNight ? (basePrice * 0.7) : basePrice;
+                
+                var total = currentPrice * durationHours;
+                
+                var discountPct = parseInt('@Model.Popust');
+                if (discountPct > 0) {
+                    total = total * (1 - discountPct / 100);
+                }
+                
+                document.getElementById('totalPriceText').innerText = total.toFixed(2) + ' KM';
+                
+                // Fetch available parking spots dynamically
+                updateAvailableSpots();
+            }
+        }
+
+        function updateAvailableSpots() {
+            // Nije potrebno za automatsku dodjelu
+        }
+
+        document.getElementById('reservationForm').addEventListener('submit', function (e) {
+            updateTimes();
+            var startVal = new Date(document.getElementById('PocetakRezervacije').value);
+            var endVal = new Date(document.getElementById('KrajRezervacije').value);
+            if (endVal <= startVal) {
+                e.preventDefault();
+                alert("Kraj rezervacije mora biti poslije početka rezervacije!");
+            }
+        });
+
+        document.addEventListener("DOMContentLoaded", function () {
+            // Postavi minimalni datum na danas za start date
+            var today = new Date();
+            var year = today.getFullYear();
+            var month = String(today.getMonth() + 1).padStart(2, '0');
+            var day = String(today.getDate()).padStart(2, '0');
+            var minDateStr = `${year}-${month}-${day}`;
+            
+            document.getElementById('startDateInput').min = minDateStr;
+            document.getElementById('endDateInput').min = minDateStr;
+            
+            // Popuni dropdowns i inicijaliziraj vremena
+            populateTimeDropdowns();
+            updateTimes();
+        });
+    </script>
+}

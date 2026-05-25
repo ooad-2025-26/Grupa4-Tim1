@@ -1,77 +1,516 @@
-@model IEnumerable<smartPark.Models.Entities.Izvjestaj>
-
+@model smartPark.Models.ViewModels.Izvjestaj.IzvjestajListaViewModel
+@inject smartPark.Services.Interfaces.IParkingService ParkingService
 @{
-    ViewData["Title"] = "Index";
+    ViewBag.Title = "Generisanje izvještaja";
+    
+    // Dohvati sve dostupne parkinge za statistiku
+    var parkinzi = await ParkingService.DohvatiSveParkingeAsync();
+    var ukMjesta = parkinzi.Sum(p => p.UkupnoMjesta);
+    var slMjesta = parkinzi.Sum(p => p.SlobodnaMjesta);
+    var zaMjesta = ukMjesta - slMjesta;
+    var popunjenostProc = ukMjesta > 0 ? (zaMjesta * 100) / ukMjesta : 0;
 }
 
-<h1>Index</h1>
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div class="flex items-center gap-3">
+            <button onclick="history.back()" class="text-muted-foreground hover:text-foreground text-xl bg-transparent border-0 p-0 cursor-pointer">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            <div>
+                <h1 class="text-2xl font-bold text-foreground">Generisanje izvještaja</h1>
+                <p class="text-xs text-muted-foreground mt-0.5">Menadžer panel</p>
+            </div>
+        </div>
+    </div>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.DatumGenerisanja)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.PeriodOd)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.PeriodDo)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.UkupnoRezervacija)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.UkupniPrihod)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.ParkingId)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.TipIzvjestaja)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Parking)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(model => item.DatumGenerisanja)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.PeriodOd)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.PeriodDo)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.UkupnoRezervacija)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.UkupniPrihod)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.ParkingId)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.TipIzvjestaja)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Parking)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.IzvjestajId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.IzvjestajId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.IzvjestajId">Delete</a>
-            </td>
-        </tr>
+    <!-- Configuration Form -->
+    <div class="bg-card rounded-xl border border-border p-4 shadow-sm mb-6">
+        <form method="get" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-muted-foreground mb-1">Parking</label>
+                    <select name="parkingId" id="parkingSelect" class="w-full px-3 py-2 rounded-lg border border-input bg-background text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-ring">
+                        <option value="">Svi parking prostori</option>
+                        @if (Model.DostupniParkinzi != null)
+                        {
+                            foreach (var item in Model.DostupniParkinzi)
+                            {
+                                <option value="@item.Value" selected="@(Model.ParkingFilter?.ToString() == item.Value)">@item.Text</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-muted-foreground mb-1">Tip izvještaja</label>
+                    <select name="tip" id="tipSelect" class="w-full px-3 py-2 rounded-lg border border-input bg-background text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-ring">
+                        <option value="Prihodi" selected="@(Model.TipFilter?.ToString() == "Prihodi" || Model.TipFilter == null)">Prihodi</option>
+                        <option value="Korisnici" selected="@(Model.TipFilter?.ToString() == "Korisnici")">Korisnici</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-muted-foreground mb-1">Vremenski period</label>
+                    <select id="periodSelect" class="w-full px-3 py-2 rounded-lg border border-input bg-background text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-ring" onchange="obradiPromjenuPerioda()">
+                        <option value="dan">Dan</option>
+                        <option value="sedmica" selected>Sedmica</option>
+                        <option value="mjesec">Mjesec</option>
+                        <option value="godina">Godina</option>
+                        <option value="custom">Određeni period</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Footer dugmad -->
+            <div class="flex justify-between items-center mt-4 pt-3 border-t border-border flex-wrap gap-3">
+                <div class="flex gap-2">
+                    <button type="button" id="exportPdfBtn" onclick="exportIzvjestajPdf()" disabled class="inline-flex items-center gap-2 border border-border rounded-lg px-3.5 py-2 text-xs font-semibold text-foreground bg-card hover:bg-muted transition-colors opacity-50 cursor-not-allowed">
+                        <i class="bi bi-file-earmark-pdf text-destructive"></i> Eksportuj PDF
+                    </button>
+                    <button type="button" id="exportExcelBtn" onclick="exportIzvjestajExcel()" disabled class="inline-flex items-center gap-2 border border-border rounded-lg px-3.5 py-2 text-xs font-semibold text-foreground bg-card hover:bg-muted transition-colors opacity-50 cursor-not-allowed">
+                        <i class="bi bi-file-earmark-excel text-success"></i> Eksportuj Excel
+                    </button>
+                </div>
+                <div>
+                    <button type="button" onclick="osveziGrafikone()" class="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold px-5 py-2 rounded-lg text-xs hover:opacity-90 transition-opacity border-0 cursor-pointer h-[38px]">
+                        <i class="bi bi-file-earmark-bar-graph"></i> Generiši izvještaj
+                    </button>
+                </div>
+            </div>
+
+            <!-- Custom date range inputs, hidden by default -->
+            <div id="customDateRange" class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-border" style="display: none;">
+                <div>
+                    <label class="block text-xs font-semibold text-muted-foreground mb-1">Datum od</label>
+                    <input type="date" id="customOdInput" class="w-full px-3 py-2 rounded-lg border border-input bg-background text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-ring" />
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-muted-foreground mb-1">Datum do</label>
+                    <input type="date" id="customDoInput" class="w-full px-3 py-2 rounded-lg border border-input bg-background text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-ring" />
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Stats cards grid -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <!-- Card 1 -->
+        <div class="bg-card rounded-xl border border-border p-4 shadow-sm flex items-center gap-3">
+            <div class="bg-primary/10 p-2.5 rounded text-primary flex items-center justify-center w-10 h-10 shrink-0">
+                <i class="bi bi-p-square text-lg"></i>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-foreground leading-none mb-1" id="ukupnaMjestaCard">@ukMjesta</p>
+                <p class="text-xs text-muted-foreground mb-0" id="card1Label">Ukupna mjesta</p>
+            </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="bg-card rounded-xl border border-border p-4 shadow-sm flex items-center gap-3">
+            <div class="bg-warning/10 p-2.5 rounded text-warning flex items-center justify-center w-10 h-10 shrink-0">
+                <i class="bi bi-car-front text-lg"></i>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-foreground leading-none mb-0.5" id="zauzetaMjestaCard">@zaMjesta</p>
+                <p class="text-xs text-muted-foreground mb-0" id="card2Label">Trenutno zauzeto</p>
+                <span class="text-[10px] text-muted-foreground" id="zauzetaMjestaSubtitle">@popunjenostProc% popunjenost</span>
+            </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="bg-card rounded-xl border border-border p-4 shadow-sm flex items-center gap-3">
+            <div class="bg-primary/10 p-2.5 rounded text-primary flex items-center justify-center w-10 h-10 shrink-0">
+                <i class="bi bi-calendar-check text-lg"></i>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-foreground leading-none mb-1" id="rezervacijePeriodCard">0</p>
+                <p class="text-xs text-muted-foreground mb-0" id="card3Label">Rezervacije (period)</p>
+            </div>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="bg-card rounded-xl border border-border p-4 shadow-sm flex items-center gap-3">
+            <div class="bg-success/10 p-2.5 rounded text-success flex items-center justify-center w-10 h-10 shrink-0">
+                <i class="bi bi-cash text-lg"></i>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-foreground leading-none mb-1" id="prihodPeriodCard">0 KM</p>
+                <p class="text-xs text-muted-foreground mb-0" id="card4Label">Prihod (period)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Line Chart -->
+        <div class="bg-card rounded-xl border border-border p-6 shadow-sm">
+            <div class="mb-4">
+                <h3 class="text-sm font-bold text-foreground mb-0.5" id="lineChartTitle">Popunjenost parkinga tokom perioda</h3>
+                <p class="text-[10px] text-muted-foreground" id="lineChartSubtitle">Centar - Sedmica</p>
+            </div>
+            <div class="relative h-64 w-full">
+                <canvas id="popunjenostChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Donut Chart -->
+        <div class="bg-card rounded-xl border border-border p-6 shadow-sm flex flex-col">
+            <div class="mb-4">
+                <h3 class="text-sm font-bold text-foreground mb-0.5" id="donutChartTitle">Distribucija prihoda</h3>
+                <p class="text-[10px] text-muted-foreground" id="donutChartSubtitle">Centar</p>
+            </div>
+            <div class="relative h-64 w-full flex items-center justify-center">
+                <canvas id="prihodiChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        var popunjenostCtx = document.getElementById('popunjenostChart').getContext('2d');
+        var prihodiCtx = document.getElementById('prihodiChart').getContext('2d');
+        
+        var popunjenostChart, prihodiChart;
+
+        function inicijalizujGrafikone() {
+            // Line Chart
+            popunjenostChart = new Chart(popunjenostCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Zauzetost (%)',
+                        data: [],
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 2,
+                        pointRadius: 4,
+                        pointBackgroundColor: 'rgb(59, 130, 246)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) { return value + '%'; }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Donut Chart
+            prihodiChart = new Chart(prihodiCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Pon', 'Uto', 'Sri', 'Čet', 'Pet', 'Sub', 'Ned'],
+                    datasets: [{
+                        data: [0, 0, 0, 0, 0, 0, 0],
+                        backgroundColor: [
+                            'rgba(59, 130, 246, 0.8)',
+                            'rgba(245, 158, 11, 0.8)',
+                            'rgba(16, 185, 129, 0.8)',
+                            'rgba(239, 68, 68, 0.8)',
+                            'rgba(139, 92, 246, 0.8)',
+                            'rgba(236, 72, 153, 0.8)',
+                            'rgba(107, 114, 128, 0.8)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                font: { size: 10 }
+                            }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+        }
+
+        function obradiPromjenuPerioda() {
+            var period = document.getElementById('periodSelect').value;
+            var customRange = document.getElementById('customDateRange');
+            if (period === 'custom') {
+                customRange.style.display = 'grid';
+            } else {
+                customRange.style.display = 'none';
+            }
+        }
+
+        function osveziGrafikone() {
+            var parkingSelect = document.getElementById('parkingSelect');
+            var selectedParking = parkingSelect.options[parkingSelect.selectedIndex].text;
+            if (parkingSelect.value === "") {
+                selectedParking = "Svi parking prostori";
+            }
+            
+            var period = document.getElementById('periodSelect').value;
+            var tip = document.getElementById('tipSelect').value;
+            
+            // Ažuriraj podnaslove i naslove
+            var periodText = period.charAt(0).toUpperCase() + period.slice(1);
+            if (period === 'custom') periodText = 'Određeni period';
+            document.getElementById('lineChartSubtitle').innerText = selectedParking + ' - ' + periodText;
+            document.getElementById('donutChartSubtitle').innerText = selectedParking;
+
+            if (tip === 'Prihodi') {
+                document.getElementById('lineChartTitle').innerText = "Prihodi po danima";
+                document.getElementById('donutChartTitle').innerText = "Distribucija prihoda po danima sedmice";
+            } else {
+                document.getElementById('lineChartTitle').innerText = "Aktivni korisnici po danima";
+                document.getElementById('donutChartTitle').innerText = "Nove registracije po danima";
+            }
+
+            // Izračunaj datume
+            var doo = new Date();
+            var od = new Date();
+            if (period === 'dan') {
+                od.setDate(doo.getDate() - 1);
+            } else if (period === 'sedmica') {
+                od.setDate(doo.getDate() - 7);
+            } else if (period === 'mjesec') {
+                od.setDate(doo.getDate() - 30);
+            } else if (period === 'godina') {
+                od.setDate(doo.getDate() - 365);
+            } else if (period === 'custom') {
+                var customOd = document.getElementById('customOdInput').value;
+                var customDo = document.getElementById('customDoInput').value;
+                if (customOd) od = new Date(customOd);
+                else od.setDate(doo.getDate() - 30);
+                if (customDo) doo = new Date(customDo);
+            }
+
+            var formatDatum = function(date) {
+                var d = new Date(date),
+                    month = '' + (d.getMonth() + 1),
+                    day = '' + d.getDate(),
+                    year = d.getFullYear();
+
+                if (month.length < 2) month = '0' + month;
+                if (day.length < 2) day = '0' + day;
+
+                return [year, month, day].join('-');
+            };
+
+            var odStr = formatDatum(od);
+            var dooStr = formatDatum(doo);
+            var parkingId = parkingSelect.value || 0;
+
+            if (tip === 'Prihodi') {
+                // Podesi labele kartica za Prihode
+                document.getElementById('card1Label').innerText = "Ukupna mjesta";
+                document.getElementById('card2Label').innerText = "Trenutno zauzeto";
+                document.getElementById('card3Label').innerText = "Rezervacije (period)";
+                document.getElementById('card4Label').innerText = "Prihod (period)";
+
+                // Dohvati prihode
+                fetch('/izvjestaj/generisi-prihode?parkingId=' + parkingId + '&od=' + odStr + '&doo=' + dooStr)
+                    .then(response => response.json())
+                    .then(prihodiData => {
+                        document.getElementById('ukupnaMjestaCard').innerText = "@ukMjesta";
+                        document.getElementById('zauzetaMjestaCard').innerText = "@zaMjesta";
+                        document.getElementById('zauzetaMjestaSubtitle').innerText = "@popunjenostProc% popunjenost";
+                        document.getElementById('rezervacijePeriodCard').innerText = prihodiData.ukupnoRezervacija;
+                        document.getElementById('prihodPeriodCard').innerText = prihodiData.ukupniPrihod.toFixed(2) + ' KM';
+
+                        // Popuni linijski grafikon sa dnevnim prihodima
+                        var labels = [];
+                        var data = [];
+                        prihodiData.dnevniPrihodi.forEach(function(dp) {
+                            var d = new Date(dp.datum);
+                            labels.push(d.getDate() + '.' + (d.getMonth() + 1) + '.');
+                            data.push(dp.prihod);
+                        });
+
+                        popunjenostChart.data.labels = labels;
+                        popunjenostChart.data.datasets[0].data = data;
+                        popunjenostChart.data.datasets[0].label = 'Prihodi (KM)';
+                        popunjenostChart.options.scales.y.ticks.callback = function(value) { return value + ' KM'; };
+                        popunjenostChart.options.scales.y.max = undefined;
+                        popunjenostChart.update();
+
+                        // Izračunaj prihode po danima sedmice za Donut
+                        var weekdayRevenues = [0, 0, 0, 0, 0, 0, 0];
+                        prihodiData.dnevniPrihodi.forEach(function(dp) {
+                            var d = new Date(dp.datum);
+                            var day = d.getDay();
+                            var idx = (day === 0) ? 6 : day - 1;
+                            weekdayRevenues[idx] += dp.prihod;
+                        });
+
+                        prihodiChart.data.labels = ['Pon', 'Uto', 'Sri', 'Čet', 'Pet', 'Sub', 'Ned'];
+                        prihodiChart.data.datasets[0].data = weekdayRevenues;
+                        prihodiChart.update();
+                        omoguciEksportDugmad();
+                    })
+                    .catch(err => console.error("Greška pri dohvaćanju prihoda:", err));
+
+            } else if (tip === 'Korisnici') {
+                // Podesi labele kartica za Korisnike
+                document.getElementById('card1Label').innerText = "Aktivni korisnici";
+                document.getElementById('card2Label').innerText = "Novi korisnici";
+                document.getElementById('card3Label').innerText = "Rezervacije (period)";
+                document.getElementById('card4Label').innerText = "Prosjek rez. / kor.";
+
+                fetch('/izvjestaj/generisi-korisnike?parkingId=' + parkingId + '&od=' + odStr + '&doo=' + dooStr)
+                    .then(response => response.json())
+                    .then(korisniciData => {
+                        document.getElementById('ukupnaMjestaCard').innerText = korisniciData.ukupnoKorisnika;
+                        document.getElementById('zauzetaMjestaCard').innerText = korisniciData.noviKorisnici;
+                        document.getElementById('zauzetaMjestaSubtitle').innerText = "Novi registrovani";
+                        document.getElementById('rezervacijePeriodCard').innerText = korisniciData.ukupnoRezervacija;
+                        
+                        var prosjek = korisniciData.ukupnoKorisnika > 0 ? (korisniciData.ukupnoRezervacija / korisniciData.ukupnoKorisnika) : 0;
+                        document.getElementById('prihodPeriodCard').innerText = prosjek.toFixed(1);
+
+                        // Popuni linijski grafikon sa aktivnim korisnicima po danima
+                        var labels = [];
+                        var data = [];
+                        korisniciData.dnevnaStatistika.forEach(function(ds) {
+                            var d = new Date(ds.datum);
+                            labels.push(d.getDate() + '.' + (d.getMonth() + 1) + '.');
+                            data.push(ds.brojAktivnihKorisnika);
+                        });
+
+                        popunjenostChart.data.labels = labels;
+                        popunjenostChart.data.datasets[0].data = data;
+                        popunjenostChart.data.datasets[0].label = 'Aktivni korisnici';
+                        popunjenostChart.options.scales.y.ticks.callback = function(value) { return value; };
+                        popunjenostChart.options.scales.y.max = undefined;
+                        popunjenostChart.update();
+
+                        // Popuni Donut sa novim registracijama po danima
+                        var noveRegistracije = [0, 0, 0, 0, 0, 0, 0];
+                        korisniciData.dnevnaStatistika.forEach(function(ds) {
+                            var d = new Date(ds.datum);
+                            var day = d.getDay();
+                            var idx = (day === 0) ? 6 : day - 1;
+                            noveRegistracije[idx] += ds.brojNoveRegistracije;
+                        });
+
+                        prihodiChart.data.labels = ['Pon', 'Uto', 'Sri', 'Čet', 'Pet', 'Sub', 'Ned'];
+                        prihodiChart.data.datasets[0].data = noveRegistracije;
+                        prihodiChart.update();
+                        omoguciEksportDugmad();
+                    })
+                    .catch(err => console.error("Greška pri dohvaćanju korisnika:", err));
+            }
+        }
+
+        function omoguciEksportDugmad() {
+            var pdfBtn = document.getElementById('exportPdfBtn');
+            var excelBtn = document.getElementById('exportExcelBtn');
+            if (pdfBtn) {
+                pdfBtn.disabled = false;
+                pdfBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                pdfBtn.classList.add('cursor-pointer');
+            }
+            if (excelBtn) {
+                excelBtn.disabled = false;
+                excelBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                excelBtn.classList.add('cursor-pointer');
+            }
+        }
+
+        function exportIzvjestajPdf() {
+            var tip = document.getElementById('tipSelect')?.value || 'Prihodi';
+            var parking = document.getElementById('parkingSelect')?.options[document.getElementById('parkingSelect').selectedIndex]?.text || 'Svi parking prostori';
+            var period = document.getElementById('periodSelect')?.options[document.getElementById('periodSelect').selectedIndex]?.text || '';
+
+            var labels = popunjenostChart.data.labels;
+            var values = popunjenostChart.data.datasets[0].data;
+            var valueLabel = popunjenostChart.data.datasets[0].label;
+
+            var printContent = '<html><head><title>Izvještaj - SmartPark</title>';
+            printContent += '<style>body{font-family:Arial,sans-serif;padding:24px;}h1{font-size:20px;margin-bottom:4px;}p{color:#666;font-size:13px;margin:0 0 16px;}table{border-collapse:collapse;width:100%;}th,td{border:1px solid #ddd;padding:9px 12px;text-align:left;font-size:13px;}th{background:#f0f4ff;font-weight:bold;}.meta{color:#555;margin-bottom:20px;font-size:12px;}</style>';
+            printContent += '</head><body>';
+            printContent += '<h1>🅿 SmartPark — Menadžerski izvještaj: ' + tip + '</h1>';
+            printContent += '<p class="meta">Parking: <strong>' + parking + '</strong> &nbsp;|&nbsp; Period: <strong>' + period + '</strong> &nbsp;|&nbsp; Generisan: <strong>' + new Date().toLocaleString('bs') + '</strong></p>';
+
+            // KPI summary
+            var c1 = document.getElementById('ukupnaMjestaCard')?.innerText || '';
+            var c2 = document.getElementById('zauzetaMjestaCard')?.innerText || '';
+            var c3 = document.getElementById('rezervacijePeriodCard')?.innerText || '';
+            var c4 = document.getElementById('prihodPeriodCard')?.innerText || '';
+            printContent += '<table style="margin-bottom:20px;"><tr><th>' + (document.getElementById('card1Label')?.innerText||'') + '</th><th>' + (document.getElementById('card2Label')?.innerText||'') + '</th><th>' + (document.getElementById('card3Label')?.innerText||'') + '</th><th>' + (document.getElementById('card4Label')?.innerText||'') + '</th></tr>';
+            printContent += '<tr><td>' + c1 + '</td><td>' + c2 + '</td><td>' + c3 + '</td><td>' + c4 + '</td></tr></table>';
+
+            // Table of values from chart
+            printContent += '<h3>Podaci po danima</h3>';
+            printContent += '<table><thead><tr><th>Datum</th><th>' + valueLabel + '</th></tr></thead><tbody>';
+            for (var i = 0; i < labels.length; i++) {
+                var val = values[i];
+                if (tip === 'Prihodi') val = parseFloat(val).toFixed(2) + ' KM';
+                printContent += '<tr><td>' + labels[i] + '</td><td>' + val + '</td></tr>';
+            }
+            printContent += '</tbody></table></body></html>';
+
+            var win = window.open('', '_blank');
+            win.document.write(printContent);
+            win.document.close();
+            win.focus();
+            win.print();
+            win.close();
+        }
+
+        function exportIzvjestajExcel() {
+            var tip = document.getElementById('tipSelect')?.value || 'Prihodi';
+            var parking = document.getElementById('parkingSelect')?.options[document.getElementById('parkingSelect').selectedIndex]?.text || 'Svi parking prostori';
+            var period = document.getElementById('periodSelect')?.options[document.getElementById('periodSelect').selectedIndex]?.text || '';
+
+            var labels = popunjenostChart.data.labels;
+            var values = popunjenostChart.data.datasets[0].data;
+            var valueLabel = popunjenostChart.data.datasets[0].label;
+
+            var csvContent = '\uFEFF'; // BOM
+            csvContent += 'SmartPark Menadžerski izvještaj\t\t\n';
+            csvContent += 'Tip:\t' + tip + '\n';
+            csvContent += 'Parking:\t' + parking + '\n';
+            csvContent += 'Period:\t' + period + '\n';
+            csvContent += 'Generisan:\t' + new Date().toLocaleString('bs') + '\n\n';
+
+            // KPI
+            csvContent += (document.getElementById('card1Label')?.innerText||'') + '\t' + (document.getElementById('card2Label')?.innerText||'') + '\t' + (document.getElementById('card3Label')?.innerText||'') + '\t' + (document.getElementById('card4Label')?.innerText||'') + '\n';
+            csvContent += document.getElementById('ukupnaMjestaCard').innerText + '\t' + document.getElementById('zauzetaMjestaCard').innerText + '\t' + document.getElementById('rezervacijePeriodCard').innerText + '\t' + document.getElementById('prihodPeriodCard').innerText + '\n\n';
+
+            csvContent += 'Datum\t' + valueLabel + '\n';
+            for (var i = 0; i < labels.length; i++) {
+                var val = values[i];
+                if (tip === 'Prihodi') val = parseFloat(val).toFixed(2);
+                csvContent += '"' + labels[i] + '"\t"' + val + '"\n';
+            }
+
+            var blob = new Blob([csvContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'smartpark_menadzer_izvjestaj_' + tip.toLowerCase() + '_' + new Date().toISOString().slice(0,10) + '.xls';
+            link.click();
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            inicijalizujGrafikone();
+            osveziGrafikone();
+        });
+    </script>
 }
-    </tbody>
-</table>

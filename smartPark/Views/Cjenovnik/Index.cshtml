@@ -1,14 +1,171 @@
+@model smartPark.Models.ViewModels.Cjenovnik.CjenovnikListaViewModel
+
 @{
-    ViewData["Title"] = "Cjenovnik";
+    ViewBag.Title = "Upravljanje cjenovnicima";
 }
 
-<div class="container py-4" style="max-width:520px">
-  <h4 class="fw-bold mb-4">Upravljanje cijenama</h4>
-  <div class="card p-4">
-    <div class="mb-3"><label class="form-label small fw-medium">Parking</label><select class="form-select"><option>Centar - Zona 1</option><option>Tržni Centar Delta</option><option>Aerodrom - Terminal A</option><option>Bolnica - Glavni ulaz</option><option>BBI Centar</option><option>Skenderija</option></select></div>
-    <div class="mb-3"><label class="form-label small fw-medium">Standardna satnica (KM)</label><input type="number" step="0.5" class="form-control" value="2.5"></div>
-    <div class="mb-3"><label class="form-label small fw-medium">Noćna tarifa (22:00-06:00) (KM)</label><input type="number" step="0.5" class="form-control" value="1.5"></div>
-    <div class="mb-3"><label class="form-label small fw-medium">Vikend tarifa (KM)</label><input type="number" step="0.5" class="form-control" value="2"></div>
-    <button class="btn btn-primary w-100">Sačuvaj izmjene</button>
-  </div>
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div class="flex items-center gap-3">
+            <button onclick="history.back()" class="text-muted-foreground hover:text-foreground text-xl bg-transparent border-0 p-0 cursor-pointer">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            <div>
+                <h1 class="text-2xl font-bold text-foreground">Upravljanje cjenovnicima</h1>
+                <p class="text-xs text-muted-foreground mt-0.5">Menadžer panel</p>
+            </div>
+        </div>
+        <a href="/cjenovnik/dodaj" class="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold px-4 py-2.5 rounded-lg text-sm hover:opacity-90 transition-opacity no-underline">
+            <i class="bi bi-plus-lg"></i> Dodaj cjenovnik
+        </a>
+    </div>
+
+    <!-- Search Input -->
+    <div class="relative mb-6">
+        <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm"></i>
+        <input id="cjenovnikSearchInput" oninput="filterCjenovnikList()" placeholder="Pretraži cjenovnike..." class="w-full pl-11 pr-4 py-3 rounded-lg border border-input bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring shadow-sm" />
+    </div>
+
+    <!-- Stats cards grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <!-- Card 1 -->
+        <div class="bg-card rounded-xl border border-border p-4 shadow-sm flex items-center gap-3">
+            <div class="bg-primary/10 p-2.5 rounded text-primary flex items-center justify-center w-10 h-10 shrink-0">
+                <i class="bi bi-file-earmark-text text-lg"></i>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-foreground leading-none mb-1">@Model.UkupnoCjenovnika</p>
+                <p class="text-xs text-muted-foreground mb-0">Ukupno cjenovnika</p>
+            </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="bg-card rounded-xl border border-border p-4 shadow-sm flex items-center gap-3">
+            <div class="bg-success/10 p-2.5 rounded text-success flex items-center justify-center w-10 h-10 shrink-0">
+                <i class="bi bi-check-circle text-lg"></i>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-foreground leading-none mb-1">@Model.AktivnihCjenovnika</p>
+                <p class="text-xs text-muted-foreground mb-0">Aktivni cjenovnici</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cjenovnici List -->
+    <div class="space-y-4" id="cjenovnikListContainer">
+        @if (Model.Cjenovnici != null && Model.Cjenovnici.Any())
+        {
+            @foreach (var c in Model.Cjenovnici)
+            {
+                var parkingNaziv = c.Parking?.Naziv ?? $"Parking #{c.ParkingId}";
+                var parkingAdresa = c.Parking?.Adresa ?? "";
+                var statusLabel = c.Aktivan ? "Aktivan" : "Neaktivan";
+                var statusBg = c.Aktivan ? "bg-success/15 text-success" : "bg-muted text-muted-foreground";
+
+                <div class="cjenovnik-list-item bg-card rounded-xl border border-border p-6 shadow-sm relative transition-all hover:shadow-md" data-parking="@parkingNaziv.ToLower()" data-adresa="@parkingAdresa.ToLower()">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex items-center gap-2">
+                            <div class="flex flex-col">
+                                <h2 class="text-lg font-bold text-foreground mb-0">@c.Naziv</h2>
+                                <span class="text-xs text-muted-foreground">@parkingNaziv</span>
+                            </div>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold @statusBg align-self-start mt-1">@statusLabel</span>
+                        </div>
+
+                        <!-- Actions Dropdown -->
+                        <div class="relative actions-dropdown">
+                            <button onclick="toggleDropdown(this)" class="text-muted-foreground hover:text-foreground bg-transparent border-0 cursor-pointer p-1" title="Akcije">
+                                <i class="bi bi-three-dots-vertical text-lg"></i>
+                            </button>
+                            <div class="hidden absolute right-0 mt-1 w-32 bg-card border border-border rounded-lg shadow-lg py-1 z-10">
+                                <a href="/cjenovnik/uredi/@c.CjenovnikId" class="block px-4 py-2 text-xs text-foreground hover:bg-muted no-underline">
+                                    <i class="bi bi-pencil me-1.5"></i> Uredi
+                                </a>
+                                @if (c.Aktivan)
+                                {
+                                    <form asp-action="Deaktiviraj" asp-controller="Cjenovnik" asp-route-id="@c.CjenovnikId" method="post" onsubmit="return confirm('Da li ste sigurni da želite deaktivirati ovaj cjenovnik?');" class="block w-full text-start m-0">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="w-full text-start px-4 py-2 text-xs text-destructive hover:bg-destructive/10 bg-transparent border-0 cursor-pointer">
+                                            <i class="bi bi-slash-circle me-1.5"></i> Deaktiviraj
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-8 text-sm">
+                        <div class="flex items-center gap-2 text-muted-foreground">
+                            <i class="bi bi-geo-alt shrink-0 w-4"></i>
+                            <span>@parkingAdresa</span>
+                        </div>
+                        <div class="flex items-center justify-between text-muted-foreground md:justify-end gap-2">
+                            <span class="font-semibold text-foreground text-sm">Dnevna: @c.CijenaDnevna.ToString("F2") KM/h</span>
+                            <span class="text-border">|</span>
+                            <span class="font-semibold text-foreground text-sm">Noćna: @c.CijenaNocna.ToString("F2") KM/h</span>
+                        </div>
+
+                        <div class="flex items-center gap-2 text-muted-foreground">
+                            <i class="bi bi-calendar shrink-0 w-4"></i>
+                            <span>Početak važenja: @c.DatumPocetka.ToString("dd.MM.yyyy")</span>
+                        </div>
+                        <div class="flex items-center justify-between text-muted-foreground md:justify-end gap-2">
+                            @if (c.DatumKraja.HasValue)
+                            {
+                                <span class="text-border">|</span>
+                                <span>Kraj: @c.DatumKraja.Value.ToString("dd.MM.yyyy")</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="bg-card rounded-xl border border-border p-8 text-center text-muted-foreground">
+                <i class="bi bi-info-circle text-2xl mb-2 block"></i>
+                Nema definisanih cjenovnika za prikaz.
+            </div>
+        }
+    </div>
 </div>
+
+@section Scripts {
+    <script>
+        function filterCjenovnikList() {
+            var query = document.getElementById('cjenovnikSearchInput').value.toLowerCase();
+            document.querySelectorAll('.cjenovnik-list-item').forEach(function (item) {
+                var parking = item.getAttribute('data-parking');
+                var adresa = item.getAttribute('data-adresa');
+                if (parking.indexOf(query) > -1 || adresa.indexOf(query) > -1) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function toggleDropdown(button) {
+            var dropdownMenu = button.nextElementSibling;
+            
+            // Zatvori ostale dropdowne
+            document.querySelectorAll('.actions-dropdown div').forEach(function(el) {
+                if (el !== dropdownMenu) {
+                    el.classList.add('hidden');
+                }
+            });
+            
+            dropdownMenu.classList.toggle('hidden');
+        }
+
+        // Zatvori dropdown pri kliku van njega
+        window.addEventListener('click', function(e) {
+            if (!e.target.closest('.actions-dropdown')) {
+                document.querySelectorAll('.actions-dropdown div').forEach(function(el) {
+                    el.classList.add('hidden');
+                });
+            }
+        });
+    </script>
+}

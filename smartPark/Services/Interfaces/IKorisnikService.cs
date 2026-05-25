@@ -12,7 +12,8 @@ namespace smartPark.Services.Interfaces
 
         Task<AdminKorisnikListaViewModel> DohvatiAdminListuKorisnikaAsync(
             string? filterUloga = null,
-            string? filterStatus = null
+            string? filterStatus = null,
+            string? pretraga = null
         );
         Task<AdminKorisnikDetaljiViewModel?> DohvatiAdminDetaljeKorisnikaAsync(string id);
         Task<AdminKorisnikKreirajViewModel> DohvatiAdminViewModelZaKreiranjeAsync();
@@ -26,8 +27,8 @@ namespace smartPark.Services.Interfaces
             AdminKorisnikUrediViewModel model
         );
 
-        Task<MenadzerZaposleniciViewModel> DohvatiMenadzerZaposlenikeAsync(string? filter = null);
-        Task<MenadzerRadniciViewModel> DohvatiMenadzerRadnikeAsync();
+        Task<MenadzerZaposleniciViewModel> DohvatiMenadzerZaposlenikeAsync(string menadzerId, string? filter = null);
+        Task<MenadzerRadniciViewModel> DohvatiMenadzerRadnikeAsync(string menadzerId);
 
         Task<VozacProfilViewModel?> DohvatiVozacProfilAsync(string korisnikId);
 
@@ -38,7 +39,8 @@ namespace smartPark.Services.Interfaces
 
         Task<IEnumerable<SelectListItem>> DohvatiSveUlogeZaSelectListAsync();
         Task<IEnumerable<SelectListItem>> DohvatiSveParkingeZaSelectListAsync();
-
+        Task<int> DohvatiBrojRezervacijaKorisnikaAsync(string korisnikId);
+        Task<int> DohvatiBrojAktivnihRezervacijaKorisnikaAsync(string korisnikId);
         Task<bool> EmailVecPostojiAsync(string email, string? izuzmiId = null);
     }
 }

@@ -1,156 +1,208 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using smartPark.Data;
-using smartPark.Models.Entities;
+using smartPark.Models.ViewModels.ParkingMjesto;
+using smartPark.Services.Interfaces;
 
-public class ParkingMjestoController : Controller
+namespace smartPark.Controllers
 {
-    private readonly ApplicationDbContext _context;
-
-    public ParkingMjestoController(ApplicationDbContext context)
+    [Authorize(Roles = "Administrator,Menadzer")]
+    public class ParkingMjestoController : Controller
     {
-        _context = context;
-    }
+        private readonly IParkingMjestoService _parkingMjestoService;
 
-    // GET: PARKINGMJESTOS
-    public async Task<IActionResult> Index()
-    {
-        return View(await _context.ParkingMjesta.ToListAsync());
-    }
-
-    // GET: PARKINGMJESTOS/Details/5
-    public async Task<IActionResult> Details(int? parkingmjestoid)
-    {
-        if (parkingmjestoid == null)
+        public ParkingMjestoController(IParkingMjestoService parkingMjestoService)
         {
-            return NotFound();
+            _parkingMjestoService = parkingMjestoService;
         }
 
-        var parkingmjesto = await _context.ParkingMjesta.FirstOrDefaultAsync(m =>
-            m.ParkingMjestoId == parkingmjestoid
-        );
-        if (parkingmjesto == null)
+        [HttpGet("parking-mjesto")]
+        public async Task<IActionResult> Index(int? parkingId, string? status)
         {
-            return NotFound();
+            var viewModel = await _parkingMjestoService.DohvatiListuParkingMjestaViewModelAsync(
+                parkingId,
+                status
+            );
+            return View(viewModel);
         }
 
-        return View(parkingmjesto);
-    }
 
-    // GET: PARKINGMJESTOS/Create
-    public IActionResult Create()
-    {
-        return View();
-    }
-
-    // POST: PARKINGMJESTOS/Create
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(
-        [Bind("Title,ReleaseDate,Genre,Price")] ParkingMjesto parkingmjesto
-    )
-    {
-        if (ModelState.IsValid)
+        [HttpGet("parking-mjesto/detalji/{id}")]
+        public async Task<IActionResult> Detalji(int id)
         {
-            _context.Add(parkingmjesto);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
-        return View(parkingmjesto);
-    }
+            var viewModel = await _parkingMjestoService.DohvatiDetaljeParkingMjestaViewModelAsync(
+                id
+            );
+            if (viewModel == null)
+                return NotFound();
 
-    // GET: PARKINGMJESTOS/Edit/5
-    public async Task<IActionResult> Edit(int? parkingmjestoid)
-    {
-        if (parkingmjestoid == null)
-        {
-            return NotFound();
+            return View(viewModel);
         }
 
-        var parkingmjesto = await _context.ParkingMjesta.FindAsync(parkingmjestoid);
-        if (parkingmjesto == null)
+        [HttpGet("parking-mjesto/dodaj")]
+        [Authorize(Roles = "Administrator")]
+        public async Task<IActionResult> Kreiraj()
         {
-            return NotFound();
-        }
-        return View(parkingmjesto);
-    }
-
-    // POST: PARKINGMJESTOS/Edit/5
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(
-        int? parkingmjestoid,
-        [Bind("Id,Title,ReleaseDate,Genre,Price")] ParkingMjesto parkingmjesto
-    )
-    {
-        if (parkingmjestoid != parkingmjesto.ParkingMjestoId)
-        {
-            return NotFound();
+            var viewModel = await _parkingMjestoService.DohvatiViewModelZaKreiranjeAsync();
+            return View(viewModel);
         }
 
-        if (ModelState.IsValid)
+        [HttpPost("parking-mjesto/dodaj")]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrator")]
+        public async Task<IActionResult> Kreiraj(ParkingMjestoKreirajViewModel model)
         {
+            if (!ModelState.IsValid)
+            {
+                model.DostupniParkinzi = await _parkingMjestoService
+                    .DohvatiViewModelZaKreiranjeAsync()
+                    .ContinueWith(t => t.Result.DostupniParkinzi);
+                return View(model);
+            }
+
             try
             {
-                _context.Update(parkingmjesto);
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!ParkingMjestoExists(parkingmjesto.ParkingMjestoId))
+                if (model.KreirajViseMjesta && model.BrojZaKreiranje > 1)
                 {
-                    return NotFound();
+                    var kreirana = await _parkingMjestoService.KreirajViseParkingMjestaAsync(model);
+                    TempData["Uspjeh"] = $"Uspješno kreirano {kreirana.Count} parking mjesta!";
                 }
                 else
                 {
-                    throw;
+                    await _parkingMjestoService.KreirajParkingMjestoAsync(model);
+                    TempData["Uspjeh"] = "Parking mjesto uspješno kreirano!";
                 }
+                return RedirectToAction(nameof(Index));
             }
+            catch (InvalidOperationException greska)
+            {
+                ModelState.AddModelError("", greska.Message);
+                model.DostupniParkinzi = await _parkingMjestoService
+                    .DohvatiViewModelZaKreiranjeAsync()
+                    .ContinueWith(t => t.Result.DostupniParkinzi);
+                return View(model);
+            }
+        }
+
+        [HttpGet("parking-mjesto/uredi/{id}")]
+        [Authorize(Roles = "Administrator")]
+        public async Task<IActionResult> Uredi(int id)
+        {
+            var viewModel = await _parkingMjestoService.DohvatiViewModelZaUredjivanjeAsync(id);
+            if (viewModel == null)
+                return NotFound();
+
+            return View(viewModel);
+        }
+
+        [HttpPost("parking-mjesto/uredi/{id}")]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrator")]
+        public async Task<IActionResult> Uredi(int id, ParkingMjestoUrediViewModel model)
+        {
+            if (id != model.ParkingMjestoId)
+                return NotFound();
+
+            if (!ModelState.IsValid)
+                return View(model);
+
+            try
+            {
+                await _parkingMjestoService.AzurirajParkingMjestoAsync(model);
+                TempData["Uspjeh"] = "Parking mjesto uspješno ažurirano!";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+            catch (InvalidOperationException greska)
+            {
+                ModelState.AddModelError("", greska.Message);
+                return View(model);
+            }
+        }
+
+        [HttpPost("parking-mjesto/promijeni-status")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> PromijeniStatus(
+            ParkingMjestoPromjenaStatusaViewModel model
+        )
+        {
+            if (!ModelState.IsValid)
+            {
+                TempData["Greska"] = "Neispravni podaci za promjenu statusa";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var rezultat = await _parkingMjestoService.PromijeniStatusAsync(model);
+            if (rezultat)
+            {
+                TempData["Uspjeh"] = $"Status uspješno promijenjen!";
+            }
+            else
+            {
+                TempData["Greska"] = "Greška pri promjeni statusa";
+            }
+
             return RedirectToAction(nameof(Index));
         }
-        return View(parkingmjesto);
-    }
 
-    // GET: PARKINGMJESTOS/Delete/5
-    public async Task<IActionResult> Delete(int? parkingmjestoid)
-    {
-        if (parkingmjestoid == null)
+        [HttpPost("parking-mjesto/oslobodi/{id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Oslobodi(int id)
         {
-            return NotFound();
+            var rezultat = await _parkingMjestoService.OslobodiMjestoAsync(id);
+            if (rezultat)
+            {
+                TempData["Uspjeh"] = "Parking mjesto je oslobođeno!";
+            }
+            else
+            {
+                TempData["Greska"] = "Greška pri oslobađanju parking mjesta";
+            }
+
+            return RedirectToAction(nameof(Index));
         }
 
-        var parkingmjesto = await _context.ParkingMjesta.FirstOrDefaultAsync(m =>
-            m.ParkingMjestoId == parkingmjestoid
-        );
-        if (parkingmjesto == null)
+        [HttpGet("parking-mjesto/obrisi/{id}")]
+        [Authorize(Roles = "Administrator")]
+        public async Task<IActionResult> Obrisi(int id)
         {
-            return NotFound();
+            var mjesto = await _parkingMjestoService.DohvatiParkingMjestoPoIdAsync(id);
+            if (mjesto == null)
+                return NotFound();
+
+            return View(mjesto);
         }
 
-        return View(parkingmjesto);
-    }
-
-    // POST: PARKINGMJESTOS/Delete/5
-    [HttpPost, ActionName("Delete")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(int? parkingmjestoid)
-    {
-        var parkingmjesto = await _context.ParkingMjesta.FindAsync(parkingmjestoid);
-        if (parkingmjesto != null)
+        [HttpPost("parking-mjesto/obrisi/{id}")]
+        [ActionName("Obrisi")]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrator")]
+        public async Task<IActionResult> ObrisiPotvrda(int id)
         {
-            _context.ParkingMjesta.Remove(parkingmjesto);
+            var rezultat = await _parkingMjestoService.ObrisiParkingMjestoAsync(id);
+            if (rezultat)
+            {
+                TempData["Uspjeh"] = "Parking mjesto uspješno obrisano!";
+            }
+            else
+            {
+                TempData["Greska"] = "Parking mjesto nije pronađeno.";
+            }
+
+            return RedirectToAction(nameof(Index));
         }
 
-        await _context.SaveChangesAsync();
-        return RedirectToAction(nameof(Index));
-    }
+        // Api za dohvat slobodnih mjesta
 
-    private bool ParkingMjestoExists(int? parkingmjestoid)
-    {
-        return _context.ParkingMjesta.Any(e => e.ParkingMjestoId == parkingmjestoid);
+        [HttpGet("parking-mjesto/slobodna")]
+        public async Task<IActionResult> DohvatiSlobodnaMjesta(int parkingId)
+        {
+            var mjesta = await _parkingMjestoService.DohvatiSlobodnaMjestaPoParkinguAsync(
+                parkingId
+            );
+            return Json(mjesta.Select(m => new { m.ParkingMjestoId, m.BrojMjesta }));
+        }
     }
 }

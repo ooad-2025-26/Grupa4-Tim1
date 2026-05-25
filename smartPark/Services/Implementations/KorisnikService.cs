@@ -14,28 +14,28 @@ namespace smartPark.Services.Implementations
     {
         private readonly IKorisnikRepository _korisnikRepozitorij;
         private readonly IParkingRepository _parkingRepozitorij;
+        private readonly IRezervacijaRepository _rezervacijaRepository;
 
         public KorisnikService(
             IKorisnikRepository korisnikRepozitorij,
-            IParkingRepository parkingRepozitorij
+            IParkingRepository parkingRepozitorij,
+            IRezervacijaRepository rezervacijaRepository
         )
         {
             _korisnikRepozitorij = korisnikRepozitorij;
             _parkingRepozitorij = parkingRepozitorij;
+            _rezervacijaRepository = rezervacijaRepository;
         }
-
-        // ========== POMOĆNE RADNJE ==========
 
         public string DohvatiTrenutnogKorisnikaId(ClaimsPrincipal user)
         {
             return user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
         }
 
-        // ========== ADMIN RADNJE ==========
-
         public async Task<AdminKorisnikListaViewModel> DohvatiAdminListuKorisnikaAsync(
             string? filterUloga = null,
-            string? filterStatus = null
+            string? filterStatus = null,
+            string? pretraga = null
         )
         {
             IEnumerable<Korisnik> korisnici;
@@ -58,6 +58,17 @@ namespace smartPark.Services.Implementations
             else if (filterStatus == "Neaktivni")
             {
                 korisnici = korisnici.Where(k => !k.Aktivan);
+            }
+
+            // Filtriraj po tekstu (ime, prezime, email)
+            if (!string.IsNullOrWhiteSpace(pretraga))
+            {
+                var q = pretraga.Trim().ToLower();
+                korisnici = korisnici.Where(k =>
+                    (k.Ime != null && k.Ime.ToLower().Contains(q)) ||
+                    (k.Prezime != null && k.Prezime.ToLower().Contains(q)) ||
+                    (k.Email != null && k.Email.ToLower().Contains(q))
+                );
             }
 
             var listaStavki = new List<KorisnikListaStavkaViewModel>();
@@ -97,6 +108,7 @@ namespace smartPark.Services.Implementations
                 UkupnoKorisnika = listaStavki.Count,
                 FilterUloga = filterUloga,
                 FilterStatus = filterStatus,
+                FilterPretraga = pretraga,
                 DostupneUloge = sveUloge,
                 BrojAktivnih = brojAktivnih,
                 BrojNeaktivnih = brojNeaktivnih,
@@ -137,6 +149,14 @@ namespace smartPark.Services.Implementations
                 parkingNaziv = parking?.Naziv;
             }
 
+            var sviParkinziMenadzera = await _parkingRepozitorij.DohvatiSveParkingePoMenadzeruAsync(korisnik.Id);
+            var odgovorniParkinzi = sviParkinziMenadzera.Select(p => new AdminKorisnikDetaljiViewModel.MenadzerParkingInfo
+            {
+                ParkingId = p.ParkingId,
+                Naziv = p.Naziv,
+                Adresa = p.Adresa ?? string.Empty,
+            }).ToList();
+
             return new AdminKorisnikDetaljiViewModel
             {
                 Id = korisnik.Id,
@@ -150,6 +170,7 @@ namespace smartPark.Services.Implementations
                 BrojVozacke = korisnik.BrojVozacke,
                 MenadzerOdgovorniParkingId = korisnik.MenadzerOdgovorniParkingId,
                 ParkingNaziv = parkingNaziv,
+                OdgovorniParkinzi = odgovorniParkinzi,
                 BrojRezervacija = brojRezervacija,
                 BrojAktivnihRezervacija = brojAktivnihRezervacija,
                 BrojNotifikacija = brojNotifikacija,
@@ -177,6 +198,9 @@ namespace smartPark.Services.Implementations
             var uloga = await _korisnikRepozitorij.DohvatiRoleKorisnikaAsync(korisnik);
             var jeZakljucan = await _korisnikRepozitorij.JeLiKorisnikZakljucanAsync(id);
 
+            var parkinzi = await _parkingRepozitorij.DohvatiSveParkingePoMenadzeruAsync(korisnik.Id);
+            var parkingIds = parkinzi.Select(p => p.ParkingId).ToList();
+
             return new AdminKorisnikUrediViewModel
             {
                 Id = korisnik.Id,
@@ -188,6 +212,7 @@ namespace smartPark.Services.Implementations
                 Uloga = uloga.FirstOrDefault() ?? "Vozac",
                 BrojVozacke = korisnik.BrojVozacke,
                 MenadzerOdgovorniParkingId = korisnik.MenadzerOdgovorniParkingId,
+                MenadzerOdgovorniParkingIds = parkingIds,
                 DostupneUloge = await _korisnikRepozitorij.DohvatiSveUlogeZaSelectListAsync(),
                 DostupniParkinzi = await _korisnikRepozitorij.DohvatiSveParkingeZaSelectListAsync(),
             };
@@ -210,6 +235,36 @@ namespace smartPark.Services.Implementations
             );
             var nedavneAktivnosti = await _korisnikRepozitorij.DohvatiNedavneAktivnostiAsync(10);
 
+            // Trend (zadnjih 7 dana)
+            var trendLabels = new List<string>();
+            var trendValues = new List<int>();
+            var pocetakSedmice = DateTime.Now.Date.AddDays(-6);
+            var sveRezervacijeSedmica = await _rezervacijaRepository.DohvatiRezervacijeZaPeriodAsync(pocetakSedmice, DateTime.Now);
+
+            for (int i = 0; i < 7; i++)
+            {
+                var datum = pocetakSedmice.AddDays(i);
+                trendLabels.Add(datum.ToString("dd.MM"));
+                trendValues.Add(sveRezervacijeSedmica.Count(r => r.PocetakRezervacije.Date == datum));
+            }
+
+            // Distribucija po danima u sedmici (zadnjih 30 dana)
+            var pocetakMjeseca = DateTime.Now.Date.AddDays(-29);
+            var sveRezervacijeMjesec = await _rezervacijaRepository.DohvatiRezervacijeZaPeriodAsync(pocetakMjeseca, DateTime.Now);
+            var distribucijaValues = new List<int>();
+            var dani = new List<DayOfWeek> { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday };
+            foreach (var dan in dani)
+            {
+                distribucijaValues.Add(sveRezervacijeMjesec.Count(r => r.PocetakRezervacije.DayOfWeek == dan));
+            }
+
+            var parkinzi = await _parkingRepozitorij.DohvatiSveAsync();
+            var dostupniParkinzi = parkinzi.Select(p => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem
+            {
+                Value = p.ParkingId.ToString(),
+                Text = $"{p.Naziv} - {p.Adresa}"
+            }).ToList();
+
             return new AdminStatistikaViewModel
             {
                 UkupnoKorisnika = ukupnoKorisnika,
@@ -224,6 +279,10 @@ namespace smartPark.Services.Implementations
                 BrojZakljucanih = brojZakljucanih,
                 RegistracijePoDanima = registracijePoDanima,
                 NedavneAktivnosti = nedavneAktivnosti,
+                TrendLabels = trendLabels,
+                TrendValues = trendValues,
+                DistribucijaValues = distribucijaValues,
+                DostupniParkinzi = dostupniParkinzi,
             };
         }
 
@@ -266,6 +325,23 @@ namespace smartPark.Services.Implementations
                 return (false, ulogaRezultat.Errors.Select(e => e.Description).ToArray());
             }
 
+            if (model.Uloga == "Menadzer" && model.MenadzerOdgovorniParkingIds != null && model.MenadzerOdgovorniParkingIds.Any())
+            {
+                foreach (var parkingId in model.MenadzerOdgovorniParkingIds)
+                {
+                    var parking = await _parkingRepozitorij.DohvatiPoIdAsync(parkingId);
+                    if (parking != null)
+                    {
+                        parking.MenadzerID = korisnik.Id;
+                        _parkingRepozitorij.Izmijeni(parking);
+                    }
+                }
+                await _parkingRepozitorij.SacuvajPromjeneAsync();
+                
+                korisnik.MenadzerOdgovorniParkingId = model.MenadzerOdgovorniParkingIds.FirstOrDefault();
+                await _korisnikRepozitorij.AzurirajAsync(korisnik);
+            }
+
             return (true, Array.Empty<string>());
         }
 
@@ -296,16 +372,58 @@ namespace smartPark.Services.Implementations
             {
                 korisnik.BrojVozacke = model.BrojVozacke;
                 korisnik.MenadzerOdgovorniParkingId = null;
+
+                // Ukloni menadžera sa svih parkinga jer više nije menadžer
+                var stariParkinzi = await _parkingRepozitorij.DohvatiSveParkingePoMenadzeruAsync(korisnik.Id);
+                foreach (var p in stariParkinzi)
+                {
+                    p.MenadzerID = null;
+                    _parkingRepozitorij.Izmijeni(p);
+                }
+                await _parkingRepozitorij.SacuvajPromjeneAsync();
             }
             else if (model.Uloga == "Menadzer")
             {
                 korisnik.BrojVozacke = null;
-                korisnik.MenadzerOdgovorniParkingId = model.MenadzerOdgovorniParkingId;
+                
+                var noviIds = model.MenadzerOdgovorniParkingIds ?? new List<int>();
+                var stariParkinzi = await _parkingRepozitorij.DohvatiSveParkingePoMenadzeruAsync(korisnik.Id);
+                
+                foreach (var p in stariParkinzi)
+                {
+                    if (!noviIds.Contains(p.ParkingId))
+                    {
+                        p.MenadzerID = null;
+                        _parkingRepozitorij.Izmijeni(p);
+                    }
+                }
+
+                foreach (var parkingId in noviIds)
+                {
+                    var p = await _parkingRepozitorij.DohvatiPoIdAsync(parkingId);
+                    if (p != null && p.MenadzerID != korisnik.Id)
+                    {
+                        p.MenadzerID = korisnik.Id;
+                        _parkingRepozitorij.Izmijeni(p);
+                    }
+                }
+                await _parkingRepozitorij.SacuvajPromjeneAsync();
+
+                korisnik.MenadzerOdgovorniParkingId = noviIds.FirstOrDefault();
             }
             else
             {
                 korisnik.BrojVozacke = null;
                 korisnik.MenadzerOdgovorniParkingId = null;
+
+                // Ukloni menadžera sa svih parkinga
+                var stariParkinzi = await _parkingRepozitorij.DohvatiSveParkingePoMenadzeruAsync(korisnik.Id);
+                foreach (var p in stariParkinzi)
+                {
+                    p.MenadzerID = null;
+                    _parkingRepozitorij.Izmijeni(p);
+                }
+                await _parkingRepozitorij.SacuvajPromjeneAsync();
             }
 
             // Ažuriranje uloge ako se promijenila
@@ -341,18 +459,20 @@ namespace smartPark.Services.Implementations
             return (true, Array.Empty<string>());
         }
 
-        // ========== MENADŽER RADNJE ==========
-
         public async Task<MenadzerZaposleniciViewModel> DohvatiMenadzerZaposlenikeAsync(
+            string menadzerId,
             string? filter = null
         )
         {
-            var parkingId = 1; // Privremeno
+            var menadzer = await _korisnikRepozitorij.DohvatiPoIdAsync(menadzerId);
+            var parkingId = menadzer?.MenadzerOdgovorniParkingId ?? 0;
 
-            var zaposlenici = await _korisnikRepozitorij.DohvatiZaposlenikePoParkinguAsync(
-                parkingId
-            );
-            var parking = await _parkingRepozitorij.DohvatiPoIdAsync(parkingId);
+            var zaposlenici = parkingId > 0 
+                ? await _korisnikRepozitorij.DohvatiZaposlenikePoParkinguAsync(parkingId)
+                : Enumerable.Empty<Korisnik>();
+            var parking = parkingId > 0 
+                ? await _parkingRepozitorij.DohvatiPoIdAsync(parkingId)
+                : null;
 
             var listaStavki = new List<KorisnikListaStavkaViewModel>();
 
@@ -397,14 +517,17 @@ namespace smartPark.Services.Implementations
             };
         }
 
-        public async Task<MenadzerRadniciViewModel> DohvatiMenadzerRadnikeAsync()
+        public async Task<MenadzerRadniciViewModel> DohvatiMenadzerRadnikeAsync(string menadzerId)
         {
-            var parkingId = 1; // Privremeno
+            var menadzer = await _korisnikRepozitorij.DohvatiPoIdAsync(menadzerId);
+            var parkingId = menadzer?.MenadzerOdgovorniParkingId ?? 0;
 
-            var radnici = await _korisnikRepozitorij.DohvatiZaposlenikePoParkinguAsync(parkingId);
-            var brojAktivnihDanas = await _korisnikRepozitorij.DohvatiBrojAktivnihRadnikaDanasAsync(
-                parkingId
-            );
+            var radnici = parkingId > 0
+                ? await _korisnikRepozitorij.DohvatiZaposlenikePoParkinguAsync(parkingId)
+                : Enumerable.Empty<Korisnik>();
+            var brojAktivnihDanas = parkingId > 0
+                ? await _korisnikRepozitorij.DohvatiBrojAktivnihRadnikaDanasAsync(parkingId)
+                : 0;
 
             var listaStavki = new List<KorisnikListaStavkaViewModel>();
 
@@ -432,8 +555,6 @@ namespace smartPark.Services.Implementations
                 BrojAktivnihDanas = brojAktivnihDanas,
             };
         }
-
-        // ========== VOZAČ RADNJE ==========
 
         public async Task<VozacProfilViewModel?> DohvatiVozacProfilAsync(string korisnikId)
         {
@@ -484,8 +605,6 @@ namespace smartPark.Services.Implementations
             };
         }
 
-        // ========== ZAJEDNIČKE RADNJE ==========
-
         public async Task<string?> DohvatiUloguKorisnikaAsync(string korisnikId)
         {
             var korisnik = await _korisnikRepozitorij.DohvatiPoIdAsync(korisnikId);
@@ -533,19 +652,27 @@ namespace smartPark.Services.Implementations
             return (true, string.Empty);
         }
 
-        // ========== ZA DROPDOWN LISTE ==========
-
         public async Task<IEnumerable<SelectListItem>> DohvatiSveUlogeZaSelectListAsync()
         {
             return await _korisnikRepozitorij.DohvatiSveUlogeZaSelectListAsync();
+        }
+
+        public async Task<int> DohvatiBrojRezervacijaKorisnikaAsync(string korisnikId)
+        {
+            return await _korisnikRepozitorij.DohvatiBrojRezervacijaKorisnikaAsync(korisnikId);
+        }
+
+        public async Task<int> DohvatiBrojAktivnihRezervacijaKorisnikaAsync(string korisnikId)
+        {
+            return await _korisnikRepozitorij.DohvatiBrojAktivnihRezervacijaKorisnikaAsync(
+                korisnikId
+            );
         }
 
         public async Task<IEnumerable<SelectListItem>> DohvatiSveParkingeZaSelectListAsync()
         {
             return await _korisnikRepozitorij.DohvatiSveParkingeZaSelectListAsync();
         }
-
-        // ========== PROVJERE ==========
 
         public async Task<bool> EmailVecPostojiAsync(string email, string? izuzmiId = null)
         {

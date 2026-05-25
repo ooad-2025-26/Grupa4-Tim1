@@ -38,8 +38,6 @@ namespace smartPark.Models.ViewModels.Parking.Admin
         [Display(Name = "Slobodna mjesta")]
         public int SlobodnaMjesta { get; set; }
 
-        [Required]
-        [Range(0.01, 1000)]
         [DataType(DataType.Currency)]
         [Display(Name = "Cijena po satu (KM)")]
         public decimal CijenaPoSatu { get; set; }
@@ -51,8 +49,29 @@ namespace smartPark.Models.ViewModels.Parking.Admin
         [Display(Name = "Aktivan")]
         public bool Aktivan { get; set; }
 
+        [StringLength(50)]
+        [Display(Name = "Zona")]
+        public string? Zona { get; set; }
+
+        [StringLength(50)]
+        [Display(Name = "Radno vrijeme")]
+        public string? RadnoVrijeme { get; set; }
+
         [Display(Name = "Menadžer")]
         public string? MenadzerId { get; set; }
+
+        [Display(Name = "Defaultni cjenovnik")]
+        public int? DefaultniCjenovnikId { get; set; }
+
+        [Display(Name = "Dnevni cjenovnik")]
+        public int? DnevniCjenovnikId { get; set; }
+
+        [Display(Name = "Noćni cjenovnik")]
+        public int? NocniCjenovnikId { get; set; }
+
+        public IEnumerable<SelectListItem>? DostupniCjenovniciDefault { get; set; }
+        public IEnumerable<SelectListItem>? DostupniCjenovniciDan { get; set; }
+        public IEnumerable<SelectListItem>? DostupniCjenovniciNoc { get; set; }
 
         // Dropdown liste
         public IEnumerable<SelectListItem>? DostupniMenadzeri { get; set; }

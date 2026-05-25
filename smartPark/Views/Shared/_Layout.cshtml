@@ -1,84 +1,291 @@
+@using Microsoft.AspNetCore.Identity
+@using smartPark.Models.Entities
+@inject UserManager<Korisnik> UserManager
+@{
+    var uloga = "gost";
+    var korisnikIme = "";
+
+    if (User.Identity?.IsAuthenticated == true)
+    {
+        var korisnik = await UserManager.GetUserAsync(User);
+        if (korisnik != null)
+        {
+            korisnikIme = $"{korisnik.Ime} {korisnik.Prezime}";
+            if (await UserManager.IsInRoleAsync(korisnik, "Administrator"))
+            {
+                uloga = "admin";
+            }
+            else if (await UserManager.IsInRoleAsync(korisnik, "Menadzer"))
+            {
+                uloga = "menadzer";
+            }
+            else if (await UserManager.IsInRoleAsync(korisnik, "Vozac"))
+            {
+                uloga = "vozac";
+            }
+        }
+    }
+}
+@functions {
+    public string IsActive(string controller, string? action = null)
+    {
+        var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+        var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+
+        bool controllerMatch = string.Equals(currentController, controller, StringComparison.OrdinalIgnoreCase);
+        bool actionMatch = action == null || string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase);
+
+        // Special handling for Profil
+        if (controller != null && controller.Equals("Korisnik", StringComparison.OrdinalIgnoreCase) && 
+            (action != null && action.Equals("Profil", StringComparison.OrdinalIgnoreCase)))
+        {
+            if (currentController != null && currentController.Equals("Korisnik", StringComparison.OrdinalIgnoreCase) &&
+                currentAction != null && (currentAction.Equals("Profil", StringComparison.OrdinalIgnoreCase) || 
+                                          currentAction.Equals("MojProfil", StringComparison.OrdinalIgnoreCase)))
+            {
+                return "active";
+            }
+        }
+
+        return controllerMatch && actionMatch ? "active" : "";
+    }
+}
 <!DOCTYPE html>
 <html lang="bs">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@ViewData["Title"] — SmartPark</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="~/css/site.css" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewBag.Title - SmartPark</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <!-- Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        background: 'hsl(0, 0%, 97%)',
+                        foreground: 'hsl(220, 20%, 14%)',
+                        card: {
+                            DEFAULT: 'hsl(0, 0%, 100%)',
+                            foreground: 'hsl(220, 20%, 14%)'
+                        },
+                        popover: {
+                            DEFAULT: 'hsl(0, 0%, 100%)',
+                            foreground: 'hsl(220, 20%, 14%)'
+                        },
+                        primary: {
+                            DEFAULT: 'hsl(217, 91%, 53%)',
+                            foreground: 'hsl(0, 0%, 100%)'
+                        },
+                        secondary: {
+                            DEFAULT: 'hsl(214, 32%, 91%)',
+                            foreground: 'hsl(220, 20%, 14%)'
+                        },
+                        muted: {
+                            DEFAULT: 'hsl(220, 14%, 96%)',
+                            foreground: 'hsl(220, 9%, 46%)'
+                        },
+                        accent: {
+                            DEFAULT: 'hsl(214, 32%, 91%)',
+                            foreground: 'hsl(220, 20%, 14%)'
+                        },
+                        destructive: {
+                            DEFAULT: 'hsl(0, 84%, 60%)',
+                            foreground: 'hsl(0, 0%, 100%)'
+                        },
+                        success: {
+                            DEFAULT: 'hsl(142, 71%, 45%)',
+                            foreground: 'hsl(0, 0%, 100%)'
+                        },
+                        warning: {
+                            DEFAULT: 'hsl(45, 93%, 47%)',
+                            foreground: 'hsl(0, 0%, 100%)'
+                        },
+                        info: {
+                            DEFAULT: 'hsl(217, 91%, 53%)',
+                            foreground: 'hsl(0, 0%, 100%)'
+                        },
+                        border: 'hsl(220, 13%, 91%)',
+                        input: 'hsl(220, 13%, 91%)',
+                        ring: 'hsl(217, 91%, 53%)'
+                    },
+                    borderRadius: {
+                        lg: '0.75rem',
+                        md: 'calc(0.75rem - 2px)',
+                        sm: 'calc(0.75rem - 4px)'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f7f7f8; }
-        .navbar { background: #fff !important; border-bottom: 1px solid #e5e7eb; }
-        .navbar-brand { font-weight: 700; letter-spacing: -0.5px; }
-        .card { border: 1px solid #e5e7eb; border-radius: 0.75rem; }
-        .btn-primary { background: #2563eb; border-color: #2563eb; }
-        .btn-primary:hover { background: #1d4ed8; border-color: #1d4ed8; }
-        .badge-status { font-size: 0.7rem; padding: 0.25em 0.6em; border-radius: 9999px; font-weight: 500; }
-        .badge-active { background: rgba(34,197,94,0.1); color: #16a34a; }
-        .badge-upcoming { background: rgba(37,99,235,0.1); color: #2563eb; }
-        .badge-expired { background: rgba(107,114,128,0.1); color: #6b7280; }
-        .badge-cancelled { background: rgba(239,68,68,0.1); color: #ef4444; }
-        .stat-card .stat-icon { width: 44px; height: 44px; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
-        .stat-card .stat-value { font-size: 1.5rem; font-weight: 700; }
-        .stat-card .stat-label { font-size: 0.75rem; color: #6b7280; }
+        body {
+            background-color: hsl(0, 0%, 97%);
+            color: hsl(220, 20%, 14%);
+            font-family: 'Inter', sans-serif;
+        }
     </style>
     @RenderSection("Head", required: false)
-    @RenderSection("Styles", required: false)
 </head>
 <body>
-    @{
-        var user = Context.User?.Identity?.IsAuthenticated == true ? Context.User.Identity.Name : null;
-        var role = ViewBag.Role as string ?? "driver"; // driver | manager | admin
-    }
-    <nav class="navbar navbar-expand-md">
-        <div class="container">
-            <a class="navbar-brand" href="@Url.Action("Index","Home")">SmartPark</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="nav">
-                <ul class="navbar-nav me-auto">
-                    @if (role == "admin")
-                    {
-                        <li class="nav-item"><a class="nav-link" href="@Url.Action("AdminDashboard","Home")">Dashboard</a></li>
-                        <li class="nav-item"><a class="nav-link" href="@Url.Action("Index","Korisnik")">Korisnici</a></li>
-                        <li class="nav-item"><a class="nav-link" href="@Url.Action("Admin","Izvjestaj")">Izvještaji</a></li>
-                        <li class="nav-item"><a class="nav-link" href="@Url.Action("Index","Notifikacija")">Logovi</a></li>
-                    }
-                    else if (role == "manager")
-                    {
-                        <li class="nav-item"><a class="nav-link" href="@Url.Action("ManagerDashboard","Home")">Dashboard</a></li>
-                        <li class="nav-item"><a class="nav-link" href="@Url.Action("Index","Parking")">Parking prostori</a></li>
-                        <li class="nav-item"><a class="nav-link" href="@Url.Action("Index","Cjenovnik")">Cjenovnik</a></li>
-                        <li class="nav-item"><a class="nav-link" href="@Url.Action("Manager","Izvjestaj")">Izvještaji</a></li>
-                    }
-                    else
-                    {
-                        <li class="nav-item"><a class="nav-link" href="@Url.Action("Index","Home")">Početna</a></li>
-                        <li class="nav-item"><a class="nav-link" href="@Url.Action("Map","Parking")">Mapa</a></li>
-                        <li class="nav-item"><a class="nav-link" href="@Url.Action("Index","Rezervacija")">Moje rezervacije</a></li>
-                        <li class="nav-item"><a class="nav-link" href="@Url.Action("Profile","Korisnik")">Profil</a></li>
-                    }
-                </ul>
-                <div class="d-flex align-items-center gap-3">
-                    @if (!string.IsNullOrEmpty(user))
-                    {
-                        <small class="text-muted">@user</small>
-                        <a href="@Url.Action("Logout","Korisnik")" class="btn btn-sm btn-outline-secondary">Odjavi se</a>
-                    }
-                    else
-                    {
-                        <a href="@Url.Action("Login","Korisnik")" class="btn btn-sm btn-outline-secondary">Prijava</a>
-                    }
-                </div>
+<nav class="bg-card border-b border-border">
+    <div class="container mx-auto px-4 flex items-center justify-between h-14">
+        <a class="font-bold text-lg tracking-tight text-foreground no-underline" asp-controller="Home" asp-action="Index">SmartPark</a>
+
+        @if (uloga == "vozac")
+        {
+            <div class="hidden md:flex items-center gap-1">
+                <a class="px-3 py-2 text-sm transition-colors no-underline @(IsActive("Home", "Index") == "active" ? "text-foreground font-bold" : "text-muted-foreground hover:text-foreground font-medium")" asp-controller="Home" asp-action="Index">Početna</a>
+                <a class="px-3 py-2 text-sm transition-colors no-underline @(IsActive("Parking", "Map") == "active" ? "text-foreground font-bold" : "text-muted-foreground hover:text-foreground font-medium")" asp-controller="Parking" asp-action="Map">Mapa</a>
+                <a class="px-3 py-2 text-sm transition-colors no-underline @(IsActive("Rezervacija", "MojeRezervacije") == "active" ? "text-foreground font-bold" : "text-muted-foreground hover:text-foreground font-medium")" asp-controller="Rezervacija" asp-action="MojeRezervacije">Moje rezervacije</a>
+                <a class="px-3 py-2 text-sm transition-colors no-underline @(IsActive("Korisnik", "Profil") == "active" ? "text-foreground font-bold" : "text-muted-foreground hover:text-foreground font-medium")" asp-controller="Korisnik" asp-action="Profil">Profil</a>
             </div>
+        }
+        else if (uloga == "menadzer")
+        {
+            <div class="hidden md:flex items-center gap-1">
+                <a class="px-3 py-2 text-sm transition-colors no-underline @(IsActive("Home", "ManagerDashboard") == "active" ? "text-foreground font-bold" : "text-muted-foreground hover:text-foreground font-medium")" asp-controller="Home" asp-action="ManagerDashboard">Dashboard</a>
+                <a class="px-3 py-2 text-sm transition-colors no-underline @(IsActive("Parking", "Index") == "active" ? "text-foreground font-bold" : "text-muted-foreground hover:text-foreground font-medium")" asp-controller="Parking" asp-action="Index">Parking prostori</a>
+                <a class="px-3 py-2 text-sm transition-colors no-underline @(IsActive("Cjenovnik", "Index") == "active" ? "text-foreground font-bold" : "text-muted-foreground hover:text-foreground font-medium")" asp-controller="Cjenovnik" asp-action="Index">Cijene</a>
+                <a class="px-3 py-2 text-sm transition-colors no-underline @(IsActive("Izvjestaj", "Index") == "active" ? "text-foreground font-bold" : "text-muted-foreground hover:text-foreground font-medium")" asp-controller="Izvjestaj" asp-action="Index">Izvještaji</a>
+                <a class="px-3 py-2 text-sm transition-colors no-underline @(IsActive("Korisnik", "Profil") == "active" ? "text-foreground font-bold" : "text-muted-foreground hover:text-foreground font-medium")" asp-controller="Korisnik" asp-action="Profil">Profil</a>
+            </div>
+        }
+        else if (uloga == "admin")
+        {
+            <div class="hidden md:flex items-center gap-1">
+                <a class="px-3 py-2 text-sm transition-colors no-underline @(IsActive("Home", "AdminDashboard") == "active" ? "text-foreground font-bold" : "text-muted-foreground hover:text-foreground font-medium")" 
+                asp-controller="Home" asp-action="AdminDashboard">Dashboard</a>
+                
+                <a class="px-3 py-2 text-sm transition-colors no-underline @(IsActive("Korisnik", "Index") == "active" ? "text-foreground font-bold" : "text-muted-foreground hover:text-foreground font-medium")" 
+                asp-controller="Korisnik" asp-action="Index">Korisnici</a>
+                
+                <a class="px-3 py-2 text-sm transition-colors no-underline @(IsActive("Parking", "Index") == "active" ? "text-foreground font-bold" : "text-muted-foreground hover:text-foreground font-medium")" 
+                asp-controller="Parking" asp-action="Index">Parking prostori</a>
+                
+                <a class="px-3 py-2 text-sm transition-colors no-underline @(IsActive("Korisnik", "Statistika") == "active" ? "text-foreground font-bold" : "text-muted-foreground hover:text-foreground font-medium")" 
+                asp-controller="Korisnik" asp-action="Statistika">Izvještaji</a>
+                
+                <a class="px-3 py-2 text-sm transition-colors no-underline @(IsActive("QRKod", "Scanner") == "active" ? "text-foreground font-bold" : "text-muted-foreground hover:text-foreground font-medium")" 
+                asp-controller="QRKod" asp-action="Scanner">QR Skener</a>
+                
+                <a class="px-3 py-2 text-sm transition-colors no-underline @(IsActive("Korisnik", "Profil") == "active" ? "text-foreground font-bold" : "text-muted-foreground hover:text-foreground font-medium")" 
+                asp-controller="Korisnik" asp-action="Profil">Profil</a>
+            </div>
+}
+
+        <!-- Right Side Nav -->
+        <div class="flex items-center gap-3">
+            @if (!string.IsNullOrEmpty(korisnikIme))
+            {
+                <div class="hidden md:flex items-center gap-3">
+                    <span class="text-sm text-foreground font-bold">@korisnikIme</span>
+                    <form asp-controller="Korisnik" asp-action="Logout" method="post" class="m-0">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="text-xs font-semibold text-foreground border border-border bg-card hover:bg-muted px-3 py-1.5 rounded transition-all cursor-pointer">Odjavi se</button>
+                    </form>
+                </div>
+            }
+            else
+            {
+                <div class="hidden md:flex items-center gap-2">
+                    <a class="px-3 py-2 text-sm transition-colors no-underline text-muted-foreground hover:text-foreground" asp-controller="Korisnik" asp-action="Register">Registracija</a>
+                    <a class="px-3 py-2 text-sm transition-colors no-underline text-muted-foreground hover:text-foreground" asp-controller="Korisnik" asp-action="Login">Prijava</a>
+                </div>
+            }
+
+            <!-- Hamburger Button for Mobile -->
+            <button onclick="toggleMobileMenu()" class="flex md:hidden text-muted-foreground hover:text-foreground bg-transparent border-0 cursor-pointer p-1" title="Meni">
+                <i class="bi bi-list text-2xl"></i>
+            </button>
         </div>
-    </nav>
-    <main>
-        @RenderBody()
-    </main>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    @RenderSection("Scripts", required: false)
+    </div>
+
+    <!-- Mobile Collapsible Menu Drawer -->
+    <div id="mobileMenu" class="hidden md:hidden border-t border-border px-4 py-3 bg-card space-y-1">
+        @if (uloga == "vozac")
+        {
+            <a class="block px-3 py-2 text-sm rounded-md no-underline @(IsActive("Home", "Index") == "active" ? "bg-muted text-foreground font-semibold" : "text-muted-foreground")" asp-controller="Home" asp-action="Index">Početna</a>
+            <a class="block px-3 py-2 text-sm rounded-md no-underline @(IsActive("Parking", "Map") == "active" ? "bg-muted text-foreground font-semibold" : "text-muted-foreground")" asp-controller="Parking" asp-action="Map">Mapa</a>
+            <a class="block px-3 py-2 text-sm rounded-md no-underline @(IsActive("Rezervacija", "MojeRezervacije") == "active" ? "bg-muted text-foreground font-semibold" : "text-muted-foreground")" asp-controller="Rezervacija" asp-action="MojeRezervacije">Moje rezervacije</a>
+            <a class="block px-3 py-2 text-sm rounded-md no-underline @(IsActive("Korisnik", "Profil") == "active" ? "bg-muted text-foreground font-semibold" : "text-muted-foreground")" asp-controller="Korisnik" asp-action="Profil">Profil</a>
+        }
+        else if (uloga == "menadzer")
+        {
+            <a class="block px-3 py-2 text-sm rounded-md no-underline @(IsActive("Home", "ManagerDashboard") == "active" ? "bg-muted text-foreground font-semibold" : "text-muted-foreground")" asp-controller="Home" asp-action="ManagerDashboard">Dashboard</a>
+            <a class="block px-3 py-2 text-sm rounded-md no-underline @(IsActive("Parking", "Index") == "active" ? "bg-muted text-foreground font-semibold" : "text-muted-foreground")" asp-controller="Parking" asp-action="Index">Parking prostori</a>
+            <a class="block px-3 py-2 text-sm rounded-md no-underline @(IsActive("Cjenovnik", "Index") == "active" ? "bg-muted text-foreground font-semibold" : "text-muted-foreground")" asp-controller="Cjenovnik" asp-action="Index">Cijene</a>
+            <a class="block px-3 py-2 text-sm rounded-md no-underline @(IsActive("Izvjestaj", "Index") == "active" ? "bg-muted text-foreground font-semibold" : "text-muted-foreground")" asp-controller="Izvjestaj" asp-action="Index">Izvještaji</a>
+            <a class="block px-3 py-2 text-sm rounded-md no-underline @(IsActive("Korisnik", "Profil") == "active" ? "bg-muted text-foreground font-semibold" : "text-muted-foreground")" asp-controller="Korisnik" asp-action="Profil">Profil</a>
+        }
+        else if (uloga == "admin")
+        {
+            <a class="block px-3 py-2 text-sm rounded-md no-underline @(IsActive("Korisnik", "Index") == "active" ? "bg-muted text-foreground font-semibold" : "text-muted-foreground")" 
+            asp-controller="Korisnik" asp-action="Index">Korisnici</a>
+            
+            <a class="block px-3 py-2 text-sm rounded-md no-underline @(IsActive("Parking", "Index") == "active" ? "bg-muted text-foreground font-semibold" : "text-muted-foreground")" 
+            asp-controller="Parking" asp-action="Index">Parking prostori</a>
+            
+            <a class="block px-3 py-2 text-sm rounded-md no-underline @(IsActive("Korisnik", "Statistika") == "active" ? "bg-muted text-foreground font-semibold" : "text-muted-foreground")" 
+            asp-controller="Korisnik" asp-action="Statistika">Izvještaji</a>
+            
+            <a class="block px-3 py-2 text-sm rounded-md no-underline @(IsActive("QRKod", "Scanner") == "active" ? "bg-muted text-foreground font-semibold" : "text-muted-foreground")" 
+            asp-controller="QRKod" asp-action="Scanner">QR Skener</a>
+            
+            <a class="block px-3 py-2 text-sm rounded-md no-underline @(IsActive("Korisnik", "Profil") == "active" ? "bg-muted text-foreground font-semibold" : "text-muted-foreground")" 
+            asp-controller="Korisnik" asp-action="Profil">Profil</a>
+        }
+
+        <div class="border-t border-border pt-2 mt-2">
+            @if (!string.IsNullOrEmpty(korisnikIme))
+            {
+                <div class="flex items-center justify-between px-3 py-1">
+                    <span class="text-xs text-muted-foreground">@korisnikIme</span>
+                    <form asp-controller="Korisnik" asp-action="Logout" method="post" class="m-0">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="text-xs text-destructive hover:underline bg-transparent border-0 p-0 cursor-pointer">Odjavi se</button>
+                    </form>
+                </div>
+            }
+            else
+            {
+                <div class="flex justify-around">
+                    <a class="text-xs text-muted-foreground hover:text-foreground no-underline" asp-controller="Korisnik" asp-action="Register">Registracija</a>
+                    <a class="text-xs text-muted-foreground hover:text-foreground no-underline" asp-controller="Korisnik" asp-action="Login">Prijava</a>
+                </div>
+            }
+        </div>
+</nav>
+
+<script>
+    function toggleMobileMenu() {
+        var menu = document.getElementById('mobileMenu');
+        if (menu) {
+            menu.classList.toggle('hidden');
+        }
+    }
+</script>
+
+<main class="container mx-auto px-4 py-6">
+    @if (TempData["Uspjeh"] != null)
+    {
+        <div class="bg-success/15 border border-success/30 text-success text-sm px-4 py-3 rounded-lg mb-4">@TempData["Uspjeh"]</div>
+    }
+    @if (TempData["Greska"] != null)
+    {
+        <div class="bg-destructive/15 border border-destructive/30 text-destructive text-sm px-4 py-3 rounded-lg mb-4">@TempData["Greska"]</div>
+    }
+    @RenderBody()
+</main>
+
+<script src="~/js/site.js" asp-append-version="true"></script>
+@RenderSection("Scripts", required: false)
 </body>
 </html>

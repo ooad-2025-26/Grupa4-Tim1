@@ -47,6 +47,7 @@ namespace smartPark.Models.Entities
 
         // NAVIGACIJA (LAKSE ZA EF CORE)
         // virtual zbog toga jer imamo u klasi sva tri aktera
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
         [Display(Name = "Parking (samo za menadžera)")]
         public virtual Parking? Parking { get; set; }
 

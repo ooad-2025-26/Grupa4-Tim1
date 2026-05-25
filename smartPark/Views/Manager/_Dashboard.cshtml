@@ -1,0 +1,61 @@
+@{
+    var brojParkinga = (int)(ViewBag.BrojParkinga ?? 0);
+    var ukupnoMjesta = (int)(ViewBag.UkupnoMjesta ?? 0);
+    var prosjecnaPopunjenost = (double)(ViewBag.ProsjecnaPopunjenost ?? 0);
+    var prihodDanas = (decimal)(ViewBag.PrihodDanas ?? 0);
+}
+
+<div class="container mx-auto px-4 py-8">
+    @if (ViewBag.NemaParkinga == true)
+    {
+        <div class="bg-warning/15 border border-warning/30 text-warning text-sm px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
+            <i class="bi bi-exclamation-triangle-fill"></i> Niste dodijeljeni nijednom parkingu. Kontaktirajte administratora kako bi Vam dodijelio parking prostor.
+        </div>
+    }
+
+    <div class="flex justify-between items-center mb-8">
+        <h1 class="text-2xl font-bold text-foreground">Menadžer Dashboard</h1>
+        <a href="/parking/dodaj" class="inline-flex items-center justify-center bg-primary text-primary-foreground font-semibold px-5 py-2.5 rounded-lg text-sm hover:opacity-90 transition-opacity no-underline shadow-sm">
+            Dodaj parking
+        </a>
+    </div>
+
+    <!-- Stats cards grid -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <!-- Card 1: Parking prostora -->
+        <div class="bg-card rounded-xl border border-border p-6 shadow-sm flex flex-col justify-between min-h-[120px]">
+            <div class="flex items-center gap-2 text-muted-foreground text-xs font-semibold mb-3">
+                <i class="bi bi-p-square text-primary text-base"></i>
+                <span>Parking prostora</span>
+            </div>
+            <div class="text-3xl font-bold text-foreground mt-auto">@brojParkinga</div>
+        </div>
+
+        <!-- Card 2: Parking mjesta -->
+        <div class="bg-card rounded-xl border border-border p-6 shadow-sm flex flex-col justify-between min-h-[120px]">
+            <div class="flex items-center gap-2 text-muted-foreground text-xs font-semibold mb-3">
+                <i class="bi bi-car-front text-success text-base"></i>
+                <span>Parking mjesta</span>
+            </div>
+            <div class="text-3xl font-bold text-foreground mt-auto">@ukupnoMjesta</div>
+        </div>
+
+        <!-- Card 3: Popunjenost -->
+        <div class="bg-card rounded-xl border border-border p-6 shadow-sm flex flex-col justify-between min-h-[120px]">
+            <div class="flex items-center gap-2 text-muted-foreground text-xs font-semibold mb-3">
+                <i class="bi bi-graph-up text-warning text-base"></i>
+                <span>Popunjenost</span>
+            </div>
+            <div class="text-3xl font-bold text-foreground mt-auto">@prosjecnaPopunjenost.ToString("F0")%</div>
+        </div>
+
+        <!-- Card 4: Današnji prihod -->
+        <div class="bg-card rounded-xl border border-border p-6 shadow-sm flex flex-col justify-between min-h-[120px]">
+            <div class="flex items-center gap-2 text-muted-foreground text-xs font-semibold mb-3">
+                <i class="bi bi-currency-dollar text-primary text-base"></i>
+                <span>Današnji prihod</span>
+            </div>
+            <div class="text-3xl font-bold text-foreground mt-auto">@prihodDanas.ToString("F2") KM</div>
+        </div>
+    </div>
+</div>

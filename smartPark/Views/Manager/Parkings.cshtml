@@ -1,0 +1,220 @@
+@model IEnumerable<smartPark.Models.Entities.Parking>
+@{
+    ViewBag.Title = "Upravljanje parking mjestima";
+    
+    var ukupnoParkinga = Model?.Count() ?? 0;
+    var ukupnoMjesta = Model?.Sum(p => p.UkupnoMjesta) ?? 0;
+    var slobodnoMjesta = Model?.Sum(p => p.SlobodnaMjesta) ?? 0;
+    var zauzetoMjesta = ukupnoMjesta - slobodnoMjesta;
+}
+
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div class="flex items-center gap-3">
+            <button onclick="history.back()" class="text-muted-foreground hover:text-foreground text-xl bg-transparent border-0 p-0 cursor-pointer">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            <div>
+                <h1 class="text-2xl font-bold text-foreground">Upravljanje parking mjestima</h1>
+                <p class="text-xs text-muted-foreground mt-0.5">Menadžer panel</p>
+            </div>
+        </div>
+        <a href="/parking/dodaj" class="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold px-4 py-2.5 rounded-lg text-sm hover:opacity-90 transition-opacity no-underline">
+            <i class="bi bi-plus-lg"></i> Dodaj parking
+        </a>
+    </div>
+
+    <!-- Search Input -->
+    <div class="relative mb-6">
+        <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm"></i>
+        <input id="parkingSearchInput" oninput="filterParkingsList()" placeholder="Pretraži parking prostore..." class="w-full pl-11 pr-4 py-3 rounded-lg border border-input bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring shadow-sm" />
+    </div>
+
+    <!-- Stats cards grid -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <!-- Card 1 -->
+        <div class="bg-card rounded-xl border border-border p-4 shadow-sm flex items-center gap-3">
+            <div class="bg-primary/10 p-2.5 rounded text-primary flex items-center justify-center w-10 h-10 shrink-0">
+                <i class="bi bi-p-square text-lg"></i>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-foreground leading-none mb-1">@ukupnoParkinga</p>
+                <p class="text-xs text-muted-foreground mb-0">Parking prostora</p>
+            </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="bg-card rounded-xl border border-border p-4 shadow-sm flex items-center gap-3">
+            <div class="bg-success/10 p-2.5 rounded text-success flex items-center justify-center w-10 h-10 shrink-0">
+                <i class="bi bi-car-front text-lg"></i>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-foreground leading-none mb-1">@ukupnoMjesta</p>
+                <p class="text-xs text-muted-foreground mb-0">Ukupno mjesta</p>
+            </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="bg-card rounded-xl border border-border p-4 shadow-sm flex items-center gap-3">
+            <div class="bg-warning/10 p-2.5 rounded text-warning flex items-center justify-center w-10 h-10 shrink-0">
+                <i class="bi bi-car-front text-lg"></i>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-foreground leading-none mb-1">@zauzetoMjesta</p>
+                <p class="text-xs text-muted-foreground mb-0">Zauzeto</p>
+            </div>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="bg-card rounded-xl border border-border p-4 shadow-sm flex items-center gap-3">
+            <div class="bg-primary/10 p-2.5 rounded text-primary flex items-center justify-center w-10 h-10 shrink-0">
+                <i class="bi bi-car-front text-lg"></i>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-foreground leading-none mb-1">@slobodnoMjesta</p>
+                <p class="text-xs text-muted-foreground mb-0">Slobodno</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Parking list -->
+    <div class="space-y-4" id="parkingListContainer">
+        @foreach (var p in Model ?? Enumerable.Empty<smartPark.Models.Entities.Parking>())
+        {
+            var occupied = p.UkupnoMjesta - p.SlobodnaMjesta;
+            var pct = p.UkupnoMjesta > 0 ? (occupied * 100) / p.UkupnoMjesta : 0;
+            
+            string statusLabel = "Slobodno";
+            string statusBg = "bg-success/15 text-success";
+            string progressColor = "bg-success";
+            
+            if (!p.Aktivan)
+            {
+                statusLabel = "Nedostupno";
+                statusBg = "bg-muted text-muted-foreground";
+                progressColor = "bg-muted";
+            }
+            else if (pct >= 95)
+            {
+                statusLabel = "Puno";
+                statusBg = "bg-destructive text-white";
+                progressColor = "bg-destructive";
+            }
+            else if (pct >= 80)
+            {
+                statusLabel = "Popunjeno";
+                statusBg = "bg-destructive/15 text-destructive";
+                progressColor = "bg-destructive";
+            }
+            else if (pct >= 50)
+            {
+                statusLabel = "Djelimično";
+                statusBg = "bg-warning/15 text-warning";
+                progressColor = "bg-warning";
+            }
+
+            var tipNaziv = p.TipParkinga == smartPark.Models.Enums.TipParkinga.Otvoreni ? "Otvoreni parking" : "Garaža";
+
+            <div class="parking-list-item bg-card rounded-xl border border-border p-6 shadow-sm relative transition-all hover:shadow-md" data-name="@p.Naziv.ToLower()" data-address="@p.Adresa.ToLower()">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-lg font-bold text-foreground mb-0">@p.Naziv</h2>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold @statusBg">@statusLabel</span>
+                    </div>
+                    
+                    <!-- Actions Dropdown -->
+                    <div class="relative actions-dropdown">
+                        <button onclick="toggleDropdown(this)" class="text-muted-foreground hover:text-foreground bg-transparent border-0 cursor-pointer p-1" title="Akcije">
+                            <i class="bi bi-three-dots-vertical text-lg"></i>
+                        </button>
+                        <div class="hidden absolute right-0 mt-1 w-32 bg-card border border-border rounded-lg shadow-lg py-1 z-10">
+                            <a href="/parking/uredi/@p.ParkingId" class="block px-4 py-2 text-xs text-foreground hover:bg-muted no-underline">
+                                <i class="bi bi-pencil me-1.5"></i> Uredi
+                            </a>
+                            <form asp-action="DeleteConfirmed" asp-controller="Parking" asp-route-id="@p.ParkingId" method="post" onsubmit="return confirm('Da li ste sigurni da želite obrisati parking @p.Naziv?');" class="block w-full text-start m-0">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@p.ParkingId" />
+                                <button type="submit" class="w-full text-start px-4 py-2 text-xs text-destructive hover:bg-destructive/10 bg-transparent border-0 cursor-pointer">
+                                    <i class="bi bi-trash me-1.5"></i> Obriši
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-8 text-sm mb-4">
+                    <div class="flex items-center gap-2 text-muted-foreground">
+                        <i class="bi bi-geo-alt shrink-0 w-4"></i>
+                        <span>@p.Adresa</span>
+                    </div>
+                    <div class="flex items-center justify-between text-muted-foreground md:justify-end gap-2">
+                        <span class="flex items-center gap-1.5">
+                            <i class="bi bi-car-front"></i> @occupied/@p.UkupnoMjesta mjesta
+                        </span>
+                        <span class="text-border">|</span>
+                        <span>@tipNaziv</span>
+                    </div>
+
+                    <div class="flex items-center gap-2 text-muted-foreground">
+                        <i class="bi bi-clock shrink-0 w-4"></i>
+                        <span>@(!string.IsNullOrEmpty(p.RadnoVrijeme) ? p.RadnoVrijeme : "00:00 - 24:00")</span>
+                    </div>
+                    <div class="flex items-center justify-between text-muted-foreground md:justify-end gap-2">
+                        <span class="font-semibold text-foreground">@p.CijenaPoSatu.ToString("F2") KM/h</span>
+                    </div>
+                </div>
+
+                <!-- Zauzetost progress bar -->
+                <div>
+                    <div class="flex justify-between text-xs text-muted-foreground mb-1">
+                        <span>Zauzetost</span>
+                        <span>@pct%</span>
+                    </div>
+                    <div class="w-full bg-muted rounded-full h-2 overflow-hidden">
+                        <div class="@progressColor h-full rounded-full transition-all" style="width: @pct%"></div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function filterParkingsList() {
+            var query = document.getElementById('parkingSearchInput').value.toLowerCase();
+            document.querySelectorAll('.parking-list-item').forEach(function (item) {
+                var name = item.getAttribute('data-name');
+                var address = item.getAttribute('data-address');
+                if (name.indexOf(query) > -1 || address.indexOf(query) > -1) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function toggleDropdown(button) {
+            var dropdownMenu = button.nextElementSibling;
+            
+            // Zatvori ostale dropdowne
+            document.querySelectorAll('.actions-dropdown div').forEach(function(el) {
+                if (el !== dropdownMenu) {
+                    el.classList.add('hidden');
+                }
+            });
+            
+            dropdownMenu.classList.toggle('hidden');
+        }
+
+        // Zatvori dropdown pri kliku van njega
+        window.addEventListener('click', function(e) {
+            if (!e.target.closest('.actions-dropdown')) {
+                document.querySelectorAll('.actions-dropdown div').forEach(function(el) {
+                    el.classList.add('hidden');
+                });
+            }
+        });
+    </script>
+}

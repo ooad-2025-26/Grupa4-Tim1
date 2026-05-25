@@ -1,0 +1,49 @@
+@model smartPark.Models.ViewModels.Korisnik.LoginViewModel
+
+@{
+    ViewBag.Title = "Prijava";
+}
+
+<div class="min-h-[calc(100vh-3.5rem)] flex items-center justify-center p-4">
+    <div class="bg-card rounded-lg shadow-lg border border-border p-8 w-full max-w-md">
+        <h1 class="text-2xl font-bold text-center mb-6 text-foreground">Prijava</h1>
+        <form asp-action="Login" asp-controller="Korisnik" method="post" class="space-y-4">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-destructive text-sm"></div>
+
+            <div>
+                <label asp-for="Email" class="block text-sm font-medium text-foreground mb-1">Email</label>
+                <input asp-for="Email" type="email" required class="w-full px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" placeholder="email@example.com" />
+                <span asp-validation-for="Email" class="text-destructive text-xs"></span>
+            </div>
+
+            <div>
+                <label asp-for="Password" class="block text-sm font-medium text-foreground mb-1">Lozinka</label>
+                <input asp-for="Password" type="password" required class="w-full px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" placeholder="••••••••" />
+                <span asp-validation-for="Password" class="text-destructive text-xs"></span>
+            </div>
+
+            <div class="flex items-center">
+                <input asp-for="RememberMe" class="rounded border-input text-primary focus:ring-ring mr-2" />
+                <label asp-for="RememberMe" class="text-sm text-muted-foreground">Zapamti me</label>
+            </div>
+
+            <button type="submit" class="w-full bg-primary text-white py-2.5 rounded-lg font-medium text-sm hover:opacity-90 transition-opacity">Prijavi se</button>
+        </form>
+        
+        <div class="mt-4 text-center text-sm text-muted-foreground">
+            <p>Nemate račun? <a asp-action="Register" asp-controller="Korisnik" class="text-primary hover:underline font-medium">Registrujte se</a></p>
+        </div>
+
+        <div class="mt-6 p-3 bg-muted rounded-lg text-xs text-muted-foreground space-y-1">
+            <p class="font-medium mb-1">Demo nalozi:</p>
+            <p>Vozač: vozac@smartpark.com / Vozac123!</p>
+            <p>Menadžer: menadzer@smartpark.com / Menadzer123!</p>
+            <p>Admin: admin@smartpark.com / Admin123!</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
