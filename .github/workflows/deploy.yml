@@ -42,7 +42,7 @@ jobs:
             --restart unless-stopped \
             -p 9090:9090 \
             -e ASPNETCORE_ENVIRONMENT=Production \
-            -e ConnectionStrings__DefaultConnection="${{ secrets.CONNECTION_STRINGS__DEFAULTCONNECTION }}" \
+            -e ConnectionStrings__DefaultConnection="${{ secrets.CONNECTIONSTRINGS__DEFAULTCONNECTION }}" \
             -e Email__Username="${{ secrets.EMAIL_USERNAME }}" \
             -e Email__Password="${{ secrets.EMAIL_PASSWORD }}" \
             -e Email__FromAddress="${{ secrets.EMAIL_FROM_ADDRESS }}" \
