@@ -4,7 +4,7 @@ namespace smartPark.Models.ViewModels.Rezervacija;
 
 public class RezervacijaPlacanjeViewModel
 {
-    [Required]
+    // Nije required — rezervacija se kreira NAKON plaćanja
     public int RezervacijaId { get; set; }
 
     [Required]
@@ -14,6 +14,10 @@ public class RezervacijaPlacanjeViewModel
     [Required]
     [DataType(DataType.DateTime)]
     public DateTime PocetakRezervacije { get; set; }
+
+    [Required]
+    [DataType(DataType.DateTime)]
+    public DateTime KrajRezervacije { get; set; }
 
     [Range(1, 720)]
     public int BrojSati { get; set; }

@@ -13,7 +13,7 @@
         <div class="bg-card rounded-xl border border-border p-6 shadow-sm">
             <h1 class="text-xl font-bold text-foreground mb-6">Potvrda i plaćanje</h1>
 
-            @if (Model != null && Model.RezervacijaId > 0)
+            @if (Model != null)
             {
                 <!-- Info details box (Grey background) -->
                 <div class="p-4 bg-muted/50 rounded-lg text-xs space-y-2 mb-6 border border-border">
@@ -23,15 +23,19 @@
                     </div>
                     <div class="flex justify-between">
                         <span class="text-muted-foreground">Datum:</span>
-                        <strong class="text-foreground">@Model.PocetakRezervacije.ToString("yyyy-MM-dd")</strong>
+                        <strong class="text-foreground">@Model.PocetakRezervacije.ToString("dd.MM.yyyy")</strong>
                     </div>
                     <div class="flex justify-between">
-                        <span class="text-muted-foreground">Vrijeme:</span>
+                        <span class="text-muted-foreground">Pocetak:</span>
                         <strong class="text-foreground">@Model.PocetakRezervacije.ToString("HH:mm")</strong>
                     </div>
                     <div class="flex justify-between">
+                        <span class="text-muted-foreground">Kraj:</span>
+                        <strong class="text-foreground">@Model.KrajRezervacije.ToString("HH:mm")</strong>
+                    </div>
+                    <div class="flex justify-between">
                         <span class="text-muted-foreground">Trajanje:</span>
-                        <strong class="text-foreground">@(Model.BrojSati * 60) min</strong>
+                        <strong class="text-foreground">@(Model.BrojSati) h</strong>
                     </div>
                     <hr class="border-border my-2" />
                     <div class="flex justify-between items-center">
@@ -41,9 +45,8 @@
                 </div>
 
                 <!-- Payment Form -->
-                <form asp-action="Placanje" asp-controller="Rezervacija" method="post" id="paymentForm" class="space-y-4">
+                <form asp-action="PlacanjePotvrdji" asp-controller="Rezervacija" method="post" id="paymentForm" class="space-y-4">
                     @Html.AntiForgeryToken()
-                    <input type="hidden" name="id" value="@Model.RezervacijaId" />
                     
                     <div asp-validation-summary="ModelOnly" class="text-danger text-xs mb-3"></div>
 
@@ -98,13 +101,13 @@
 </div>
 
 <!-- Toast Popup (bottom right) -->
-<div id="successToast" class="fixed bottom-6 right-6 bg-card border border-border shadow-lg rounded-xl p-4 flex items-center gap-3 translate-y-10 opacity-0 transition-all duration-300 pointer-events-none z-50">
+    <div id="successToast" class="fixed bottom-6 right-6 bg-card border border-border shadow-lg rounded-xl p-4 flex items-center gap-3 translate-y-10 opacity-0 transition-all duration-300 pointer-events-none z-50">
     <div class="w-8 h-8 rounded-full bg-success/15 text-success flex items-center justify-center shrink-0">
         <i class="bi bi-check-circle-fill"></i>
     </div>
     <div>
-        <h4 class="text-xs font-bold text-foreground mb-0.5">Rezervacija uspješna!</h4>
-        <p class="text-[10px] text-muted-foreground mb-0">Molimo unesite podatke za plaćanje.</p>
+        <h4 class="text-xs font-bold text-foreground mb-0.5">Skoro gotovo!</h4>
+        <p class="text-[10px] text-muted-foreground mb-0">Unesite podatke za plaćanje da završite rezervaciju.</p>
     </div>
 </div>
 

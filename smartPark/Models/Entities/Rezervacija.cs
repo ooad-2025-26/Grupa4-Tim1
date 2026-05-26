@@ -32,7 +32,7 @@ namespace smartPark.Models.Entities
         [Required]
         [DataType(DataType.DateTime)]
         [Display(Name = "Datum kreiranja rezeravcije")]
-        public DateTime DatumKreiranjaRezervacije { get; set; } = DateTime.Now;
+        public DateTime DatumKreiranjaRezervacije { get; set; } = DateTime.UtcNow;
 
         [Required]
         [Display(Name = "ID korisnika")]

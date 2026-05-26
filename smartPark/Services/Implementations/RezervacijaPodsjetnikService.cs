@@ -45,7 +45,7 @@ public class RezervacijaPodsjetnikService : BackgroundService
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
 
-        var sada = DateTime.Now;
+        var sada = DateTime.UtcNow;
 
         await OcistiIstekleRezervacijeAsync(db, emailService, sada, ct);
 

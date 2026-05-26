@@ -112,7 +112,7 @@ namespace smartPark.Repositories.Implementations
 
         public async Task<IEnumerable<Rezervacija>> DohvatiAktivneRezervacijeAsync()
         {
-            var sada = DateTime.Now;
+            var sada = DateTime.UtcNow;
             return await _skup
                 .Include(r => r.Korisnik)
                 .Include(r => r.Parking)
@@ -128,7 +128,7 @@ namespace smartPark.Repositories.Implementations
             int parkingId
         )
         {
-            var sada = DateTime.Now;
+            var sada = DateTime.UtcNow;
             return await _skup
                 .Include(r => r.Korisnik)
                 .Where(r =>
@@ -202,14 +202,14 @@ namespace smartPark.Repositories.Implementations
             int brojDana = 30
         )
         {
-            var pocetak = DateTime.Now.AddDays(-brojDana).Date;
+            var pocetak = DateTime.UtcNow.AddDays(-brojDana).Date;
             var rezervacije = await _skup
                 .Where(r => r.DatumKreiranjaRezervacije >= pocetak)
                 .GroupBy(r => r.DatumKreiranjaRezervacije.Date)
                 .Select(g => new { Datum = g.Key, Broj = g.Count() })
                 .ToDictionaryAsync(k => k.Datum, k => k.Broj);
 
-            for (var dan = pocetak; dan <= DateTime.Now.Date; dan = dan.AddDays(1))
+            for (var dan = pocetak; dan <= DateTime.UtcNow.Date; dan = dan.AddDays(1))
             {
                 if (!rezervacije.ContainsKey(dan))
                     rezervacije[dan] = 0;

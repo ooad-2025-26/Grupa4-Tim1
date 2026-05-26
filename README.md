@@ -22,8 +22,8 @@ Za potrebe testiranja i prezentacije sistema, predefinisani su sljedeći nalozi 
 | Uloga | Email (Korisničko ime) | Lozinka |
 | :--- | :--- | :--- |
 | **Administrator** | `admin@smartpark.com` | `Admin123!` |
-| **Menadžer / Zaposlenik** | `mhodzic6@etf.unsa.ba` | `MirzaHodzic2004@` |
-| **Vozač** | `hodzic04mirza@gmail.com` | `MirzaHodzic2004@` |
+| **Menadžer / Zaposlenik** | `menadzer@smartpark.com` | `Menadzer123!` |
+| **Vozač** | `vozac@gmail.com` | `Vozac123!` |
 
 ---
 
@@ -52,36 +52,11 @@ Za potrebe testiranja i prezentacije sistema, predefinisani su sljedeći nalozi 
 
 ---
 
-## 💻 Kako pokrenuti projekat lokalno
+## 🌐 Aplikacija je dostupna online
 
-### Preduslovi:
-1. Instaliran [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0).
-2. Instaliran [SQL Server Express / LocalDB](https://learn.microsoft.com/en-us/sql/database-engine/configure-windows/sql-server-express-localdb).
+SmartPark sistem je deployovan i dostupan na sljedećoj adresi:
 
-### Koraci za pokretanje:
-
-1.  **Klonirajte repozitorij:**
-    ```bash
-    git clone https://github.com/ooad-2025-26/Grupa4-Tim1.git
-    cd Grupa4-Tim1/smartPark
-    ```
-
-2.  **Konfiguracija baze podataka:**
-    Ažurirajte konekcioni string u `appsettings.json` ili ga postavite preko .NET User Secrets:
-    ```bash
-    dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=(localdb)\\mssqllocaldb;Database=smartParkDb;Trusted_Connection=True;MultipleActiveResultSets=true"
-    ```
-
-3.  **Primijenite migracije i kreirajte bazu:**
-    ```bash
-    dotnet ef database update
-    ```
-
-4.  **Pokrenite aplikaciju:**
-    ```bash
-    dotnet run
-    ```
-    Aplikacija će biti dostupna na adresi `http://localhost:5000` (ili portu ispisanom u konzoli).
+**🔗 [smartpark.hodzicmirza.com](https://smartpark.hodzicmirza.com)**
 
 ---
 

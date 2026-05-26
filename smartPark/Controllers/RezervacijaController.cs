@@ -5,6 +5,7 @@ using smartPark.Models.Entities;
 using smartPark.Models.ViewModels;
 using smartPark.Models.ViewModels.Rezervacija;
 using smartPark.Services.Interfaces;
+using System.Text.Json;
 
 namespace smartPark.Controllers;
 
@@ -121,15 +122,38 @@ public class RezervacijaController : Controller
 
         try
         {
-            var korisnik = await _userManager.GetUserAsync(User);
-            if (korisnik == null)
-                return Challenge();
+            // Provjeri dostupnost PRIJE plaćanja
+            if (!await _rezervacijaService.ProvjeriDostupnostParkingaAsync(
+                    model.ParkingId, model.PocetakRezervacije, model.KrajRezervacije))
+            {
+                ModelState.AddModelError("", "Parking nije dostupan u odabranom terminu.");
+                model.DostupniParkinzi = (
+                    await _rezervacijaService.DohvatiViewModelZaKreiranjeAsync()
+                ).DostupniParkinzi;
+                return View(model);
+            }
 
-            var rezervacija = await _rezervacijaService.KreirajRezervacijuAsync(model, korisnik.Id);
-            TempData["Uspjeh"] = "Rezervacija je uspješno kreirana!";
+            // Provjeri dostupnost odabranog mjesta ako je odabrano
+            if (model.ParkingMjestoId.HasValue &&
+                !await _rezervacijaService.ProvjeriDostupnostMjestaAsync(
+                    model.ParkingMjestoId.Value, model.PocetakRezervacije, model.KrajRezervacije))
+            {
+                ModelState.AddModelError("", "Odabrano parking mjesto nije dostupno u odabranom terminu.");
+                model.DostupniParkinzi = (
+                    await _rezervacijaService.DohvatiViewModelZaKreiranjeAsync()
+                ).DostupniParkinzi;
+                return View(model);
+            }
 
-            // Preusmjeri na stranicu za plaćanje
-            return RedirectToAction("Placanje", "Rezervacija", new { id = rezervacija.RezervacijaId });
+            // Spremi podatke rezervacije u session — rezervacija se kreira tek nakon plaćanja
+            var options = new JsonSerializerOptions { WriteIndented = false };
+            // Resetuj SelectList (nije serijalizabilan)
+            model.DostupniParkinzi = null;
+            model.DostupnaParkingMjesta = new();
+            var json = JsonSerializer.Serialize(model, options);
+            HttpContext.Session.SetString("PendingRezervacija", json);
+
+            return RedirectToAction(nameof(Placanje));
         }
         catch (InvalidOperationException greska)
         {
@@ -142,47 +166,85 @@ public class RezervacijaController : Controller
     }
 
 
-    [HttpGet("rezervacije/placanje/{id}")]
+    [HttpGet("rezervacije/placanje")]
     [Authorize(Roles = "Vozac")]
-    public async Task<IActionResult> Placanje(int id)
+    public async Task<IActionResult> Placanje()
     {
-        var rezervacija = await _rezervacijaService.DohvatiRezervacijuPoIdAsync(id);
-        if (rezervacija == null)
+        var json = HttpContext.Session.GetString("PendingRezervacija");
+        if (string.IsNullOrEmpty(json))
         {
-            TempData["Greska"] = "Rezervacija nije pronađena.";
-            return RedirectToAction(nameof(MojeRezervacije));
+            TempData["Greska"] = "Nema podataka o rezervaciji. Molimo počnite ispočetka.";
+            return RedirectToAction(nameof(Kreiraj));
         }
 
-        var korisnik = await _userManager.GetUserAsync(User);
-        if (rezervacija.KorisnikId != korisnik?.Id)
-            return Forbid();
+        var pendingModel = JsonSerializer.Deserialize<RezervacijaKreirajViewModel>(json);
+        if (pendingModel == null)
+        {
+            TempData["Greska"] = "Greška pri učitavanju rezervacije. Molimo počnite ispočetka.";
+            return RedirectToAction(nameof(Kreiraj));
+        }
+
+        var parking = await _parkingService.DohvatiParkingPoIdAsync(pendingModel.ParkingId);
 
         var viewModel = new RezervacijaPlacanjeViewModel
         {
-            RezervacijaId = rezervacija.RezervacijaId,
-            ParkingNaziv = rezervacija.Parking?.Naziv ?? "Nepoznat",
-            PocetakRezervacije = rezervacija.PocetakRezervacije,
-            BrojSati = (int)
-                Math.Ceiling(
-                    (rezervacija.KrajRezervacije - rezervacija.PocetakRezervacije).TotalHours
-                ),
-            CijenaPoSatu = rezervacija.Parking?.CijenaPoSatu ?? 0,
-            UkupnaCijena = rezervacija.UkupnaCijena,
+            RezervacijaId = 0, // Rezervacija još nije kreirana
+            ParkingNaziv = parking?.Naziv ?? "Nepoznat parking",
+            PocetakRezervacije = pendingModel.PocetakRezervacije,
+            KrajRezervacije = pendingModel.KrajRezervacije,
+            BrojSati = pendingModel.BrojSati,
+            CijenaPoSatu = pendingModel.CijenaPoSatu,
+            UkupnaCijena = pendingModel.UkupnaCijena,
+            Popust = pendingModel.Popust,
         };
 
         return View(viewModel);
     }
 
-    [HttpPost("rezervacije/placanje/{id}")]
+    [HttpPost("rezervacije/placanje")]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = "Vozac")]
-    public async Task<IActionResult> Placanje(int id, PlacanjeViewModel model)
+    public async Task<IActionResult> PlacanjePotvrdji(PlacanjeViewModel model)
     {
-        // Ovdje bi išla integracija sa payment gateway-em
-        // Za sada samo simuliramo uspješno plaćanje
+        var json = HttpContext.Session.GetString("PendingRezervacija");
+        if (string.IsNullOrEmpty(json))
+        {
+            TempData["Greska"] = "Sesija je istekla. Molimo počnite ispočetka.";
+            return RedirectToAction(nameof(Kreiraj));
+        }
 
-        TempData["Uspjeh"] = "Plaćanje je uspješno izvršeno!";
-        return RedirectToAction("Show", "QRKod", new { id });
+        var pendingModel = JsonSerializer.Deserialize<RezervacijaKreirajViewModel>(json);
+        if (pendingModel == null)
+        {
+            TempData["Greska"] = "Greška pri obradi rezervacije. Molimo počnite ispočetka.";
+            return RedirectToAction(nameof(Kreiraj));
+        }
+
+        try
+        {
+            var korisnik = await _userManager.GetUserAsync(User);
+            if (korisnik == null)
+                return Challenge();
+
+            // Plati je potvrđeno — sada kreiraj rezervaciju i pošalji email
+            var rezervacija = await _rezervacijaService.KreirajRezervacijuAsync(pendingModel, korisnik.Id);
+
+            // Obriši privremene podatke iz sessiona
+            HttpContext.Session.Remove("PendingRezervacija");
+
+            TempData["Uspjeh"] = "Plaćanje je uspješno! Rezervacija je kreirana i potvrda je poslana na vaš email.";
+            return RedirectToAction("Show", "QRKod", new { id = rezervacija.RezervacijaId });
+        }
+        catch (InvalidOperationException greska)
+        {
+            TempData["Greska"] = $"Greška pri kreiranju rezervacije: {greska.Message}";
+            return RedirectToAction(nameof(Kreiraj));
+        }
+        catch (Exception)
+        {
+            TempData["Greska"] = "Došlo je do greške. Molimo pokušajte ponovo.";
+            return RedirectToAction(nameof(Kreiraj));
+        }
     }
 
 

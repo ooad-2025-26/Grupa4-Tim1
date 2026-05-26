@@ -143,7 +143,7 @@ namespace smartPark.Services.Implementations
                 KrajRezervacije = model.KrajRezervacije,
                 UkupnaCijena = ukupnaCijena,
                 StatusRezervacije = StatusRezervacije.Aktivna,
-                DatumKreiranjaRezervacije = DateTime.Now,
+                DatumKreiranjaRezervacije = DateTime.UtcNow,
             };
 
             await _rezervacijaRepository.DodajAsync(rezervacija);
