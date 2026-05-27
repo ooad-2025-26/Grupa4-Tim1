@@ -17,7 +17,7 @@
             </button>
             <div>
                 <h1 class="text-2xl font-bold text-foreground">Upravljanje parking mjestima</h1>
-                <p class="text-xs text-muted-foreground mt-0.5">Menadžer panel</p>
+                <p class="text-xs text-muted-foreground mt-0.5">Administrator panel</p>
             </div>
         </div>
         <a href="/parking/dodaj" class="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold px-4 py-2.5 rounded-lg text-sm hover:opacity-90 transition-opacity no-underline">
@@ -128,7 +128,10 @@
                         <button onclick="toggleDropdown(this)" class="text-muted-foreground hover:text-foreground bg-transparent border-0 cursor-pointer p-1" title="Akcije">
                             <i class="bi bi-three-dots-vertical text-lg"></i>
                         </button>
-                        <div class="hidden absolute right-0 mt-1 w-32 bg-card border border-border rounded-lg shadow-lg py-1 z-10">
+                        <div class="hidden absolute right-0 mt-1 w-40 bg-card border border-border rounded-lg shadow-lg py-1 z-10">
+                            <a href="/parking/@p.ParkingId/mjesta" class="block px-4 py-2 text-xs text-foreground hover:bg-muted no-underline">
+                                <i class="bi bi-grid-3x3 me-1.5"></i> Lista mjesta
+                            </a>
                             <a href="/parking/uredi/@p.ParkingId" class="block px-4 py-2 text-xs text-foreground hover:bg-muted no-underline">
                                 <i class="bi bi-pencil me-1.5"></i> Uredi
                             </a>

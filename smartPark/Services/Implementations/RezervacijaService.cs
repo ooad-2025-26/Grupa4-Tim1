@@ -57,41 +57,41 @@ namespace smartPark.Services.Implementations
             if (parking == null)
                 throw new KeyNotFoundException($"Parking sa ID {model.ParkingId} nije pronađen");
 
-            // Provjera radnog vremena na osnovu unesenog radnog vremena parkinga
+            // Provjera radnog vremena — samo sat pocetka rezervacije mora biti unutar radnog vremena
+            // Visednevne rezervacije su dozvoljene
             if (!string.IsNullOrEmpty(parking.RadnoVrijeme))
             {
                 var match = System.Text.RegularExpressions.Regex.Match(parking.RadnoVrijeme, @"(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})");
                 if (match.Success)
                 {
                     var radnoOd = new TimeSpan(int.Parse(match.Groups[1].Value), int.Parse(match.Groups[2].Value), 0);
-                    
+
                     int doSati = int.Parse(match.Groups[3].Value);
                     int doMinuta = int.Parse(match.Groups[4].Value);
                     var radnoDo = doSati == 24 ? new TimeSpan(23, 59, 59) : new TimeSpan(doSati, doMinuta, 0);
 
                     var pocetakTime = model.PocetakRezervacije.TimeOfDay;
-                    var krajTime = model.KrajRezervacije.TimeOfDay;
 
-                    if (pocetakTime < radnoOd || pocetakTime > radnoDo ||
-                        krajTime < radnoOd || krajTime > radnoDo ||
-                        model.PocetakRezervacije.Date != model.KrajRezervacije.Date)
+                    // Provjeri samo sat pocetka rezervacije
+                    if (pocetakTime < radnoOd || pocetakTime > radnoDo)
                     {
-                        throw new InvalidOperationException($"Rezervacija je izvan radnog vremena parking prostora ({parking.RadnoVrijeme})");
+                        throw new InvalidOperationException($"Pocetak rezervacije je izvan radnog vremena parking prostora ({parking.RadnoVrijeme})");
+                    }
+
+                    // Ako je jednodnevna rezervacija, provjeri i sat kraja
+                    if (model.PocetakRezervacije.Date == model.KrajRezervacije.Date)
+                    {
+                        var krajTime = model.KrajRezervacije.TimeOfDay;
+                        if (krajTime < radnoOd || krajTime > radnoDo)
+                        {
+                            throw new InvalidOperationException($"Kraj rezervacije je izvan radnog vremena parking prostora ({parking.RadnoVrijeme})");
+                        }
                     }
                 }
             }
 
-            // Provjera dostupnosti parkinga
-            if (
-                !await ProvjeriDostupnostParkingaAsync(
-                    model.ParkingId,
-                    model.PocetakRezervacije,
-                    model.KrajRezervacije
-                )
-            )
-            {
-                throw new InvalidOperationException("Parking nije dostupan u odabranom terminu");
-            }
+            // Napomena: Provjera dostupnosti se vrsi ispod kroz DohvatiPrvoSlobodnoMjestoAsync
+            // koji korektno trazi slobodno mjesto, a ne samo provjerava da li postoji ijedna rezervacija
 
             // Odabir parking mjesta
             int? parkingMjestoId = model.ParkingMjestoId;
@@ -152,16 +152,33 @@ namespace smartPark.Services.Implementations
             // Generiši QR kod
             await _qrKodService.GenerisiQRKodZaRezervacijuAsync(rezervacija.RezervacijaId);
 
-            // Ažuriraj status parking mjesta ako je dodijeljeno
+            // Ažuriraj status parking mjesta ako je dodijeljeno i ako rezervacija počinje ODMAH
             if (parkingMjestoId.HasValue)
             {
-                await _parkingMjestoRepository.AzurirajStatusAsync(
-                    parkingMjestoId.Value,
-                    StatusMjesta.Zauzeto
-                );
+                var sada = DateTime.Now;
+                if (model.PocetakRezervacije <= sada && model.KrajRezervacije >= sada)
+                {
+                    await _parkingMjestoRepository.AzurirajStatusAsync(
+                        parkingMjestoId.Value,
+                        StatusMjesta.Zauzeto
+                    );
+                }
+                else
+                {
+                    await _parkingMjestoRepository.AzurirajStatusAsync(
+                        parkingMjestoId.Value,
+                        StatusMjesta.Slobodno
+                    );
+                }
 
-                // Ažuriraj broj slobodnih mjesta na parkingu
-                parking.SlobodnaMjesta = Math.Max(0, parking.SlobodnaMjesta - 1);
+                // Ponovo izračunaj i snimi slobodna mjesta
+                var zauzetaSada = await _rezervacijaRepository.PronadjiAsync(r =>
+                    r.ParkingId == parking.ParkingId &&
+                    r.StatusRezervacije == StatusRezervacije.Aktivna &&
+                    r.PocetakRezervacije <= sada &&
+                    r.KrajRezervacije >= sada
+                );
+                parking.SlobodnaMjesta = Math.Max(0, parking.UkupnoMjesta - zauzetaSada.Count());
                 _parkingRepository.Izmijeni(parking);
                 await _parkingRepository.SacuvajPromjeneAsync();
             }

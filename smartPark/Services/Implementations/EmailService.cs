@@ -314,4 +314,70 @@ public class EmailService : IEmailService
 
         await PosaljiEmailAsync(primalacEmail, primalacIme, naslov, html);
     }
+
+    public async Task PosaljiObavijestPocetkaRezervacijeAsync(
+        string primalacEmail, string primalacIme,
+        int rezervacijaId, string parkingNaziv,
+        DateTime pocetak, DateTime kraj, string? adresaParkinga)
+    {
+        var naslov = $"🟢 SmartPark — Vaša rezervacija je upravo počela!";
+        var mapsQuery = System.Uri.EscapeDataString($"{parkingNaziv} {adresaParkinga ?? ""}".Trim());
+        var mapsLink = $"https://www.google.com/maps/search/?api=1&query={mapsQuery}";
+        var qrCodeUrl = $"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=SmartPark_Rezervacija_ID_{rezervacijaId}";
+
+        var adresaHtml = !string.IsNullOrEmpty(adresaParkinga)
+            ? $"<p style='color:#64748b;font-size:13px;margin:4px 0 0;'><strong>Adresa:</strong> {adresaParkinga}</p>"
+            : "";
+
+        var html = $@"
+<!DOCTYPE html>
+<html lang='bs'>
+<head><meta charset='UTF-8'><title>Rezervacija je počela</title></head>
+<body style='margin:0;padding:0;background:#f4f6f8;font-family:Inter,Arial,sans-serif;'>
+  <table width='100%' cellpadding='0' cellspacing='0' bgcolor='#f4f6f8'>
+    <tr><td align='center' style='padding:40px 20px;'>
+      <table width='600' cellpadding='0' cellspacing='0' bgcolor='#ffffff' style='border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);'>
+        <!-- HEADER -->
+        <tr><td bgcolor='#10b981' style='padding:32px 40px;'>
+          <h1 style='margin:0;color:#ffffff;font-size:22px;font-weight:700;'>🅿 SmartPark</h1>
+          <p style='margin:8px 0 0;color:#d1fae5;font-size:13px;'>Rezervacija je aktivna</p>
+        </td></tr>
+        <!-- BODY -->
+        <tr><td style='padding:40px;'>
+          <h2 style='margin:0 0 8px;color:#1e293b;font-size:20px;'>Vaša rezervacija je započela! 🟢</h2>
+          <p style='color:#64748b;margin:0 0 24px;font-size:14px;'>Poštovani/a <strong>{primalacIme}</strong>, Vaša rezervacija je upravo postala aktivna. Možete pristupiti parkiralištu.</p>
+          
+          <table width='100%' cellpadding='0' cellspacing='0' style='background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:20px;margin-bottom:24px;'>
+            <tr><td>
+              <p style='margin:0 0 6px;color:#065f46;font-size:14px;'><strong>🅿 {parkingNaziv}</strong></p>
+              {adresaHtml}
+              <div style='margin-top:6px;margin-bottom:10px;'>
+                <a href='{mapsLink}' target='_blank' style='display:inline-block;background:#d1fae5;color:#065f46;text-decoration:none;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;border:1px solid #a7f3d0;'>
+                  📍 Prikaži na Google Maps
+                </a>
+              </div>
+              <p style='color:#065f46;font-size:14px;margin:10px 0 0;'><strong>Period:</strong> {pocetak:dd.MM.yyyy HH:mm} - {kraj:dd.MM.yyyy HH:mm}</p>
+              <p style='color:#64748b;font-size:12px;margin:4px 0 0;'>Rezervacija #{rezervacijaId:D5}</p>
+            </td></tr>
+          </table>
+
+          <div style='text-align:center;margin:24px 0;background:#f8fafc;padding:20px;border-radius:8px;'>
+            <img src='{qrCodeUrl}' alt='QR Kod Rezervacije' style='border:4px solid #ffffff;box-shadow:0 2px 8px rgba(0,0,0,0.1);border-radius:4px;width:150px;height:150px;' />
+            <p style='margin:8px 0 0;font-size:12px;color:#64748b;'><strong>Skenirajte QR kod na ulazu za pristup parkingu</strong></p>
+          </div>
+
+          <p style='color:#64748b;font-size:13px;margin:0;'>Hvala Vam na povjerenju i želimo Vam ugodan boravak. Vaš SmartPark tim.</p>
+        </td></tr>
+        <!-- FOOTER -->
+        <tr><td bgcolor='#f8fafc' style='padding:24px 40px;border-top:1px solid #e2e8f0;'>
+          <p style='margin:0;color:#94a3b8;font-size:12px;text-align:center;'>© {DateTime.Now.Year} SmartPark · Kontakt: <a href='mailto:help@smartpark.ba' style='color:#2563eb;'>help@smartpark.ba</a></p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+ </body>
+</html>";
+
+        await PosaljiEmailAsync(primalacEmail, primalacIme, naslov, html);
+    }
 }

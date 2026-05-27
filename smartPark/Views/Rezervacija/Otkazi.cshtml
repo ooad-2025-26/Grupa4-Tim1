@@ -4,52 +4,80 @@
     ViewBag.Title = "Otkaži rezervaciju";
 }
 
-<button onclick="history.back()" class="btn btn-back mb-2"><i class="bi bi-arrow-left"></i> Nazad</button>
+<div class="min-h-[calc(100vh-3.5rem)] bg-muted/30 py-10 px-4">
+    <div class="container mx-auto max-w-lg">
+        <!-- Header s dugmetom nazad -->
+        <div class="flex items-center gap-4 mb-8">
+            <button onclick="history.back()" class="flex items-center justify-center w-10 h-10 rounded-full border border-border bg-card text-muted-foreground hover:text-foreground hover:shadow-sm transition-all cursor-pointer">
+                <i class="bi bi-arrow-left text-lg"></i>
+            </button>
+            <div>
+                <h1 class="text-2xl font-bold text-foreground">Otkazivanje rezervacije</h1>
+                <p class="text-sm text-muted-foreground mt-0.5">Potvrda otkazivanja i refundacije</p>
+            </div>
+        </div>
 
-<div class="row justify-content-center">
-    <div class="col-md-5">
-        <div class="sp-card">
-            <h1 class="h5 mb-3">Otkazivanje rezervacije</h1>
-            
+        <div class="bg-card border border-border rounded-xl p-6 shadow-sm">
             @if (Model != null && Model.RezervacijaId > 0)
             {
-                <div class="alert alert-info small mb-3">
-                    <strong>Rezervacija #@Model.RezervacijaId</strong><br />
-                    Parking: <strong>@Model.ParkingNaziv</strong><br />
-                    Datum: @Model.PocetakRezervacije.ToString("dd.MM.yyyy")<br />
-                    Vrijeme: @Model.PocetakRezervacije.ToString("HH:mm") - @Model.KrajRezervacije.ToString("HH:mm")<br />
-                    <strong>Ukupna cijena: @Model.UkupnaCijena.ToString("F2") KM</strong>
+                <div class="bg-muted/40 border border-border rounded-lg p-4 mb-5 space-y-3">
+                    <div class="flex justify-between items-center border-b border-border/60 pb-2">
+                        <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Broj rezervacije</span>
+                        <span class="text-sm font-mono font-bold text-foreground">#RES-@Model.RezervacijaId.ToString("D3")</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="text-xs text-muted-foreground block">Parking prostor:</span>
+                            <strong class="text-foreground">@Model.ParkingNaziv</strong>
+                        </div>
+                        <div>
+                            <span class="text-xs text-muted-foreground block">Datum rezervacije:</span>
+                            <strong class="text-foreground">@Model.PocetakRezervacije.ToString("dd.MM.yyyy")</strong>
+                        </div>
+                        <div>
+                            <span class="text-xs text-muted-foreground block">Period boravka:</span>
+                            <strong class="text-foreground">@Model.PocetakRezervacije.ToString("HH:mm") - @Model.KrajRezervacije.ToString("HH:mm")</strong>
+                        </div>
+                        <div>
+                            <span class="text-xs text-muted-foreground block">Ukupna cijena:</span>
+                            <strong class="text-primary text-base">@Model.UkupnaCijena.ToString("F2") KM</strong>
+                        </div>
+                    </div>
                 </div>
                 
-                <div class="alert alert-warning small">
-                    <i class="bi bi-exclamation-triangle"></i> 
-                    Nakon otkazivanja, novac će biti refundiran u roku od 24h.
+                <div class="bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-lg p-3.5 flex items-start gap-2.5 mb-6">
+                    <i class="bi bi-exclamation-triangle-fill text-amber-500 text-sm mt-0.5 shrink-0"></i>
+                    <div>
+                        <strong class="block mb-0.5">Refundacija sredstava</strong>
+                        Nakon otkazivanja, uplaćeni iznos će biti automatski refundiran na vaš račun u roku od 24 sata.
+                    </div>
                 </div>
                 
-                <form asp-action="OtkaziPotvrdi" asp-controller="Rezervacija" asp-route-id="@Model.RezervacijaId" method="post" onsubmit="return potvrdi('Sigurno želite otkazati ovu rezervaciju?');">
+                <form asp-action="OtkaziPotvrdi" asp-controller="Rezervacija" asp-route-id="@Model.RezervacijaId" method="post" onsubmit="return potvrdi('Sigurno želite otkazati ovu rezervaciju?');" class="space-y-5">
                     @Html.AntiForgeryToken()
                     
-                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+                    <div asp-validation-summary="ModelOnly" class="bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg p-3 hidden"></div>
                     
                     <input type="hidden" name="id" value="@Model.RezervacijaId" />
                     
-                    <!-- Razlog otkazivanja (opciono, prema specifikaciji) -->
-                    <div class="mb-3">
-                        <label asp-for="RazlogOtkazivanja" class="form-label">Razlog otkazivanja (opciono)</label>
-                        <textarea asp-for="RazlogOtkazivanja" class="form-control" rows="2" placeholder="Navedite razlog otkazivanja..."></textarea>
-                        <span asp-validation-for="RazlogOtkazivanja" class="text-danger small"></span>
+                    <!-- Razlog otkazivanja -->
+                    <div class="flex flex-col gap-1.5">
+                        <label asp-for="RazlogOtkazivanja" class="text-sm font-semibold text-foreground">Razlog otkazivanja (opciono)</label>
+                        <textarea asp-for="RazlogOtkazivanja" rows="3" placeholder="Molimo navedite razlog otkazivanja..." class="w-full px-3.5 py-2.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all placeholder:text-muted-foreground/60 resize-none"></textarea>
+                        <span asp-validation-for="RazlogOtkazivanja" class="text-red-500 text-xs"></span>
                     </div>
                     
-                    <button type="submit" class="btn btn-danger w-100">
-                        <i class="bi bi-x-circle"></i> Potvrdi otkazivanje
+                    <button type="submit" class="w-full inline-flex items-center justify-center gap-2 bg-destructive text-white font-semibold px-4 py-3 rounded-lg text-sm hover:opacity-90 transition-opacity cursor-pointer">
+                        <i class="bi bi-x-circle text-base"></i> Potvrdi otkazivanje
                     </button>
                 </form>
             }
             else
             {
-                <div class="alert alert-danger">
-                    <i class="bi bi-exclamation-triangle"></i> Rezervacija nije pronađena.
-                    <a asp-action="Moje" class="alert-link">Vrati se na moje rezervacije</a>
+                <div class="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg p-4 text-center">
+                    <i class="bi bi-exclamation-triangle-fill text-2xl mb-2 block"></i>
+                    Rezervacija nije pronađena.
+                    <a asp-action="MojeRezervacije" class="block mt-2 font-bold text-red-700 hover:underline">Vrati se na moje rezervacije</a>
                 </div>
             }
         </div>

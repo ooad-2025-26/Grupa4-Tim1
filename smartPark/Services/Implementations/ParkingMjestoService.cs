@@ -330,5 +330,76 @@ namespace smartPark.Services.Implementations
         {
             return await _parkingMjestoRepository.PostojiLiAsync(id);
         }
+
+        // Prosirenje kapaciteta — dodaje nova mjesta do novog ukupnog broja
+        public async Task<(bool Uspjeh, string Poruka)> ProsiriKapacitetAsync(int parkingId, int brNovihMjesta)
+        {
+            if (brNovihMjesta <= 0)
+                return (false, "Broj novih mjesta mora biti veći od 0.");
+
+            var parking = await _parkingRepository.DohvatiPoIdAsync(parkingId);
+            if (parking == null)
+                return (false, "Parking nije pronađen.");
+
+            var postojecaMjesta = (await _parkingMjestoRepository.DohvatiPoParkinguAsync(parkingId)).ToList();
+            var maxBroj = postojecaMjesta.Any() ? postojecaMjesta.Max(m => m.BrojMjesta) : 0;
+
+            int kreirana = 0;
+            for (int i = 1; i <= brNovihMjesta; i++)
+            {
+                var noviBroj = maxBroj + i;
+                var novo = new ParkingMjesto
+                {
+                    ParkingId = parkingId,
+                    BrojMjesta = noviBroj,
+                    StatusMjesta = StatusMjesta.Slobodno,
+                };
+                await _parkingMjestoRepository.DodajAsync(novo);
+                kreirana++;
+            }
+
+            // Azuriraj UkupnoMjesta na parkingu
+            parking.UkupnoMjesta += kreirana;
+            _parkingRepository.Izmijeni(parking);
+
+            await _parkingMjestoRepository.SacuvajPromjeneAsync();
+            return (true, $"Uspješno dodano {kreirana} novih parking mjesta. Novi kapacitet: {parking.UkupnoMjesta}.");
+        }
+
+        // Smanjenje kapaciteta — brise slobodna mjesta od najveceg broja ka manjem
+        public async Task<(bool Uspjeh, string Poruka)> SmanjiKapacitetAsync(int parkingId, int brMjestaZaUkloniti)
+        {
+            if (brMjestaZaUkloniti <= 0)
+                return (false, "Broj mjesta za uklanjanje mora biti veći od 0.");
+
+            var parking = await _parkingRepository.DohvatiPoIdAsync(parkingId);
+            if (parking == null)
+                return (false, "Parking nije pronađen.");
+
+            var slobodnaMjesta = (await _parkingMjestoRepository.DohvatiPoParkinguAsync(parkingId))
+                .Where(m => m.StatusMjesta == StatusMjesta.Slobodno)
+                .OrderByDescending(m => m.BrojMjesta)
+                .ToList();
+
+            if (slobodnaMjesta.Count == 0)
+                return (false, "Nema slobodnih mjesta za uklanjanje. Sva mjesta su trenutno zauzeta.");
+
+            if (brMjestaZaUkloniti > slobodnaMjesta.Count)
+                return (false, $"Možete ukloniti najviše {slobodnaMjesta.Count} slobodnih mjesta (zauzeta mjesta se ne mogu ukloniti).");
+
+            int uklonjeno = 0;
+            foreach (var mjesto in slobodnaMjesta.Take(brMjestaZaUkloniti))
+            {
+                _parkingMjestoRepository.Obrisi(mjesto);
+                uklonjeno++;
+            }
+
+            // Azuriraj UkupnoMjesta na parkingu
+            parking.UkupnoMjesta -= uklonjeno;
+            _parkingRepository.Izmijeni(parking);
+
+            await _parkingMjestoRepository.SacuvajPromjeneAsync();
+            return (true, $"Uspješno uklonjeno {uklonjeno} parking mjesta. Novi kapacitet: {parking.UkupnoMjesta}.");
+        }
     }
 }

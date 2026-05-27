@@ -137,7 +137,9 @@
 <body>
 <nav class="bg-card border-b border-border">
     <div class="container mx-auto px-4 flex items-center justify-between h-14">
-        <a class="font-bold text-lg tracking-tight text-foreground no-underline" asp-controller="Home" asp-action="Index">SmartPark</a>
+        <a class="font-bold text-lg tracking-tight text-foreground no-underline flex items-center gap-1.5" asp-controller="Home" asp-action="Index">
+            <i class="bi bi-p-square-fill text-primary"></i> SmartPark
+        </a>
 
         @if (uloga == "vozac")
         {

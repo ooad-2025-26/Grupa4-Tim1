@@ -45,10 +45,15 @@ public class RezervacijaPodsjetnikService : BackgroundService
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
 
-        var sada = DateTime.UtcNow;
+        var sada = DateTime.Now;
 
+        // 1. Očisti istekle rezervacije i oslobodi mjesta
         await OcistiIstekleRezervacijeAsync(db, emailService, sada, ct);
 
+        // 2. Aktiviraj započete rezervacije i pošalji email o početku
+        await AktivirajZapočeteRezervacijeAsync(db, emailService, sada, ct);
+
+        // 3. Pošalji podsjetnik početka (30 min prije)
         var pocetakOd = sada.AddMinutes(29);
         var pocetakDo = sada.AddMinutes(31);
 
@@ -86,6 +91,7 @@ public class RezervacijaPodsjetnikService : BackgroundService
             }
         }
 
+        // 4. Pošalji podsjetnik isteka (30 min prije isteka)
         var rezervacijeIstek = await db.Rezervacije
             .Include(r => r.Korisnik)
             .Include(r => r.Parking)
@@ -119,9 +125,70 @@ public class RezervacijaPodsjetnikService : BackgroundService
             }
         }
 
-        if (rezervacijePocetak.Count > 0 || rezervacijeIstek.Count > 0)
+        await db.SaveChangesAsync(ct);
+    }
+
+    private async Task AktivirajZapočeteRezervacijeAsync(ApplicationDbContext db, IEmailService emailService, DateTime sada, CancellationToken ct)
+    {
+        try
         {
-            await db.SaveChangesAsync(ct);
+            var zapoceteRezervacije = await db.Rezervacije
+                .Include(r => r.Parking)
+                .Include(r => r.Korisnik)
+                .Where(r => r.StatusRezervacije == StatusRezervacije.Aktivna 
+                            && r.PocetakRezervacije <= sada 
+                            && r.KrajRezervacije >= sada
+                            && (!r.PocetakObavijestPoslana || (r.ParkingMjestoId.HasValue && db.ParkingMjesta.Any(pm => pm.ParkingMjestoId == r.ParkingMjestoId.Value && pm.StatusMjesta == StatusMjesta.Slobodno))))
+                .ToListAsync(ct);
+
+            foreach (var r in zapoceteRezervacije)
+            {
+                // Ažuriraj status parking mjesta na Zauzeto
+                if (r.ParkingMjestoId.HasValue)
+                {
+                    var pm = await db.ParkingMjesta.FindAsync(new object[] { r.ParkingMjestoId.Value }, ct);
+                    if (pm != null && pm.StatusMjesta != StatusMjesta.Zauzeto)
+                    {
+                        pm.StatusMjesta = StatusMjesta.Zauzeto;
+                        _logger.LogInformation("Rezervacija #{Id} je započela. Označavanje parking mjesta #{MjestoId} u 'Zauzeto'.", r.RezervacijaId, r.ParkingMjestoId.Value);
+                    }
+                }
+
+                // Pošalji email obavijest o početku rezervacije
+                if (!r.PocetakObavijestPoslana)
+                {
+                    if (r.Korisnik?.Email != null)
+                    {
+                        try
+                        {
+                            await emailService.PosaljiObavijestPocetkaRezervacijeAsync(
+                                r.Korisnik.Email,
+                                $"{r.Korisnik.Ime} {r.Korisnik.Prezime}",
+                                r.RezervacijaId,
+                                r.Parking?.Naziv ?? "Parking",
+                                r.PocetakRezervacije,
+                                r.KrajRezervacije,
+                                r.Parking?.Adresa
+                            );
+                            _logger.LogInformation("Obavještenje o početku rezervacije poslano za rezervaciju #{Id}", r.RezervacijaId);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Neuspješno slanje obavještenja o početku za rezervaciju #{Id}", r.RezervacijaId);
+                        }
+                    }
+                    r.PocetakObavijestPoslana = true;
+                }
+            }
+
+            if (zapoceteRezervacije.Count > 0)
+            {
+                await db.SaveChangesAsync(ct);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Greška prilikom aktivacije započetih rezervacija u pozadinskom servisu.");
         }
     }
 

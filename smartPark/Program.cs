@@ -116,6 +116,15 @@ public class Program
                         DROP INDEX IX_AspNetUsers_MenadzerOdgovorniParkingId ON AspNetUsers;
                     END
                     CREATE INDEX IX_AspNetUsers_MenadzerOdgovorniParkingId ON AspNetUsers(MenadzerOdgovorniParkingId);
+
+                    IF NOT EXISTS (
+                        SELECT * FROM sys.columns 
+                        WHERE object_id = OBJECT_ID('Rezervacije') 
+                        AND name = 'PocetakObavijestPoslana'
+                    )
+                    BEGIN
+                        ALTER TABLE Rezervacije ADD PocetakObavijestPoslana bit NOT NULL DEFAULT 0;
+                    END
                 ");
             }
             catch (Exception ex)
@@ -196,10 +205,15 @@ public class Program
 
         app.UseHttpsRedirection();
         app.UseStaticFiles();
+
+        // HTTP greške 404
+        app.UseStatusCodePagesWithReExecute("/Home/NotFound");
+
         app.UseRouting();
         app.UseSession();
         app.UseAuthentication();
         app.UseAuthorization();
+
 
         // Swagger middleware
         app.UseSwagger();

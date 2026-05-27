@@ -14,4 +14,7 @@ public interface IEmailService
 
     Task PosaljiObavijestPrekidaRezervacijeAsync(string primalacEmail, string primalacIme,
         int rezervacijaId, string parkingNaziv, string status);
+
+    Task PosaljiObavijestPocetkaRezervacijeAsync(string primalacEmail, string primalacIme,
+        int rezervacijaId, string parkingNaziv, DateTime pocetak, DateTime kraj, string? adresaParkinga);
 }

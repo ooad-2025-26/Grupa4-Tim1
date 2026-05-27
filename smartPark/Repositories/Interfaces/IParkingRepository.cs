@@ -54,6 +54,7 @@ namespace smartPark.Repositories.Interfaces
         // ========== DODATNE METODE ZA STATISTIKU ==========
         Task<int> PrebrojRezervacijeAsync();
         Task<decimal> DohvatiUkupniPrihodAsync();
+        Task<decimal> DohvatiDnevniPrihodAsync();
         Task<List<Rezervacija>> DohvatiPosljednjeRezervacijeKorisnikaAsync(
             string korisnikId,
             int broj

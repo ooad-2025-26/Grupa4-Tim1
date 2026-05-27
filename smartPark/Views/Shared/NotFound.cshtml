@@ -1,0 +1,35 @@
+@{
+    ViewBag.Title = "Stranica nije pronađena";
+}
+
+<div class="min-h-[70vh] flex flex-col items-center justify-center text-center px-4">
+
+    <div class="relative mb-8">
+        <div class="w-28 h-28 bg-muted rounded-full flex items-center justify-center">
+            <span class="text-6xl font-black text-muted-foreground/30 select-none">404</span>
+        </div>
+    </div>
+
+    <h1 class="text-4xl font-black text-foreground mb-3 tracking-tight">Stranica nije pronađena</h1>
+    <p class="text-muted-foreground text-sm max-w-sm mb-2">
+        Stranica koju tražite ne postoji ili je premještena.
+    </p>
+    <p class="text-muted-foreground text-xs max-w-sm mb-10">
+        Provjerite URL adresu ili se vratite na početnu stranicu.
+    </p>
+
+    <div class="flex flex-wrap gap-3 justify-center">
+        <a href="/" class="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold px-5 py-2.5 rounded-lg text-sm hover:opacity-90 transition-opacity no-underline">
+            <i class="bi bi-house"></i>
+            Početna stranica
+        </a>
+        <button onclick="history.back()" class="inline-flex items-center gap-2 bg-muted text-foreground font-semibold px-5 py-2.5 rounded-lg text-sm hover:opacity-80 transition-opacity border border-border cursor-pointer">
+            <i class="bi bi-arrow-left"></i>
+            Nazad
+        </button>
+    </div>
+
+    <p class="text-xs text-muted-foreground mt-12">
+        Podrška: <a href="mailto:help@smartpark.ba" class="text-primary hover:underline">help@smartpark.ba</a>
+    </p>
+</div>

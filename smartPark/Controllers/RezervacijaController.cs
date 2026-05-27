@@ -123,26 +123,32 @@ public class RezervacijaController : Controller
         try
         {
             // Provjeri dostupnost PRIJE plaćanja
-            if (!await _rezervacijaService.ProvjeriDostupnostParkingaAsync(
-                    model.ParkingId, model.PocetakRezervacije, model.KrajRezervacije))
+            if (model.ParkingMjestoId.HasValue)
             {
-                ModelState.AddModelError("", "Parking nije dostupan u odabranom terminu.");
-                model.DostupniParkinzi = (
-                    await _rezervacijaService.DohvatiViewModelZaKreiranjeAsync()
-                ).DostupniParkinzi;
-                return View(model);
+                // Korisnik je odabrao specificno mjesto — provjeri da li je to mjesto slobodno
+                if (!await _rezervacijaService.ProvjeriDostupnostMjestaAsync(
+                        model.ParkingMjestoId.Value, model.PocetakRezervacije, model.KrajRezervacije))
+                {
+                    ModelState.AddModelError("", "Odabrano parking mjesto nije dostupno u odabranom terminu.");
+                    model.DostupniParkinzi = (
+                        await _rezervacijaService.DohvatiViewModelZaKreiranjeAsync()
+                    ).DostupniParkinzi;
+                    return View(model);
+                }
             }
-
-            // Provjeri dostupnost odabranog mjesta ako je odabrano
-            if (model.ParkingMjestoId.HasValue &&
-                !await _rezervacijaService.ProvjeriDostupnostMjestaAsync(
-                    model.ParkingMjestoId.Value, model.PocetakRezervacije, model.KrajRezervacije))
+            else
             {
-                ModelState.AddModelError("", "Odabrano parking mjesto nije dostupno u odabranom terminu.");
-                model.DostupniParkinzi = (
-                    await _rezervacijaService.DohvatiViewModelZaKreiranjeAsync()
-                ).DostupniParkinzi;
-                return View(model);
+                // Automatski odabir — provjeri da li postoji slobodno mjesto na parkingu
+                var slobodnoMjesto = await _rezervacijaService.DohvatiPrvoSlobodnoMjestoAsync(
+                    model.ParkingId, model.PocetakRezervacije, model.KrajRezervacije);
+                if (slobodnoMjesto == null)
+                {
+                    ModelState.AddModelError("", "Nema slobodnih parking mjesta u odabranom terminu.");
+                    model.DostupniParkinzi = (
+                        await _rezervacijaService.DohvatiViewModelZaKreiranjeAsync()
+                    ).DostupniParkinzi;
+                    return View(model);
+                }
             }
 
             // Spremi podatke rezervacije u session — rezervacija se kreira tek nakon plaćanja

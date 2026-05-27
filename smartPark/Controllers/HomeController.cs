@@ -145,6 +145,15 @@ public class HomeController : Controller
         return View("AccessDenied");
     }
 
+    // 404 Not Found page
+
+    [HttpGet("/Home/NotFound")]
+    public IActionResult NotFound404()
+    {
+        Response.StatusCode = 404;
+        return View("NotFound");
+    }
+
     // Testiranje emaila
 
     [HttpGet("test-email")]

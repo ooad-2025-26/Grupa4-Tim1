@@ -9,10 +9,17 @@ namespace smartPark.Controllers
     public class ParkingMjestoController : Controller
     {
         private readonly IParkingMjestoService _parkingMjestoService;
+        private readonly IParkingService _parkingService;
+        private readonly smartPark.Repositories.Interfaces.IRezervacijaRepository _rezervacijaRepository;
 
-        public ParkingMjestoController(IParkingMjestoService parkingMjestoService)
+        public ParkingMjestoController(
+            IParkingMjestoService parkingMjestoService, 
+            IParkingService parkingService,
+            smartPark.Repositories.Interfaces.IRezervacijaRepository rezervacijaRepository)
         {
             _parkingMjestoService = parkingMjestoService;
+            _parkingService = parkingService;
+            _rezervacijaRepository = rezervacijaRepository;
         }
 
         [HttpGet("parking-mjesto")]
@@ -203,6 +210,94 @@ namespace smartPark.Controllers
                 parkingId
             );
             return Json(mjesta.Select(m => new { m.ParkingMjestoId, m.BrojMjesta }));
+        }
+
+        // Lista mjesta po parkingu (vizualni prikaz zeleno/crveno) sa filterom po periodu
+
+        [HttpGet("parking/{parkingId}/mjesta")]
+        public async Task<IActionResult> ListaMjesta(int parkingId, string period = "trenutno")
+        {
+            var parking = await _parkingService.DohvatiParkingPoIdAsync(parkingId);
+            if (parking == null) return NotFound();
+
+            var svaMjesta = (await _parkingMjestoService.DohvatiMjestaPoParkinguAsync(parkingId))
+                .OrderBy(m => m.BrojMjesta)
+                .ToList();
+
+            // Dohvati sve rezervacije za parking i filtriraj po periodu
+            var sveRezervacije = await _rezervacijaRepository.DohvatiPoParkinguAsync(parkingId);
+            
+            DateTime start = DateTime.Now;
+            DateTime end = DateTime.Now;
+
+            if (period == "danas")
+            {
+                start = DateTime.Today;
+                end = DateTime.Today.AddDays(1).AddTicks(-1);
+            }
+            else if (period == "sedmica")
+            {
+                int diff = (7 + (DateTime.Today.DayOfWeek - DayOfWeek.Monday)) % 7;
+                start = DateTime.Today.AddDays(-1 * diff);
+                end = start.AddDays(7).AddTicks(-1);
+            }
+            else if (period == "sve")
+            {
+                start = DateTime.MinValue;
+                end = DateTime.MaxValue;
+            }
+
+            var filtriraneRezervacije = sveRezervacije.Where(r => 
+                r.StatusRezervacije == smartPark.Models.Enums.StatusRezervacije.Aktivna &&
+                r.PocetakRezervacije <= end && r.KrajRezervacije >= start
+            ).ToList();
+
+            ViewBag.ParkingId = parkingId;
+            ViewBag.ParkingNaziv = parking.Naziv;
+            ViewBag.UkupnoMjesta = parking.UkupnoMjesta;
+            ViewBag.Period = period;
+            ViewBag.Rezervacije = filtriraneRezervacije;
+            
+            // Ponovo racunamo slobodna/zauzeta bazirano na rezervacijama
+            int zauzeta = svaMjesta.Count(m => 
+                filtriraneRezervacije.Any(r => r.ParkingMjestoId == m.ParkingMjestoId)
+            );
+            int slobodna = parking.UkupnoMjesta - zauzeta;
+
+            ViewBag.SlobodnaMjesta = slobodna;
+            ViewBag.ZauzetaMjesta = zauzeta;
+
+            return View("ListaMjesta", svaMjesta);
+        }
+
+        // Prosiri kapacitet parkinga
+
+        [HttpPost("parking/{parkingId}/prosiri")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ProsiriKapacitet(int parkingId, int brNovihMjesta)
+        {
+            var (uspjeh, poruka) = await _parkingMjestoService.ProsiriKapacitetAsync(parkingId, brNovihMjesta);
+            if (uspjeh)
+                TempData["Uspjeh"] = poruka;
+            else
+                TempData["Greska"] = poruka;
+
+            return RedirectToAction(nameof(ListaMjesta), new { parkingId });
+        }
+
+        // Smanji kapacitet parkinga
+
+        [HttpPost("parking/{parkingId}/smanji")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SmanjiKapacitet(int parkingId, int brMjestaZaUkloniti)
+        {
+            var (uspjeh, poruka) = await _parkingMjestoService.SmanjiKapacitetAsync(parkingId, brMjestaZaUkloniti);
+            if (uspjeh)
+                TempData["Uspjeh"] = poruka;
+            else
+                TempData["Greska"] = poruka;
+
+            return RedirectToAction(nameof(ListaMjesta), new { parkingId });
         }
     }
 }

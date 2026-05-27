@@ -44,5 +44,9 @@ namespace smartPark.Services.Interfaces
             int? izuzmiId = null
         );
         Task<bool> ParkingMjestoPostojiAsync(int id);
+
+        // Prosirenje / smanjenje kapaciteta parking prostora
+        Task<(bool Uspjeh, string Poruka)> ProsiriKapacitetAsync(int parkingId, int brNovihMjesta);
+        Task<(bool Uspjeh, string Poruka)> SmanjiKapacitetAsync(int parkingId, int brMjestaZaUkloniti);
     }
 }

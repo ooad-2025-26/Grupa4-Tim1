@@ -243,12 +243,19 @@
                 var endTimeMinutes = endHour * 60 + endMin;
                 
                 var isSameDay = (startDt.toDateString() === endDt.toDateString());
-                
-                if (startTimeMinutes < openMin || startTimeMinutes > closeMin ||
-                    endTimeMinutes < openMin || endTimeMinutes > closeMin ||
-                    !isSameDay) {
-                    
-                    errorDiv.innerHTML = '<i class="bi bi-exclamation-circle-fill"></i> Rezervacija je izvan radnog vremena parking prostora (' + radnoVrijeme + ') ili nije u istom danu.';
+
+                // Provjeri samo pocetak rezervacije (i kraj ako je isti dan)
+                if (startTimeMinutes < openMin || startTimeMinutes > closeMin) {
+                    errorDiv.innerHTML = '<i class="bi bi-exclamation-circle-fill"></i> Pocetak rezervacije je izvan radnog vremena parking prostora (' + radnoVrijeme + ').';
+                    errorDiv.classList.remove('hidden');
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    document.getElementById('totalPriceText').innerText = "0.00 KM";
+                    return;
+                }
+
+                if (isSameDay && (endTimeMinutes < openMin || endTimeMinutes > closeMin)) {
+                    errorDiv.innerHTML = '<i class="bi bi-exclamation-circle-fill"></i> Kraj rezervacije je izvan radnog vremena parking prostora (' + radnoVrijeme + ').';
                     errorDiv.classList.remove('hidden');
                     submitBtn.disabled = true;
                     submitBtn.classList.add('opacity-50', 'cursor-not-allowed');

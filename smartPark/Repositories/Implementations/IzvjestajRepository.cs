@@ -90,6 +90,7 @@ namespace smartPark.Repositories.Implementations
                     (parkingId == 0 || r.ParkingId == parkingId)
                     && r.PocetakRezervacije >= od
                     && r.PocetakRezervacije <= doo
+                    && r.StatusRezervacije != StatusRezervacije.Otkazana
                 )
                 .CountAsync();
         }
@@ -105,6 +106,7 @@ namespace smartPark.Repositories.Implementations
                     (parkingId == 0 || r.ParkingId == parkingId)
                     && r.PocetakRezervacije >= od
                     && r.PocetakRezervacije <= doo
+                    && r.StatusRezervacije != StatusRezervacije.Otkazana
                 )
                 .SumAsync(r => r.UkupnaCijena);
         }
@@ -120,6 +122,7 @@ namespace smartPark.Repositories.Implementations
                     (parkingId == 0 || r.ParkingId == parkingId)
                     && r.PocetakRezervacije >= od
                     && r.PocetakRezervacije <= doo
+                    && r.StatusRezervacije != StatusRezervacije.Otkazana
                 )
                 .GroupBy(r => r.PocetakRezervacije.Date)
                 .Select(g => new { Datum = g.Key, Broj = g.Count() })
@@ -146,6 +149,7 @@ namespace smartPark.Repositories.Implementations
                     (parkingId == 0 || r.ParkingId == parkingId)
                     && r.PocetakRezervacije >= od
                     && r.PocetakRezervacije <= doo
+                    && r.StatusRezervacije != StatusRezervacije.Otkazana
                 )
                 .GroupBy(r => r.PocetakRezervacije.Date)
                 .Select(g => new { Datum = g.Key, Prihod = g.Sum(r => r.UkupnaCijena) })

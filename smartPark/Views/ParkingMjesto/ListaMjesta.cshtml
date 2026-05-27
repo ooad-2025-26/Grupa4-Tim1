@@ -1,0 +1,274 @@
+@using smartPark.Models.Enums
+@model IEnumerable<smartPark.Models.Entities.ParkingMjesto>
+
+@{
+    ViewBag.Title = $"Mjesta – {ViewBag.ParkingNaziv}";
+    int parkingId = ViewBag.ParkingId;
+    string parkingNaziv = ViewBag.ParkingNaziv;
+    int ukupno = ViewBag.UkupnoMjesta;
+    int slobodna = ViewBag.SlobodnaMjesta;
+    int zauzeta = ViewBag.ZauzetaMjesta;
+    int pct = ukupno > 0 ? (zauzeta * 100) / ukupno : 0;
+    var mjesta = Model?.ToList() ?? new List<smartPark.Models.Entities.ParkingMjesto>();
+    var rezervacije = ViewBag.Rezervacije as List<smartPark.Models.Entities.Rezervacija> ?? new List<smartPark.Models.Entities.Rezervacija>();
+    string period = ViewBag.Period as string ?? "trenutno";
+}
+
+<div class="container mx-auto px-4 py-8 max-w-5xl">
+
+    @if (TempData["Uspjeh"] != null)
+    {
+        <div class="mb-4 p-3 bg-success/10 border border-success/20 rounded-lg text-sm text-success flex items-center gap-2">
+            <i class="bi bi-check-circle-fill"></i> @TempData["Uspjeh"]
+        </div>
+    }
+    @if (TempData["Greska"] != null)
+    {
+        <div class="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive flex items-center gap-2">
+            <i class="bi bi-exclamation-circle-fill"></i> @TempData["Greska"]
+        </div>
+    }
+
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div class="flex items-center gap-3">
+            <button onclick="history.back()" class="text-muted-foreground hover:text-foreground text-xl bg-transparent border-0 p-0 cursor-pointer">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            <div>
+                <h1 class="text-2xl font-bold text-foreground">@parkingNaziv</h1>
+                <p class="text-xs text-muted-foreground mt-0.5">Lista parking mjesta</p>
+            </div>
+        </div>
+        <div>
+            <form id="periodForm" method="get" action="/parking/@parkingId/mjesta" class="flex items-center gap-2 bg-card border border-border rounded-lg p-1 shadow-sm">
+                <span class="text-xs text-muted-foreground font-medium pl-2 hidden sm:inline-block">Prikaz zauzetosti:</span>
+                <select name="period" onchange="document.getElementById('periodForm').submit()" class="text-sm font-semibold bg-transparent border-0 focus:ring-0 text-foreground py-1.5 px-3 cursor-pointer outline-none">
+                    <option value="trenutno" selected="@(period == "trenutno" ? "selected" : null)">Trenutno</option>
+                    <option value="danas" selected="@(period == "danas" ? "selected" : null)">Danas</option>
+                    <option value="sedmica" selected="@(period == "sedmica" ? "selected" : null)">Ove sedmice</option>
+                    <option value="sve" selected="@(period == "sve" ? "selected" : null)">Sve aktivne</option>
+                </select>
+            </form>
+        </div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="grid grid-cols-3 gap-4 mb-6">
+        <div class="bg-card border border-border rounded-xl p-4 shadow-sm flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <i class="bi bi-grid-3x3"></i>
+            </div>
+            <div>
+                <p class="text-xl font-bold text-foreground leading-none mb-0.5">@ukupno</p>
+                <p class="text-xs text-muted-foreground mb-0">Ukupno mjesta</p>
+            </div>
+        </div>
+        <div class="bg-card border border-border rounded-xl p-4 shadow-sm flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center text-success shrink-0">
+                <i class="bi bi-check-circle"></i>
+            </div>
+            <div>
+                <p class="text-xl font-bold text-foreground leading-none mb-0.5">@slobodna</p>
+                <p class="text-xs text-muted-foreground mb-0">Slobodna</p>
+            </div>
+        </div>
+        <div class="bg-card border border-border rounded-xl p-4 shadow-sm flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center text-destructive shrink-0">
+                <i class="bi bi-car-front-fill"></i>
+            </div>
+            <div>
+                <p class="text-xl font-bold text-foreground leading-none mb-0.5">@zauzeta</p>
+                <p class="text-xs text-muted-foreground mb-0">Zauzeta</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="bg-card border border-border rounded-xl p-4 shadow-sm mb-6">
+        <div class="flex justify-between text-xs text-muted-foreground mb-2">
+            <span>Zauzetost</span>
+            <span>@pct%</span>
+        </div>
+        <div class="w-full bg-muted rounded-full h-2.5 overflow-hidden">
+            <div class="h-full rounded-full transition-all @(pct >= 95 ? "bg-destructive" : pct >= 70 ? "bg-warning" : "bg-success")"
+                 style="width: @pct%"></div>
+        </div>
+    </div>
+
+    <!-- Kapacitet akcije -->
+    <div class="bg-card border border-border rounded-xl p-5 shadow-sm mb-6">
+        <h2 class="text-sm font-bold text-foreground mb-4">Upravljanje kapacitetom</h2>
+        <div class="flex flex-col sm:flex-row gap-4">
+
+            <!-- Prosiri -->
+            <form method="post" action="/parking/@parkingId/prosiri" class="flex-1 flex items-end gap-2">
+                @Html.AntiForgeryToken()
+                <div class="flex-1">
+                    <label class="block text-xs font-semibold text-muted-foreground mb-1">Dodaj mjesta</label>
+                    <input type="number" name="brNovihMjesta" min="1" max="500" value="10"
+                           class="w-full px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+                </div>
+                <button type="submit"
+                        class="inline-flex items-center gap-1.5 bg-success text-white font-semibold px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-opacity shrink-0">
+                    <i class="bi bi-plus-lg"></i> Proširi
+                </button>
+            </form>
+
+            <div class="hidden sm:block w-px bg-border self-stretch"></div>
+
+            <!-- Smanji -->
+            <form method="post" action="/parking/@parkingId/smanji" class="flex-1 flex items-end gap-2"
+                  onsubmit="return confirm('Da li ste sigurni? Slobodna mjesta će biti uklonjena.');">
+                @Html.AntiForgeryToken()
+                <div class="flex-1">
+                    <label class="block text-xs font-semibold text-muted-foreground mb-1">Ukloni slobodna mjesta</label>
+                    <input type="number" name="brMjestaZaUkloniti" min="1" max="@slobodna" value="1"
+                           class="w-full px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+                </div>
+                <button type="submit"
+                        class="inline-flex items-center gap-1.5 bg-destructive text-white font-semibold px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-opacity shrink-0">
+                    <i class="bi bi-dash-lg"></i> Smanji
+                </button>
+            </form>
+        </div>
+        <p class="text-[10px] text-muted-foreground mt-3">
+            <i class="bi bi-info-circle me-1"></i>
+            Smanjenje kapaciteta briše samo <strong>slobodna</strong> mjesta (zauzeta se ne mogu ukloniti).
+        </p>
+    </div>
+
+    <!-- Legenda -->
+    <div class="flex items-center gap-4 mb-4 text-xs text-muted-foreground">
+        <span class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded-sm bg-success inline-block"></span> Slobodno
+        </span>
+        <span class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded-sm bg-destructive inline-block"></span> Zauzeto
+        </span>
+        <span class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded-sm bg-muted border border-border inline-block"></span> Nedostupno
+        </span>
+    </div>
+
+    <!-- Grid parking mjesta -->
+    @if (mjesta.Any())
+    {
+        <div class="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-2">
+            @foreach (var m in mjesta)
+            {
+                string bgColor, textColor, icon;
+                string tooltip;
+                
+                var mjestoRezervacije = rezervacije.Where(r => r.ParkingMjestoId == m.ParkingMjestoId).OrderBy(r => r.PocetakRezervacije).ToList();
+                bool isZauzeto = mjestoRezervacije.Any();
+                string rezervacijeJson = "[]";
+
+                if (isZauzeto)
+                {
+                    bgColor = "bg-destructive/10 border-destructive/30 hover:bg-destructive/20 cursor-pointer";
+                    textColor = "text-destructive";
+                    icon = "bi-car-front-fill";
+                    tooltip = $"Mjesto {m.BrojMjesta} – Zauzeto u odabranom periodu (Klikni za detalje)";
+                    
+                    var resList = mjestoRezervacije.Select(r => new {
+                        pocetak = r.PocetakRezervacije.ToString("dd.MM.yyyy HH:mm"),
+                        kraj = r.KrajRezervacije.ToString("dd.MM.yyyy HH:mm"),
+                        korisnik = r.Korisnik != null ? $"{r.Korisnik.Ime} {r.Korisnik.Prezime}" : "Nepoznato"
+                    });
+                    rezervacijeJson = System.Text.Json.JsonSerializer.Serialize(resList);
+                }
+                else
+                {
+                    bgColor = "bg-success/10 border-success/30 hover:bg-success/20";
+                    textColor = "text-success";
+                    icon = "bi-check";
+                    tooltip = $"Mjesto {m.BrojMjesta} – Slobodno";
+                }
+
+                <div class="border rounded-lg p-2 flex flex-col items-center justify-center aspect-square transition-all @bgColor"
+                     title="@tooltip"
+                     @(isZauzeto ? $"onclick=prikaziRezervacije({m.BrojMjesta},this.getAttribute('data-rez'))" : "")
+                     data-rez="@rezervacijeJson">
+                    <i class="bi @icon @textColor text-sm mb-0.5"></i>
+                    <span class="text-[10px] font-bold @textColor leading-none">@m.BrojMjesta</span>
+                </div>
+            }
+        </div>
+
+        <p class="text-xs text-muted-foreground mt-4 text-center">
+            Prikazano @mjesta.Count parking mjesta
+        </p>
+    }
+    else
+    {
+        <div class="text-center py-12 text-muted-foreground">
+            <i class="bi bi-grid-3x3 text-4xl opacity-30 block mb-3"></i>
+            <p class="text-sm">Nema parking mjesta za ovaj parking prostor.</p>
+        </div>
+    }
+</div>
+
+<!-- Modal za prikaz rezervacija -->
+<div id="rezervacijeModal" class="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-card border border-border rounded-xl shadow-lg w-full max-w-md overflow-hidden">
+        <div class="flex justify-between items-center p-4 border-b border-border bg-muted/30">
+            <h3 class="font-bold text-foreground m-0 text-lg">Parking mjesto <span id="modalMjestoBroj" class="text-primary"></span></h3>
+            <button onclick="zatvoriModal()" class="text-muted-foreground hover:text-foreground bg-transparent border-0 cursor-pointer p-1">
+                <i class="bi bi-x-lg text-lg"></i>
+            </button>
+        </div>
+        <div class="p-4 max-h-[60vh] overflow-y-auto" id="modalRezervacijeLista">
+            <!-- Dynamically populated via JS -->
+        </div>
+    </div>
+</div>
+
+<script>
+    function prikaziRezervacije(broj, jsonStr) {
+        document.getElementById('modalMjestoBroj').innerText = broj;
+        var rezervacije = JSON.parse(jsonStr);
+        var html = '';
+        
+        if (rezervacije.length === 0) {
+            html = '<p class="text-sm text-muted-foreground text-center py-4">Nema rezervacija.</p>';
+        } else {
+            html = '<div class="space-y-3">';
+            rezervacije.forEach(function(r) {
+                html += `
+                    <div class="bg-muted/30 border border-border rounded-lg p-3">
+                        <div class="flex items-center gap-2 mb-3">
+                            <i class="bi bi-person-circle text-primary text-lg"></i>
+                            <span class="font-semibold text-sm text-foreground">${r.korisnik}</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-xs bg-background rounded border border-border/50 p-2">
+                            <div>
+                                <span class="text-muted-foreground block mb-0.5">Početak:</span>
+                                <span class="font-bold text-foreground">${r.pocetak}</span>
+                            </div>
+                            <div>
+                                <span class="text-muted-foreground block mb-0.5">Kraj:</span>
+                                <span class="font-bold text-foreground">${r.kraj}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+        }
+        
+        document.getElementById('modalRezervacijeLista').innerHTML = html;
+        document.getElementById('rezervacijeModal').classList.remove('hidden');
+    }
+    
+    function zatvoriModal() {
+        document.getElementById('rezervacijeModal').classList.add('hidden');
+    }
+
+    // Zatvori modal na klik van njega
+    document.getElementById('rezervacijeModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            zatvoriModal();
+        }
+    });
+</script>

@@ -61,5 +61,7 @@ namespace smartPark.Models.Entities
         public bool PocetakPodsjetnikPoslan { get; set; } = false;
 
         public bool IstekPodsjetnikPoslan { get; set; } = false;
+
+        public bool PocetakObavijestPoslana { get; set; } = false;
     }
 }
