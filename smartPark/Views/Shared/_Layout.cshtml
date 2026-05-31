@@ -301,6 +301,31 @@
             locale: "bs",
             dateFormat: "Y-m-d"
         });
+
+        // Globalna prevodna za HTML5 validaciju na svim formama
+        var inputs = document.querySelectorAll("input, select, textarea");
+        inputs.forEach(function(input) {
+            input.addEventListener("invalid", function() {
+                if (this.validity.valueMissing) {
+                    this.setCustomValidity("Ovo polje je obavezno.");
+                } else if (this.validity.typeMismatch) {
+                    if (this.type === "email") {
+                        this.setCustomValidity("Molimo unesite validnu email adresu koja sadrži znak '@@'.");
+                    } else if (this.type === "url") {
+                        this.setCustomValidity("Molimo unesite validan URL.");
+                    } else {
+                        this.setCustomValidity("Neispravan format unosa.");
+                    }
+                } else if (this.validity.patternMismatch) {
+                    this.setCustomValidity(this.title || "Format nije zadovoljen.");
+                } else {
+                    this.setCustomValidity("Neispravan unos.");
+                }
+            });
+            input.addEventListener("input", function() {
+                this.setCustomValidity("");
+            });
+        });
     });
 </script>
 @RenderSection("Scripts", required: false)
