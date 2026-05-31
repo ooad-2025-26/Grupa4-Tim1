@@ -93,6 +93,19 @@ namespace smartPark.Services.Implementations
             // Napomena: Provjera dostupnosti se vrsi ispod kroz DohvatiPrvoSlobodnoMjestoAsync
             // koji korektno trazi slobodno mjesto, a ne samo provjerava da li postoji ijedna rezervacija
 
+            // Provjeri da li korisnik vec ima rezervaciju u ovom terminu
+            var preklapanjeKorisnika = await _rezervacijaRepository.PronadjiAsync(r =>
+                r.KorisnikId == korisnikId
+                && r.StatusRezervacije == StatusRezervacije.Aktivna
+                && r.PocetakRezervacije < model.KrajRezervacije
+                && r.KrajRezervacije > model.PocetakRezervacije
+            );
+
+            if (preklapanjeKorisnika.Any())
+            {
+                throw new InvalidOperationException("Već imate aktivnu rezervaciju koja se preklapa sa ovim terminom.");
+            }
+
             // Odabir parking mjesta
             int? parkingMjestoId = model.ParkingMjestoId;
 
@@ -420,6 +433,22 @@ namespace smartPark.Services.Implementations
                     r.StatusRezervacije == StatusRezervacije.Istekla
                 ),
             };
+        }
+
+        public async Task<bool> KorisnikImaAktivnuRezervacijuUPerioduAsync(
+            string korisnikId,
+            DateTime pocetak,
+            DateTime kraj
+        )
+        {
+            var preklapanjeKorisnika = await _rezervacijaRepository.PronadjiAsync(r =>
+                r.KorisnikId == korisnikId
+                && r.StatusRezervacije == StatusRezervacije.Aktivna
+                && r.PocetakRezervacije < kraj
+                && r.KrajRezervacije > pocetak
+            );
+
+            return preklapanjeKorisnika.Any();
         }
 
         public async Task<bool> ProvjeriDostupnostParkingaAsync(

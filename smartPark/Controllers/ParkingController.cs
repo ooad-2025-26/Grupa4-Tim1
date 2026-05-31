@@ -73,7 +73,8 @@ public class ParkingController : Controller
         if (User.IsInRole("Menadzer"))
         {
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            viewModel.MenadzerId = userId;
+            if (userId != null)
+                viewModel.MenadzerId = userId;
         }
         return View(viewModel);
     }
@@ -86,7 +87,8 @@ public class ParkingController : Controller
         if (User.IsInRole("Menadzer"))
         {
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            model.MenadzerId = userId;
+            if (userId != null)
+                model.MenadzerId = userId;
         }
 
         if (!ModelState.IsValid)
@@ -126,7 +128,7 @@ public class ParkingController : Controller
         if (User.IsInRole("Menadzer"))
         {
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (parking.MenadzerID != userId)
+            if (userId == null || parking.MenadzerID == null || !parking.MenadzerID.Split(',', StringSplitOptions.RemoveEmptyEntries).Contains(userId))
             {
                 return Forbid();
             }
@@ -145,7 +147,7 @@ public class ParkingController : Controller
             Latitude = parking.Latitude,
             Longitude = parking.Longitude,
             RadnoVrijeme = parking.RadnoVrijeme,
-            MenadzerId = parking.MenadzerID,
+            MenadzerId = !string.IsNullOrEmpty(parking.MenadzerID) ? parking.MenadzerID.Split(',').FirstOrDefault() : null,
             DefaultniCjenovnikId = parking.DefaultniCjenovnikId,
             DnevniCjenovnikId = parking.DnevniCjenovnikId,
             NocniCjenovnikId = parking.NocniCjenovnikId,
@@ -172,7 +174,7 @@ public class ParkingController : Controller
         if (User.IsInRole("Menadzer"))
         {
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (parking.MenadzerID != userId)
+            if (userId == null || parking.MenadzerID == null || !parking.MenadzerID.Split(',', StringSplitOptions.RemoveEmptyEntries).Contains(userId))
             {
                 return Forbid();
             }

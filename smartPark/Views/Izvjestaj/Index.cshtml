@@ -8,7 +8,7 @@
     var ukMjesta = parkinzi.Sum(p => p.UkupnoMjesta);
     var slMjesta = parkinzi.Sum(p => p.SlobodnaMjesta);
     var zaMjesta = ukMjesta - slMjesta;
-    var popunjenostProc = ukMjesta > 0 ? (zaMjesta * 100) / ukMjesta : 0;
+    var popunjenostProc = ukMjesta > 0 ? Math.Round((decimal)zaMjesta * 100 / ukMjesta, 1) : 0;
 }
 
 <div class="container mx-auto px-4 py-8">
@@ -74,7 +74,7 @@
                     </button>
                 </div>
                 <div>
-                    <button type="button" onclick="osveziGrafikone()" class="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold px-5 py-2 rounded-lg text-xs hover:opacity-90 transition-opacity border-0 cursor-pointer h-[38px]">
+                    <button type="button" id="generisiBtn" onclick="osveziGrafikone()" class="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold px-5 py-2 rounded-lg text-xs hover:opacity-90 transition-opacity border-0 cursor-pointer h-[38px]">
                         <i class="bi bi-file-earmark-bar-graph"></i> Generiši izvještaj
                     </button>
                 </div>
@@ -324,6 +324,11 @@
                 document.getElementById('card3Label').innerText = "Rezervacije (period)";
                 document.getElementById('card4Label').innerText = "Prihod (period)";
 
+                var btn = document.getElementById('generisiBtn');
+                var originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin"></i> Generiše se...';
+                btn.disabled = true;
+
                 // Dohvati prihode
                 fetch('/izvjestaj/generisi-prihode?parkingId=' + parkingId + '&od=' + odStr + '&doo=' + dooStr)
                     .then(response => response.json())
@@ -363,8 +368,12 @@
                         prihodiChart.data.datasets[0].data = weekdayRevenues;
                         prihodiChart.update();
                         omoguciEksportDugmad();
+                        vratiDugmeGenerisi(btn, originalHtml);
                     })
-                    .catch(err => console.error("Greška pri dohvaćanju prihoda:", err));
+                    .catch(err => {
+                        console.error("Greška pri dohvaćanju prihoda:", err);
+                        vratiDugmeGenerisi(btn, originalHtml);
+                    });
 
             } else if (tip === 'Korisnici') {
                 // Podesi labele kartica za Korisnike
@@ -372,6 +381,11 @@
                 document.getElementById('card2Label').innerText = "Novi korisnici";
                 document.getElementById('card3Label').innerText = "Rezervacije (period)";
                 document.getElementById('card4Label').innerText = "Prosjek rez. / kor.";
+
+                var btn = document.getElementById('generisiBtn');
+                var originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin"></i> Generiše se...';
+                btn.disabled = true;
 
                 fetch('/izvjestaj/generisi-korisnike?parkingId=' + parkingId + '&od=' + odStr + '&doo=' + dooStr)
                     .then(response => response.json())
@@ -413,8 +427,19 @@
                         prihodiChart.data.datasets[0].data = noveRegistracije;
                         prihodiChart.update();
                         omoguciEksportDugmad();
+                        vratiDugmeGenerisi(btn, originalHtml);
                     })
-                    .catch(err => console.error("Greška pri dohvaćanju korisnika:", err));
+                    .catch(err => {
+                        console.error("Greška pri dohvaćanju korisnika:", err);
+                        vratiDugmeGenerisi(btn, originalHtml);
+                    });
+            }
+        }
+
+        function vratiDugmeGenerisi(btn, originalHtml) {
+            if (btn) {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
             }
         }
 

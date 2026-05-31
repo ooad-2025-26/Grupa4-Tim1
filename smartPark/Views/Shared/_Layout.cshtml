@@ -56,6 +56,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewBag.Title - SmartPark</title>
+    <link rel="icon" type="image/x-icon" href="~/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="192x192" href="~/icon-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="~/icon-512x512.png" />
+    <link rel="apple-touch-icon" href="~/apple-touch-icon.png" />
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <!-- Icons -->
@@ -138,7 +142,7 @@
 <nav class="bg-card border-b border-border">
     <div class="container mx-auto px-4 flex items-center justify-between h-14">
         <a class="font-bold text-lg tracking-tight text-foreground no-underline flex items-center gap-1.5" asp-controller="Home" asp-action="Index">
-            <i class="bi bi-p-square-fill text-primary"></i> SmartPark
+            <img src="~/LOGO.png" alt="SmartPark Logo" class="h-10 scale-[1.6] origin-left" />
         </a>
 
         @if (uloga == "vozac")
@@ -288,6 +292,17 @@
 </main>
 
 <script src="~/js/site.js" asp-append-version="true"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/bs.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        flatpickr("input[type='date']", {
+            locale: "bs",
+            dateFormat: "Y-m-d"
+        });
+    });
+</script>
 @RenderSection("Scripts", required: false)
 </body>
 </html>

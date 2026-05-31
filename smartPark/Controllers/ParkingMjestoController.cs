@@ -25,6 +25,14 @@ namespace smartPark.Controllers
         [HttpGet("parking-mjesto")]
         public async Task<IActionResult> Index(int? parkingId, string? status)
         {
+            var korisnikId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (User.IsInRole("Menadzer") && parkingId.HasValue && korisnikId != null)
+            {
+                if (!await _parkingService.DaLiMenadzerUpravljaParkingomAsync(korisnikId, parkingId.Value))
+                {
+                    return RedirectToAction("AccessDenied", "Home");
+                }
+            }
             var viewModel = await _parkingMjestoService.DohvatiListuParkingMjestaViewModelAsync(
                 parkingId,
                 status
@@ -217,6 +225,15 @@ namespace smartPark.Controllers
         [HttpGet("parking/{parkingId}/mjesta")]
         public async Task<IActionResult> ListaMjesta(int parkingId, string period = "trenutno")
         {
+            var korisnikId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (User.IsInRole("Menadzer") && korisnikId != null)
+            {
+                if (!await _parkingService.DaLiMenadzerUpravljaParkingomAsync(korisnikId, parkingId))
+                {
+                    return RedirectToAction("AccessDenied", "Home");
+                }
+            }
+
             var parking = await _parkingService.DohvatiParkingPoIdAsync(parkingId);
             if (parking == null) return NotFound();
 

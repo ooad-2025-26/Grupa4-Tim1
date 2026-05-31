@@ -20,9 +20,12 @@
                 <p class="text-xs text-muted-foreground mt-0.5">Administrator panel</p>
             </div>
         </div>
-        <a href="/parking/dodaj" class="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold px-4 py-2.5 rounded-lg text-sm hover:opacity-90 transition-opacity no-underline">
-            <i class="bi bi-plus-lg"></i> Dodaj parking
-        </a>
+        @if (User.IsInRole("Administrator"))
+        {
+            <a href="/parking/dodaj" class="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold px-4 py-2.5 rounded-lg text-sm hover:opacity-90 transition-opacity no-underline">
+                <i class="bi bi-plus-lg"></i> Dodaj parking
+            </a>
+        }
     </div>
 
     <!-- Search Input -->
@@ -135,13 +138,16 @@
                             <a href="/parking/uredi/@p.ParkingId" class="block px-4 py-2 text-xs text-foreground hover:bg-muted no-underline">
                                 <i class="bi bi-pencil me-1.5"></i> Uredi
                             </a>
-                            <form asp-action="DeleteConfirmed" asp-controller="Parking" asp-route-id="@p.ParkingId" method="post" onsubmit="return confirm('Da li ste sigurni da želite obrisati parking @p.Naziv?');" class="block w-full text-start m-0">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@p.ParkingId" />
-                                <button type="submit" class="w-full text-start px-4 py-2 text-xs text-destructive hover:bg-destructive/10 bg-transparent border-0 cursor-pointer">
-                                    <i class="bi bi-trash me-1.5"></i> Obriši
-                                </button>
-                            </form>
+                            @if (User.IsInRole("Administrator"))
+                            {
+                                <form asp-action="DeleteConfirmed" asp-controller="Parking" asp-route-id="@p.ParkingId" method="post" onsubmit="return confirm('Da li ste sigurni da želite obrisati parking @p.Naziv?');" class="block w-full text-start m-0">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@p.ParkingId" />
+                                    <button type="submit" class="w-full text-start px-4 py-2 text-xs text-destructive hover:bg-destructive/10 bg-transparent border-0 cursor-pointer">
+                                        <i class="bi bi-trash me-1.5"></i> Obriši
+                                    </button>
+                                </form>
+                            }
                         </div>
                     </div>
                 </div>

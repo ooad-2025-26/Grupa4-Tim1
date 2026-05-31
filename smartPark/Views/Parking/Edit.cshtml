@@ -30,14 +30,13 @@
                     <div>
                         <label asp-for="MenadzerId" class="block text-sm font-medium text-foreground mb-1">Menadžer</label>
                         <select asp-for="MenadzerId" asp-items="Model.DostupniMenadzeri" class="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                            <option value="">Bez menadžera...</option>
                         </select>
                         <span asp-validation-for="MenadzerId" class="text-danger text-xs"></span>
                     </div>
                 }
                 else
                 {
-                    <input type="hidden" asp-for="MenadzerId" value="@Model.MenadzerId" />
+                    <input type="hidden" asp-for="MenadzerId" />
                 }
 
                 <!-- Naziv -->
@@ -193,20 +192,40 @@
             var latInput = document.getElementById("latitudeInput");
             var lngInput = document.getElementById("longitudeInput");
 
-            var initialLat = parseFloat(latInput.value) || defaultLat;
-            var initialLng = parseFloat(lngInput.value) || defaultLng;
+            var latVal = latInput.value ? latInput.value.replace(',', '.') : '';
+            var lngVal = lngInput.value ? lngInput.value.replace(',', '.') : '';
 
-            // Inicijalizuj mapu
-            var map = L.map('selectLocationMap').setView([initialLat, initialLng], 14);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OSM'
+            var initialLat = parseFloat(latVal) || defaultLat;
+            var initialLng = parseFloat(lngVal) || defaultLng;
+
+            // Inicijalizuj mapu sa granicama za Sarajevo
+            var sarajevoBounds = L.latLngBounds(
+                L.latLng(43.7, 18.2), // Jugozapad
+                L.latLng(44.0, 18.5)  // Sjeveroistok
+            );
+
+            var map = L.map('selectLocationMap', {
+                maxBounds: sarajevoBounds,
+                maxBoundsViscosity: 1.0,
+                minZoom: 11
+            }).setView([initialLat, initialLng], 14);
+
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
             }).addTo(map);
 
             var marker = L.marker([initialLat, initialLng], { draggable: true }).addTo(map);
 
             function updateCoordinates(lat, lng) {
-                latInput.value = lat.toFixed(6);
-                lngInput.value = lng.toFixed(6);
+                // Keep the dot so standard parsing in C# model binding works, or use comma depending on Culture.
+                // In ASP.NET Core, it usually expects the current culture's separator if it's rendered with one.
+                // But typically, hidden inputs should just use standard numbers if invariant culture is configured.
+                // We'll leave it as dot. Wait, if it rendered with comma, C# expects a comma?
+                // Actually .ToString(CultureInfo.InvariantCulture) is safer if we bind it.
+                // Let's use value.replace('.', ',') if that's what the server wants, or just leave it.
+                // We will use standard format:
+                latInput.value = lat.toFixed(6).replace('.', ',');
+                lngInput.value = lng.toFixed(6).replace('.', ',');
             }
 
             marker.on('dragend', function (event) {

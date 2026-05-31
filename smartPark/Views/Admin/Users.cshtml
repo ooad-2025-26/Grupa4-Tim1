@@ -26,7 +26,7 @@
 
     <!-- Filteri / Search -->
     <div class="bg-card rounded-xl border border-border p-4 mb-6 shadow-sm">
-        <form method="get" action="/admin/korisnici" id="filterForm">
+        <form method="get" action="/admin/korisnici" id="filterForm" onsubmit="prikaziLoader(this)">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                 <div class="md:col-span-2">
                     <label class="text-xs font-semibold text-muted-foreground block mb-1.5">Pretraži korisnike</label>
@@ -230,6 +230,15 @@
 
 @section Scripts {
     <script>
+        function prikaziLoader(form) {
+            var btn = form.querySelector('button[type="submit"]');
+            if (btn) {
+                btn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin"></i> Pretraga...';
+                btn.classList.add('opacity-75', 'cursor-wait');
+                btn.disabled = true;
+            }
+        }
+
         function toggleDropdown(button) {
             var dropdownMenu = button.nextElementSibling;
             document.querySelectorAll('.actions-dropdown div').forEach(function(el) {

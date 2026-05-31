@@ -22,6 +22,14 @@ namespace smartPark.Controllers
         [HttpGet("cjenovnik")]
         public async Task<IActionResult> Index(int? parkingId)
         {
+            var korisnikId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (User.IsInRole("Menadzer") && parkingId.HasValue && korisnikId != null)
+            {
+                if (!await _parkingServis.DaLiMenadzerUpravljaParkingomAsync(korisnikId, parkingId.Value))
+                {
+                    return RedirectToAction("AccessDenied", "Home");
+                }
+            }
             var viewModel = await _cjenovnikServis.DohvatiListuCjenovnikaViewModelAsync(parkingId);
             return View(viewModel);
         }
@@ -43,14 +51,34 @@ namespace smartPark.Controllers
         public async Task<IActionResult> Kreiraj()
         {
             var parkinzi = await _parkingServis.DohvatiSveParkingeAsync();
+            var selectLista = new List<SelectListItem>();
+
+            if (User.IsInRole("Menadzer"))
+            {
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (userId != null)
+                {
+                    parkinzi = parkinzi.Where(p => p.MenadzerID != null && p.MenadzerID.Split(',', StringSplitOptions.RemoveEmptyEntries).Contains(userId));
+                    if (!parkinzi.Any())
+                    {
+                        selectLista.Add(new SelectListItem { Value = "", Text = "Opšti cjenovnik (Nije dodijeljen)" });
+                    }
+                }
+            }
+            else
+            {
+                selectLista.Add(new SelectListItem { Value = "", Text = "Opšti cjenovnik (Nije dodijeljen)" });
+            }
+
+            selectLista.AddRange(parkinzi.Select(p => new SelectListItem
+            {
+                Value = p.ParkingId.ToString(),
+                Text = $"{p.Naziv} - {p.Adresa}",
+            }));
+
             var viewModel = new CjenovnikKreirajViewModel
             {
-                DostupniParkinzi = new[] { new SelectListItem { Value = "", Text = "Opšti cjenovnik (Nije dodijeljen)" } }
-                    .Concat(parkinzi.Select(p => new SelectListItem
-                    {
-                        Value = p.ParkingId.ToString(),
-                        Text = $"{p.Naziv} - {p.Adresa}",
-                    })),
+                DostupniParkinzi = selectLista,
                 DatumPocetka = DateTime.Now.Date,
             };
 
@@ -62,15 +90,57 @@ namespace smartPark.Controllers
         [Authorize(Roles = "Administrator,Menadzer")]
         public async Task<IActionResult> Kreiraj(CjenovnikKreirajViewModel model)
         {
+            if (User.IsInRole("Menadzer"))
+            {
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var sviParkinzi = await _parkingServis.DohvatiSveParkingeAsync();
+                var imaParking = sviParkinzi.Any(p => p.MenadzerID != null && p.MenadzerID.Split(',', StringSplitOptions.RemoveEmptyEntries).Contains(userId));
+
+                if (!imaParking)
+                {
+                    if (model.ParkingId != null)
+                    {
+                        return RedirectToAction("AccessDenied", "Home");
+                    }
+                }
+                else
+                {
+                    if (model.ParkingId == null || userId == null || !await _parkingServis.DaLiMenadzerUpravljaParkingomAsync(userId, model.ParkingId.Value))
+                    {
+                        return RedirectToAction("AccessDenied", "Home");
+                    }
+                }
+            }
+
             if (!ModelState.IsValid)
             {
                 var parkinzi = await _parkingServis.DohvatiSveParkingeAsync();
-                model.DostupniParkinzi = new[] { new SelectListItem { Value = "", Text = "Opšti cjenovnik (Nije dodijeljen)" } }
-                    .Concat(parkinzi.Select(p => new SelectListItem
+                var selectLista = new List<SelectListItem>();
+                
+                if (User.IsInRole("Menadzer"))
+                {
+                    var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                    if (userId != null)
                     {
-                        Value = p.ParkingId.ToString(),
-                        Text = $"{p.Naziv} - {p.Adresa}",
-                    }));
+                        parkinzi = parkinzi.Where(p => p.MenadzerID != null && p.MenadzerID.Split(',', StringSplitOptions.RemoveEmptyEntries).Contains(userId));
+                        if (!parkinzi.Any())
+                        {
+                            selectLista.Add(new SelectListItem { Value = "", Text = "Opšti cjenovnik (Nije dodijeljen)" });
+                        }
+                    }
+                }
+                else
+                {
+                    selectLista.Add(new SelectListItem { Value = "", Text = "Opšti cjenovnik (Nije dodijeljen)" });
+                }
+
+                selectLista.AddRange(parkinzi.Select(p => new SelectListItem
+                {
+                    Value = p.ParkingId.ToString(),
+                    Text = $"{p.Naziv} - {p.Adresa}",
+                }));
+                
+                model.DostupniParkinzi = selectLista;
                 return View(model);
             }
 
@@ -85,12 +155,32 @@ namespace smartPark.Controllers
                 ModelState.AddModelError("", greska.Message);
 
                 var parkinzi = await _parkingServis.DohvatiSveParkingeAsync();
-                model.DostupniParkinzi = new[] { new SelectListItem { Value = "", Text = "Opšti cjenovnik (Nije dodijeljen)" } }
-                    .Concat(parkinzi.Select(p => new SelectListItem
+                var selectLista = new List<SelectListItem>();
+                
+                if (User.IsInRole("Menadzer"))
+                {
+                    var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                    if (userId != null)
                     {
-                        Value = p.ParkingId.ToString(),
-                        Text = $"{p.Naziv} - {p.Adresa}",
-                    }));
+                        parkinzi = parkinzi.Where(p => p.MenadzerID != null && p.MenadzerID.Split(',', StringSplitOptions.RemoveEmptyEntries).Contains(userId));
+                        if (!parkinzi.Any())
+                        {
+                            selectLista.Add(new SelectListItem { Value = "", Text = "Opšti cjenovnik (Nije dodijeljen)" });
+                        }
+                    }
+                }
+                else
+                {
+                    selectLista.Add(new SelectListItem { Value = "", Text = "Opšti cjenovnik (Nije dodijeljen)" });
+                }
+
+                selectLista.AddRange(parkinzi.Select(p => new SelectListItem
+                {
+                    Value = p.ParkingId.ToString(),
+                    Text = $"{p.Naziv} - {p.Adresa}",
+                }));
+                
+                model.DostupniParkinzi = selectLista;
                 return View(model);
             }
         }
@@ -105,7 +195,42 @@ namespace smartPark.Controllers
             if (cjenovnik == null)
                 return NotFound();
 
+            var korisnikId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (User.IsInRole("Menadzer") && cjenovnik.ParkingId.HasValue && korisnikId != null)
+            {
+                if (!await _parkingServis.DaLiMenadzerUpravljaParkingomAsync(korisnikId, cjenovnik.ParkingId.Value))
+                {
+                    return RedirectToAction("AccessDenied", "Home");
+                }
+            }
+            if (cjenovnik == null)
+                return NotFound();
+
             var parkinzi = await _parkingServis.DohvatiSveParkingeAsync();
+            var selectLista = new List<SelectListItem>();
+
+            if (User.IsInRole("Menadzer"))
+            {
+                if (korisnikId != null)
+                {
+                    parkinzi = parkinzi.Where(p => p.MenadzerID != null && p.MenadzerID.Split(',', StringSplitOptions.RemoveEmptyEntries).Contains(korisnikId));
+                    if (!parkinzi.Any())
+                    {
+                        selectLista.Add(new SelectListItem { Value = "", Text = "Opšti cjenovnik (Nije dodijeljen)" });
+                    }
+                }
+            }
+            else
+            {
+                selectLista.Add(new SelectListItem { Value = "", Text = "Opšti cjenovnik (Nije dodijeljen)" });
+            }
+
+            selectLista.AddRange(parkinzi.Select(p => new SelectListItem
+            {
+                Value = p.ParkingId.ToString(),
+                Text = $"{p.Naziv} - {p.Adresa}",
+            }));
+
             var viewModel = new CjenovnikUrediViewModel
             {
                 CjenovnikId = cjenovnik.CjenovnikId,
@@ -116,12 +241,7 @@ namespace smartPark.Controllers
                 Zona = cjenovnik.Zona,
                 DatumPocetka = cjenovnik.DatumPocetka,
                 DatumKraja = cjenovnik.DatumKraja,
-                DostupniParkinzi = new[] { new SelectListItem { Value = "", Text = "Opšti cjenovnik (Nije dodijeljen)" } }
-                    .Concat(parkinzi.Select(p => new SelectListItem
-                    {
-                        Value = p.ParkingId.ToString(),
-                        Text = $"{p.Naziv} - {p.Adresa}",
-                    })),
+                DostupniParkinzi = selectLista,
             };
 
             return View(viewModel);
@@ -135,15 +255,57 @@ namespace smartPark.Controllers
             if (id != model.CjenovnikId)
                 return NotFound();
 
+            if (User.IsInRole("Menadzer"))
+            {
+                var korisnikId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var sviParkinzi = await _parkingServis.DohvatiSveParkingeAsync();
+                var imaParking = sviParkinzi.Any(p => p.MenadzerID != null && p.MenadzerID.Split(',', StringSplitOptions.RemoveEmptyEntries).Contains(korisnikId));
+
+                if (!imaParking)
+                {
+                    if (model.ParkingId != null)
+                    {
+                        return RedirectToAction("AccessDenied", "Home");
+                    }
+                }
+                else
+                {
+                    if (model.ParkingId == null || korisnikId == null || !await _parkingServis.DaLiMenadzerUpravljaParkingomAsync(korisnikId, model.ParkingId.Value))
+                    {
+                        return RedirectToAction("AccessDenied", "Home");
+                    }
+                }
+            }
+
             if (!ModelState.IsValid)
             {
                 var parkinzi = await _parkingServis.DohvatiSveParkingeAsync();
-                model.DostupniParkinzi = new[] { new SelectListItem { Value = "", Text = "Opšti cjenovnik (Nije dodijeljen)" } }
-                    .Concat(parkinzi.Select(p => new SelectListItem
+                var selectLista = new List<SelectListItem>();
+
+                if (User.IsInRole("Menadzer"))
+                {
+                    var korisnikId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                    if (korisnikId != null)
                     {
-                        Value = p.ParkingId.ToString(),
-                        Text = $"{p.Naziv} - {p.Adresa}",
-                    }));
+                        parkinzi = parkinzi.Where(p => p.MenadzerID != null && p.MenadzerID.Split(',', StringSplitOptions.RemoveEmptyEntries).Contains(korisnikId));
+                        if (!parkinzi.Any())
+                        {
+                            selectLista.Add(new SelectListItem { Value = "", Text = "Opšti cjenovnik (Nije dodijeljen)" });
+                        }
+                    }
+                }
+                else
+                {
+                    selectLista.Add(new SelectListItem { Value = "", Text = "Opšti cjenovnik (Nije dodijeljen)" });
+                }
+
+                selectLista.AddRange(parkinzi.Select(p => new SelectListItem
+                {
+                    Value = p.ParkingId.ToString(),
+                    Text = $"{p.Naziv} - {p.Adresa}",
+                }));
+
+                model.DostupniParkinzi = selectLista;
                 return View(model);
             }
 
@@ -161,12 +323,32 @@ namespace smartPark.Controllers
             {
                 ModelState.AddModelError("", greska.Message);
                 var parkinzi = await _parkingServis.DohvatiSveParkingeAsync();
-                model.DostupniParkinzi = new[] { new SelectListItem { Value = "", Text = "Opšti cjenovnik (Nije dodijeljen)" } }
-                    .Concat(parkinzi.Select(p => new SelectListItem
+                var selectLista = new List<SelectListItem>();
+
+                if (User.IsInRole("Menadzer"))
+                {
+                    var korisnikId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                    if (korisnikId != null)
                     {
-                        Value = p.ParkingId.ToString(),
-                        Text = $"{p.Naziv} - {p.Adresa}",
-                    }));
+                        parkinzi = parkinzi.Where(p => p.MenadzerID != null && p.MenadzerID.Split(',', StringSplitOptions.RemoveEmptyEntries).Contains(korisnikId));
+                        if (!parkinzi.Any())
+                        {
+                            selectLista.Add(new SelectListItem { Value = "", Text = "Opšti cjenovnik (Nije dodijeljen)" });
+                        }
+                    }
+                }
+                else
+                {
+                    selectLista.Add(new SelectListItem { Value = "", Text = "Opšti cjenovnik (Nije dodijeljen)" });
+                }
+
+                selectLista.AddRange(parkinzi.Select(p => new SelectListItem
+                {
+                    Value = p.ParkingId.ToString(),
+                    Text = $"{p.Naziv} - {p.Adresa}",
+                }));
+
+                model.DostupniParkinzi = selectLista;
                 return View(model);
             }
         }
@@ -178,6 +360,19 @@ namespace smartPark.Controllers
         [Authorize(Roles = "Administrator,Menadzer")]
         public async Task<IActionResult> Deaktiviraj(int id)
         {
+            var cjenovnik = await _cjenovnikServis.DohvatiCjenovnikPoIdAsync(id);
+            if (cjenovnik == null)
+                return NotFound();
+
+            if (User.IsInRole("Menadzer"))
+            {
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (cjenovnik.ParkingId == null || userId == null || !await _parkingServis.DaLiMenadzerUpravljaParkingomAsync(userId, cjenovnik.ParkingId.Value))
+                {
+                    return RedirectToAction("AccessDenied", "Home");
+                }
+            }
+
             try
             {
                 var rezultat = await _cjenovnikServis.DeaktivirajCjenovnikAsync(id);
@@ -212,6 +407,15 @@ namespace smartPark.Controllers
             if (cjenovnik == null)
                 return NotFound();
 
+            if (User.IsInRole("Menadzer"))
+            {
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (cjenovnik.ParkingId == null || userId == null || !await _parkingServis.DaLiMenadzerUpravljaParkingomAsync(userId, cjenovnik.ParkingId.Value))
+                {
+                    return RedirectToAction("AccessDenied", "Home");
+                }
+            }
+
             return View(cjenovnik);
         }
 
@@ -221,6 +425,19 @@ namespace smartPark.Controllers
         [Authorize(Roles = "Administrator,Menadzer")]
         public async Task<IActionResult> ObrisiPotvrda(int id)
         {
+            var cjenovnik = await _cjenovnikServis.DohvatiCjenovnikPoIdAsync(id);
+            if (cjenovnik == null)
+                return NotFound();
+
+            if (User.IsInRole("Menadzer"))
+            {
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (cjenovnik.ParkingId == null || userId == null || !await _parkingServis.DaLiMenadzerUpravljaParkingomAsync(userId, cjenovnik.ParkingId.Value))
+                {
+                    return RedirectToAction("AccessDenied", "Home");
+                }
+            }
+
             var rezultat = await _cjenovnikServis.ObrisiCjenovnikAsync(id);
             if (rezultat)
             {

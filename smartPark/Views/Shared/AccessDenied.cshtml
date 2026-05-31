@@ -12,9 +12,14 @@
         Nemate dozvolu za pristup traženoj stranici. Za podršku ili dodatne informacije, kontaktirajte nas putem e-maila na <strong>help@smartpark.ba</strong>.
     </p>
     
-    <div class="flex gap-4">
-        <a href="/" class="inline-flex items-center justify-center bg-primary text-primary-foreground font-semibold px-4 py-2.5 rounded-lg text-sm hover:opacity-90 transition-opacity no-underline">
-            Vrati se na početnu
+    <div class="flex flex-wrap gap-3 justify-center">
+        <a href="/" class="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold px-5 py-2.5 rounded-lg text-sm hover:opacity-90 transition-opacity no-underline">
+            <i class="bi bi-house"></i>
+            Početna stranica
         </a>
+        <button onclick="history.back()" class="inline-flex items-center gap-2 bg-muted text-foreground font-semibold px-5 py-2.5 rounded-lg text-sm hover:opacity-80 transition-opacity border border-border cursor-pointer">
+            <i class="bi bi-arrow-left"></i>
+            Nazad
+        </button>
     </div>
 </div>

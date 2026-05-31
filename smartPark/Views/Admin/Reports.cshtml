@@ -65,7 +65,7 @@
                     </button>
                 </div>
                 <div>
-                    <button type="button" onclick="osveziGrafikone()" class="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold px-5 py-2 rounded-lg text-xs hover:opacity-90 transition-opacity border-0 cursor-pointer h-[38px]">
+                    <button type="button" id="generisiBtn" onclick="osveziGrafikone()" class="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold px-5 py-2 rounded-lg text-xs hover:opacity-90 transition-opacity border-0 cursor-pointer h-[38px]">
                         <i class="bi bi-file-earmark-bar-graph"></i> Generiši izvještaj
                     </button>
                 </div>
@@ -144,6 +144,7 @@
             </div>
         </div>
     </div>
+
 </div>
 
 @section Scripts {
@@ -228,6 +229,12 @@
         }
 
         function osveziGrafikone() {
+            var btn = document.getElementById('generisiBtn');
+            var originalContent = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Učitavanje...';
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+
             var parkingSelect = document.getElementById('parkingSelect');
             var selectedParking = parkingSelect.options[parkingSelect.selectedIndex].text;
             if (parkingSelect.value === "") {
@@ -294,10 +301,7 @@
                 document.getElementById('card4Label').innerText = "Prihod (period)";
                 document.getElementById('card4Subtitle').innerText = "Odabrani period";
 
-                // Table Headers
-                document.getElementById('thKorisnici').innerText = "Korisnici";
-                document.getElementById('thRezervacije').innerText = "Rezervacije";
-                document.getElementById('thPrihod').innerText = "Prihod (KM)";
+
 
                 fetch('/izvjestaj/generisi-prihode?parkingId=' + parkingId + '&od=' + odStr + '&doo=' + dooStr)
                     .then(response => response.json())
@@ -306,35 +310,13 @@
 
                         var labels = [];
                         var data = [];
-                        var tableHtml = '';
-                        var totalRezervacija = 0;
 
                         prihodiData.dnevniPrihodi.forEach(function(dp) {
                             var d = new Date(dp.datum);
                             var formattedD = d.getDate() + '.' + (d.getMonth() + 1) + '.' + d.getFullYear();
                             labels.push(d.getDate() + '.' + (d.getMonth() + 1) + '.');
                             data.push(dp.prihod);
-                            totalRezervacija += dp.brojRezervacija;
-
-                            tableHtml += `<tr class="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                                <td class="py-3 px-2 text-foreground font-medium text-xs">${formattedD}</td>
-                                <td class="py-3 px-2 text-foreground text-xs">Dnevni prihod - ${selectedParking}</td>
-                                <td class="py-3 px-2 text-right text-foreground font-mono text-xs">-</td>
-                                <td class="py-3 px-2 text-right text-foreground font-mono text-xs">${dp.brojRezervacija}</td>
-                                <td class="py-3 px-2 text-right text-foreground font-mono text-xs font-bold">${dp.prihod.toFixed(2)} KM</td>
-                            </tr>`;
                         });
-
-                        // Sum row
-                        tableHtml += `<tr class="border-b border-border/50 hover:bg-muted/30 transition-colors bg-muted/20">
-                            <td class="py-3 px-2 text-foreground font-bold text-xs">Ukupno</td>
-                            <td class="py-3 px-2 text-foreground font-bold text-xs">-</td>
-                            <td class="py-3 px-2 text-right font-extrabold text-foreground font-mono text-xs">-</td>
-                            <td class="py-3 px-2 text-right font-extrabold text-foreground font-mono text-xs">${totalRezervacija}</td>
-                            <td class="py-3 px-2 text-right font-extrabold text-foreground font-mono text-xs">${prihodiData.ukupniPrihod.toFixed(2)} KM</td>
-                        </tr>`;
-
-                        document.getElementById('tabelaBody').innerHTML = tableHtml;
 
                         trendChart.data.labels = labels;
                         trendChart.data.datasets[0].data = data;
@@ -354,8 +336,17 @@
                         distribucijaChart.data.datasets[0].label = 'Prihodi po danima';
                         distribucijaChart.update();
                         omoguciEksportDugmad();
+                        
+                        btn.disabled = false;
+                        btn.innerHTML = originalContent;
+                        btn.classList.remove('opacity-50', 'cursor-not-allowed');
                     })
-                    .catch(err => console.error("Greška pri dohvaćanju prihoda:", err));
+                    .catch(err => {
+                        console.error("Greška pri dohvaćanju prihoda:", err);
+                        btn.disabled = false;
+                        btn.innerHTML = originalContent;
+                        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    });
 
             } else if (tip === 'Korisnici') {
                 document.getElementById('lineChartTitle').innerText = "Aktivni korisnici po danima";
@@ -371,10 +362,7 @@
                 document.getElementById('card4Label').innerText = "Prosjek rez. / kor.";
                 document.getElementById('card4Subtitle').innerText = "U periodu";
 
-                // Table Headers
-                document.getElementById('thKorisnici').innerText = "Aktivni korisnici";
-                document.getElementById('thRezervacije').innerText = "Novi registrovani";
-                document.getElementById('thPrihod').innerText = "Rezervacije";
+
 
                 fetch('/izvjestaj/generisi-korisnike?parkingId=' + parkingId + '&od=' + odStr + '&doo=' + dooStr)
                     .then(response => response.json())
@@ -387,39 +375,13 @@
 
                         var labels = [];
                         var data = [];
-                        var tableHtml = '';
-                        var totalAktivnih = 0;
-                        var totalNovih = 0;
-                        var totalRez = 0;
 
                         korisniciData.dnevnaStatistika.forEach(function(ds) {
                             var d = new Date(ds.datum);
                             var formattedD = d.getDate() + '.' + (d.getMonth() + 1) + '.' + d.getFullYear();
                             labels.push(d.getDate() + '.' + (d.getMonth() + 1) + '.');
                             data.push(ds.brojAktivnihKorisnika);
-                            totalAktivnih += ds.brojAktivnihKorisnika;
-                            totalNovih += ds.brojNoveRegistracije;
-                            totalRez += ds.ukupnoRezervacija;
-
-                            tableHtml += `<tr class="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                                <td class="py-3 px-2 text-foreground font-medium text-xs">${formattedD}</td>
-                                <td class="py-3 px-2 text-foreground text-xs">Statistika korisnika - ${selectedParking}</td>
-                                <td class="py-3 px-2 text-right text-foreground font-mono text-xs">${ds.brojAktivnihKorisnika}</td>
-                                <td class="py-3 px-2 text-right text-foreground font-mono text-xs">${ds.brojNoveRegistracije}</td>
-                                <td class="py-3 px-2 text-right text-foreground font-mono text-xs font-bold">${ds.ukupnoRezervacija}</td>
-                            </tr>`;
                         });
-
-                        // Sum row
-                        tableHtml += `<tr class="border-b border-border/50 hover:bg-muted/30 transition-colors bg-muted/20">
-                            <td class="py-3 px-2 text-foreground font-bold text-xs">Ukupno</td>
-                            <td class="py-3 px-2 text-foreground font-bold text-xs">-</td>
-                            <td class="py-3 px-2 text-right font-extrabold text-foreground font-mono text-xs">${totalAktivnih}</td>
-                            <td class="py-3 px-2 text-right font-extrabold text-foreground font-mono text-xs">${totalNovih}</td>
-                            <td class="py-3 px-2 text-right font-extrabold text-foreground font-mono text-xs">${totalRez}</td>
-                        </tr>`;
-
-                        document.getElementById('tabelaBody').innerHTML = tableHtml;
 
                         trendChart.data.labels = labels;
                         trendChart.data.datasets[0].data = data;
@@ -439,8 +401,17 @@
                         distribucijaChart.data.datasets[0].label = 'Novi korisnici po danima';
                         distribucijaChart.update();
                         omoguciEksportDugmad();
+                        
+                        btn.disabled = false;
+                        btn.innerHTML = originalContent;
+                        btn.classList.remove('opacity-50', 'cursor-not-allowed');
                     })
-                    .catch(err => console.error("Greška pri dohvaćanju korisnika:", err));
+                    .catch(err => {
+                        console.error("Greška pri dohvaćanju korisnika:", err);
+                        btn.disabled = false;
+                        btn.innerHTML = originalContent;
+                        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    });
             }
         }
 
@@ -469,7 +440,6 @@
             var parking = document.getElementById('parkingSelect')?.options[document.getElementById('parkingSelect').selectedIndex]?.text || 'Svi parking prostori';
             var period = document.getElementById('periodSelect')?.options[document.getElementById('periodSelect').selectedIndex]?.text || '';
 
-            var rows = document.querySelectorAll('#tabelaBody tr');
             var printContent = '<html><head><title>Izvještaj - SmartPark</title>';
             printContent += '<style>body{font-family:Arial,sans-serif;padding:24px;}h1{font-size:20px;margin-bottom:4px;}p{color:#666;font-size:13px;margin:0 0 16px;}table{border-collapse:collapse;width:100%;}th,td{border:1px solid #ddd;padding:9px 12px;text-align:left;font-size:13px;}th{background:#f0f4ff;font-weight:bold;}.meta{color:#555;margin-bottom:20px;font-size:12px;}</style>';
             printContent += '</head><body>';
@@ -482,19 +452,6 @@
             var c4 = document.getElementById('card4Value')?.innerText || '';
             printContent += '<table style="margin-bottom:20px;"><tr><th>' + (document.getElementById('card1Label')?.innerText||'') + '</th><th>' + (document.getElementById('card2Label')?.innerText||'') + '</th><th>' + (document.getElementById('card4Label')?.innerText||'') + '</th></tr>';
             printContent += '<tr><td>' + c1 + '</td><td>' + c2 + '</td><td>' + c4 + '</td></tr></table>';
-
-            // Table
-            var headers = document.querySelectorAll('#detaljiTabela thead th');
-            printContent += '<table><thead><tr>';
-            headers.forEach(function(h) { printContent += '<th>' + h.innerText + '</th>'; });
-            printContent += '</tr></thead><tbody>';
-            rows.forEach(function(r) {
-                var cells = r.querySelectorAll('td');
-                printContent += '<tr>';
-                cells.forEach(function(c) { printContent += '<td>' + c.innerText + '</td>'; });
-                printContent += '</tr>';
-            });
-            printContent += '</tbody></table></body></html>';
 
             var win = window.open('', '_blank');
             win.document.write(printContent);
@@ -509,9 +466,6 @@
             var parking = document.getElementById('parkingSelect')?.options[document.getElementById('parkingSelect').selectedIndex]?.text || 'Svi parking prostori';
             var period = document.getElementById('periodSelect')?.options[document.getElementById('periodSelect').selectedIndex]?.text || '';
 
-            var headers = document.querySelectorAll('#detaljiTabela thead th');
-            var rows = document.querySelectorAll('#tabelaBody tr');
-
             var csvContent = '\uFEFF'; // BOM
             csvContent += 'SmartPark Sistemski izvještaj\t\t\n';
             csvContent += 'Tip:\t' + tip + '\n';
@@ -519,16 +473,7 @@
             csvContent += 'Period:\t' + period + '\n';
             csvContent += 'Generisan:\t' + new Date().toLocaleString('bs') + '\n\n';
 
-            var headerRow = [];
-            headers.forEach(function(h) { headerRow.push('"' + h.innerText.trim() + '"'); });
-            csvContent += headerRow.join('\t') + '\n';
 
-            rows.forEach(function(r) {
-                var cells = r.querySelectorAll('td');
-                var rowData = [];
-                cells.forEach(function(c) { rowData.push('"' + c.innerText.trim() + '"'); });
-                csvContent += rowData.join('\t') + '\n';
-            });
 
             var blob = new Blob([csvContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
             var link = document.createElement('a');

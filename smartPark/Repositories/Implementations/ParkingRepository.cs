@@ -136,7 +136,7 @@ namespace smartPark.Repositories.Implementations
             var parking = await _skup
                 .Include(p => p.ParkingMjesta)
                 .Include(p => p.Rezervacije)
-                .FirstOrDefaultAsync(p => p.MenadzerID == menadzerId);
+                .FirstOrDefaultAsync(p => p.MenadzerID != null && p.MenadzerID.Contains(menadzerId));
             if (parking != null)
             {
                 await PopuniDinamičkaSlobodnaMjestaAsync(new List<Parking> { parking });
@@ -149,7 +149,7 @@ namespace smartPark.Repositories.Implementations
             var lista = await _skup
                 .Include(p => p.ParkingMjesta)
                 .Include(p => p.Rezervacije)
-                .Where(p => p.MenadzerID == menadzerId)
+                .Where(p => p.MenadzerID != null && p.MenadzerID.Contains(menadzerId))
                 .ToListAsync();
             await PopuniDinamičkaSlobodnaMjestaAsync(lista);
             return lista;
@@ -158,7 +158,7 @@ namespace smartPark.Repositories.Implementations
         public async Task<bool> DaLiMenadzerUpravljaParkingomAsync(string menadzerId, int parkingId)
         {
             return await _skup.AnyAsync(p =>
-                p.ParkingId == parkingId && p.MenadzerID == menadzerId
+                p.ParkingId == parkingId && p.MenadzerID != null && p.MenadzerID.Contains(menadzerId)
             );
         }
 
@@ -173,7 +173,7 @@ namespace smartPark.Repositories.Implementations
             if (od.HasValue)
                 upit = upit.Where(r => r.PocetakRezervacije >= od.Value);
             if (doo.HasValue)
-                upit = upit.Where(r => r.KrajRezervacije <= doo.Value);
+                upit = upit.Where(r => r.PocetakRezervacije < doo.Value);
 
             return await upit.CountAsync();
         }
@@ -189,7 +189,7 @@ namespace smartPark.Repositories.Implementations
             if (od.HasValue)
                 upit = upit.Where(r => r.PocetakRezervacije >= od.Value);
             if (doo.HasValue)
-                upit = upit.Where(r => r.KrajRezervacije <= doo.Value);
+                upit = upit.Where(r => r.PocetakRezervacije < doo.Value);
 
             return await upit.SumAsync(r => r.UkupnaCijena);
         }
@@ -213,9 +213,9 @@ namespace smartPark.Repositories.Implementations
                 kraj
             );
 
-            var brojDana = (kraj.Date - pocetak.Date).Days + 1;
+            var brojDana = (kraj.Date - pocetak.Date).Days;
             if (brojDana <= 0)
-                return 0;
+                brojDana = 1;
 
             var prosjecanBrojRezervacijaPoDanu = (double)brojRezervacija / brojDana;
             var zauzetost = (prosjecanBrojRezervacijaPoDanu / parking.UkupnoMjesta) * 100;
@@ -477,9 +477,10 @@ namespace smartPark.Repositories.Implementations
             return menadzeri;
         } 
 
-        public async Task<int> PrebrojRezervacijeAsync()
+        public async Task<int> PrebrojRezervacijeDanasAsync()
         {
-            return await _kontekst.Rezervacije.CountAsync();
+            var danas = DateTime.Today;
+            return await _kontekst.Rezervacije.CountAsync(r => r.PocetakRezervacije >= danas && r.PocetakRezervacije < danas.AddDays(1));
         }
 
         public async Task<decimal> DohvatiUkupniPrihodAsync()

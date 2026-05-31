@@ -222,7 +222,7 @@ namespace smartPark.Services.Implementations
         {
             var ukupnoKorisnika = await _korisnikRepozitorij.PrebrojAsync();
             var ukupnoParkinga = await _parkingRepozitorij.PrebrojAsync();
-            var ukupnoRezervacija = await _parkingRepozitorij.PrebrojRezervacijeAsync();
+            var ukupnoRezervacija = await _parkingRepozitorij.PrebrojRezervacijeDanasAsync();
             var ukupniPrihod = await _parkingRepozitorij.DohvatiDnevniPrihodAsync();
 
             var brojPoUlogama = await _korisnikRepozitorij.DohvatiBrojKorisnikaPoUlogamaAsync();

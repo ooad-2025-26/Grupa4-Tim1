@@ -52,7 +52,7 @@ namespace smartPark.Repositories.Interfaces
         Task<Dictionary<DayOfWeek, int>> DohvatiRezervacijePoDanimaSedmiceAsync(int parkingId);
 
         // ========== DODATNE METODE ZA STATISTIKU ==========
-        Task<int> PrebrojRezervacijeAsync();
+        Task<int> PrebrojRezervacijeDanasAsync();
         Task<decimal> DohvatiUkupniPrihodAsync();
         Task<decimal> DohvatiDnevniPrihodAsync();
         Task<List<Rezervacija>> DohvatiPosljednjeRezervacijeKorisnikaAsync(

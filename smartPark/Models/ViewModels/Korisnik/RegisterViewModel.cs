@@ -52,8 +52,9 @@ public class RegisterViewModel
     [Display(Name = "Potvrdi lozinku")]
     public string ConfirmPassword { get; set; } = string.Empty;
 
-    [StringLength(20, ErrorMessage = "Broj vozačke ne može biti duži od 20 karaktera")]
-    [RegularExpression(@"^[a-zA-Z0-9\s-]{0,20}$", ErrorMessage = "Broj vozačke može sadržavati samo slova, brojeve, razmake i crtice")]
-    [Display(Name = "Broj vozačke")]
-    public string? BrojVozacke { get; set; }
+    [Required(ErrorMessage = "Broj tablica je obavezan")]
+    [StringLength(20, ErrorMessage = "Broj tablica ne može biti duži od 20 karaktera")]
+    [RegularExpression(@"^[a-zA-Z0-9-]+$", ErrorMessage = "Broj tablica može sadržavati samo slova, brojeve i crtice")]
+    [Display(Name = "Broj tablica")]
+    public string BrojVozacke { get; set; } = string.Empty;
 }

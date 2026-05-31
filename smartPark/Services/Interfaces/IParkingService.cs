@@ -33,6 +33,7 @@ namespace smartPark.Services.Interfaces
             string menadzerId
         );
         Task<Parking?> MenadzerAzurirajParkingAsync(MenadzerParkingUrediViewModel model);
+        Task<bool> DaLiMenadzerUpravljaParkingomAsync(string menadzerId, int parkingId);
 
         Task<bool> ParkingPostojiAsync(int id);
         Task<bool> NazivParkingaPostojiAsync(string naziv, int? izuzmiId = null);

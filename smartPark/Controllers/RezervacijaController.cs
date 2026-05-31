@@ -92,6 +92,28 @@ public class RezervacijaController : Controller
     {
         var viewModel = await _rezervacijaService.DohvatiViewModelZaKreiranjeAsync();
 
+        // Attempt to load from session
+        var pendingJson = HttpContext.Session.GetString("PendingRezervacija");
+        if (!string.IsNullOrEmpty(pendingJson))
+        {
+            try
+            {
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var savedModel = JsonSerializer.Deserialize<RezervacijaKreirajViewModel>(pendingJson, options);
+                if (savedModel != null)
+                {
+                    viewModel.ParkingId = savedModel.ParkingId;
+                    viewModel.PocetakRezervacije = savedModel.PocetakRezervacije;
+                    viewModel.KrajRezervacije = savedModel.KrajRezervacije;
+                    viewModel.ParkingMjestoId = savedModel.ParkingMjestoId;
+                }
+            }
+            catch
+            {
+                // Ignore parse errors
+            }
+        }
+
         if (parkingId.HasValue)
         {
             viewModel.ParkingId = parkingId.Value;
@@ -122,6 +144,19 @@ public class RezervacijaController : Controller
 
         try
         {
+            var korisnik = await _userManager.GetUserAsync(User);
+            if (korisnik != null)
+            {
+                if (await _rezervacijaService.KorisnikImaAktivnuRezervacijuUPerioduAsync(korisnik.Id, model.PocetakRezervacije, model.KrajRezervacije))
+                {
+                    ModelState.AddModelError("", "Već imate aktivnu rezervaciju koja se preklapa sa ovim terminom.");
+                    model.DostupniParkinzi = (
+                        await _rezervacijaService.DohvatiViewModelZaKreiranjeAsync()
+                    ).DostupniParkinzi;
+                    return View(model);
+                }
+            }
+
             // Provjeri dostupnost PRIJE plaćanja
             if (model.ParkingMjestoId.HasValue)
             {
@@ -187,6 +222,13 @@ public class RezervacijaController : Controller
         if (pendingModel == null)
         {
             TempData["Greska"] = "Greška pri učitavanju rezervacije. Molimo počnite ispočetka.";
+            return RedirectToAction(nameof(Kreiraj));
+        }
+
+        var korisnik = await _userManager.GetUserAsync(User);
+        if (korisnik != null && await _rezervacijaService.KorisnikImaAktivnuRezervacijuUPerioduAsync(korisnik.Id, pendingModel.PocetakRezervacije, pendingModel.KrajRezervacije))
+        {
+            TempData["Greska"] = "Već imate aktivnu rezervaciju koja se preklapa sa ovim terminom.";
             return RedirectToAction(nameof(Kreiraj));
         }
 

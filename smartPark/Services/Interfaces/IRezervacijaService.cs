@@ -20,6 +20,7 @@ namespace smartPark.Services.Interfaces
 
         Task<IEnumerable<Rezervacija>> DohvatiRezervacijeKorisnikaAsync(string korisnikId);
         Task<RezervacijaListaViewModel> DohvatiMojeRezervacijeViewModelAsync(string korisnikId);
+        Task<bool> KorisnikImaAktivnuRezervacijuUPerioduAsync(string korisnikId, DateTime pocetak, DateTime kraj);
 
         Task<bool> ProvjeriDostupnostParkingaAsync(
             int parkingId,

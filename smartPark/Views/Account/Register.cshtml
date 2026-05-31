@@ -6,6 +6,9 @@
 
 <div class="min-h-[calc(100vh-3.5rem)] flex items-center justify-center p-4">
     <div class="bg-card rounded-lg shadow-lg border border-border p-8 w-full max-w-md">
+        <div class="flex justify-center mb-4">
+            <img src="~/LOGO.png" alt="SmartPark Logo" class="h-24" />
+        </div>
         <h1 class="text-2xl font-bold text-center mb-6 text-foreground">Registracija</h1>
         <form asp-action="Register" asp-controller="Korisnik" method="post" class="space-y-4">
             @Html.AntiForgeryToken()
@@ -26,13 +29,13 @@
 
             <div>
                 <label asp-for="Email" class="block text-sm font-medium text-foreground mb-1">Email</label>
-                <input asp-for="Email" type="email" required class="w-full px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" placeholder="email@example.com" />
+                <input asp-for="Email" type="email" required class="w-full px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" placeholder="primjer@gmail.com" />
                 <span asp-validation-for="Email" class="text-destructive text-xs"></span>
             </div>
 
             <div>
-                <label asp-for="BrojVozacke" class="block text-sm font-medium text-foreground mb-1">Broj vozačke (opcionalno)</label>
-                <input asp-for="BrojVozacke" class="w-full px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+                <label asp-for="BrojVozacke" class="block text-sm font-medium text-foreground mb-1">Broj tablica</label>
+                <input asp-for="BrojVozacke" required class="w-full px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
                 <span asp-validation-for="BrojVozacke" class="text-destructive text-xs"></span>
             </div>
 

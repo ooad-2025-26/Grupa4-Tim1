@@ -223,7 +223,7 @@ namespace smartPark.Services.Implementations
                 CijenaPoSatu = parking.CijenaPoSatu,
                 TipParkinga = parking.TipParkinga,
                 Aktivan = parking.Aktivan,
-                MenadzerId = parking.MenadzerID,
+                MenadzerId = !string.IsNullOrEmpty(parking.MenadzerID) ? parking.MenadzerID.Split(',')[0] : null,
                 DefaultniCjenovnikId = parking.DefaultniCjenovnikId,
                 DnevniCjenovnikId = parking.DnevniCjenovnikId,
                 NocniCjenovnikId = parking.NocniCjenovnikId,
@@ -312,7 +312,7 @@ namespace smartPark.Services.Implementations
                 TipParkinga = model.TipParkinga,
                 Aktivan = model.Aktivan,
                 DatumKreiranja = DateTime.Now,
-                MenadzerID = string.IsNullOrEmpty(model.MenadzerId) ? null : model.MenadzerId,
+                MenadzerID = model.MenadzerId,
                 RadnoVrijeme = model.RadnoVrijeme,
                 DefaultniCjenovnikId = model.DefaultniCjenovnikId,
                 DnevniCjenovnikId = model.DnevniCjenovnikId,
@@ -356,7 +356,7 @@ namespace smartPark.Services.Implementations
             parking.CijenaPoSatu = model.CijenaPoSatu;
             parking.TipParkinga = model.TipParkinga;
             parking.Aktivan = model.Aktivan;
-            parking.MenadzerID = string.IsNullOrEmpty(model.MenadzerId) ? null : model.MenadzerId;
+            parking.MenadzerID = model.MenadzerId;
             parking.RadnoVrijeme = model.RadnoVrijeme;
             parking.DefaultniCjenovnikId = model.DefaultniCjenovnikId;
             parking.DnevniCjenovnikId = model.DnevniCjenovnikId;
@@ -622,6 +622,11 @@ namespace smartPark.Services.Implementations
             await _parkingRepository.SacuvajPromjeneAsync();
 
             return parking;
+        }
+
+        public async Task<bool> DaLiMenadzerUpravljaParkingomAsync(string menadzerId, int parkingId)
+        {
+            return await _parkingRepository.DaLiMenadzerUpravljaParkingomAsync(menadzerId, parkingId);
         }
 
         public async Task<bool> ParkingPostojiAsync(int id)

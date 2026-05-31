@@ -51,6 +51,7 @@ jobs:
             -e Email__SmtpPort="${{ secrets.EMAIL_PORT }}" \
             -e Email__UseTls="true" \
             -e Email__UseSsl="false" \
+            -e TZ=Europe/Sarajevo \
             ${{ vars.DOCKERHUB_USERNAME }}/smartpark-mvc:latest
 
       - name: Provjeri deployment
